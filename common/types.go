@@ -415,18 +415,3 @@ type ReplicasComparison struct {
 	Description string
 	Err         error
 }
-
-type License struct {
-	Metadata LicenseMetadata `json:"metadata"`
-	Status   string          `json:"status"`
-}
-
-type LicenseMetadata struct {
-	Uuid              string      `json:"uuid"`
-	Version           string      `json:"version"`
-	Capacity          int64       `json:"capacity"`
-	ExpirationDate    string      `json:"expiration_date"`
-	LicenseType       string      `json:"license_type"`
-	Custom            interface{} `json:"custom"`
-	RemainingValidity string      `json:"remaining_validity"`
-}

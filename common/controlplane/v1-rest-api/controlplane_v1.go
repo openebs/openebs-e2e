@@ -118,7 +118,7 @@ func MakeCP() (CPv1RestApi, error) {
 	}
 
 	cp := CPv1RestApi{
-		oa: makeWrapper(addrs),
+		oa: MakeWrapper(addrs),
 	}
 	logf.Log.Info("Control Plane v1 - Rest API")
 	return cp, err

@@ -20,7 +20,7 @@ type OAClientWrapper struct {
 	clindex uint
 }
 
-func makeWrapper(nodeIPs []string) OAClientWrapper {
+func MakeWrapper(nodeIPs []string) OAClientWrapper {
 	if len(nodeIPs) == 0 {
 		panic(fmt.Errorf("unable to create any openapi clients nodes=%v", nodeIPs))
 	}
