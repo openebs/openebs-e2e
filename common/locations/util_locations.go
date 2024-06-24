@@ -70,12 +70,17 @@ func GetControlPlaneGeneratedYamlsDir() string {
 
 // GetE2EAgentPath return the path e2e-agent yaml file
 func GetE2EAgentPath() string {
-	return path.Clean(e2e_config.GetConfig().E2eRootDir + "/tools/e2e-agent")
+	return path.Clean(e2e_config.GetConfig().E2eRootDir + "/openebs-e2e/tools/e2e-agent")
 }
 
 // GetE2EProcyPath return the path e2e-proxy yaml file
 func GetE2EProxyPath() string {
-	return path.Clean(e2e_config.GetConfig().E2eRootDir + "/tools/e2e-proxy")
+	return path.Clean(e2e_config.GetConfig().E2eRootDir + "/openebs-e2e/tools/e2e-proxy")
+}
+
+// GetE2EServiceMonitorPath return the path e2e-agent yaml file
+func GetE2EServiceMonitorPath() string {
+	return path.Clean(e2e_config.GetConfig().E2eRootDir + "/openebs-e2e/configurations")
 }
 
 // GetE2EScriptsPath return the path e2e-agent yaml file

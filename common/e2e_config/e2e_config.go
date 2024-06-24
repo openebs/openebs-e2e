@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
+	"path/filepath"
+	"runtime"
 	"sync"
 
 	"gopkg.in/yaml.v3"
@@ -12,8 +13,12 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-const ConfigDir = "../../configurations"
-const PlatformConfigDir = "../../configurations/platforms/"
+// const ConfigDir = "../../configurations"
+// const PlatformConfigDir = "../../configurations/platforms/"
+var (
+	ConfigDir         = "../../configurations"
+	PlatformConfigDir = "../../configurations/platforms/"
+)
 
 type ConfigurationContext int
 
@@ -433,11 +438,6 @@ var once sync.Once
 var e2eConfig E2EConfig
 var configContext ConfigurationContext
 
-// var productConfigMap = map[string]*ProductSpec{
-// 	"mayastor":   &mayastorConfig,
-// 	"openebspro": &openebsProConfig,
-// }
-
 // SetContext set execution context to be an e2e ginkgo test run context
 // must be called before first invocation of GetConfig to be effective
 func SetContext(ctx ConfigurationContext) {
@@ -451,29 +451,29 @@ func GetConfig() E2EConfig {
 		var err error
 		var info os.FileInfo
 		e2eRootDir, haveE2ERootDir := os.LookupEnv("e2e_root_dir")
-		if !haveE2ERootDir && configContext == E2eTesting {
-			// try to work out the root directory of the mayastor-e2e repo so
-			// that configuration file loading will work
-			cwd, err := os.Getwd()
-			if err == nil {
-				comps := strings.Split(cwd, "/")
-				for ix, comp := range comps {
-					// Expect mayastor-e2e/src/...
-					if comp == "mayastor-e2e" && len(comps[ix:]) > 2 && comps[ix+1] == "src" {
-						candidate := path.Clean("/" + strings.Join(comps[:ix+1], "/"))
-						info, err = os.Stat(candidate)
-						if err == nil && info.IsDir() {
-							_, _ = fmt.Fprintf(os.Stderr, "Setting e2eRootDir to %v\n", candidate)
-							e2eRootDir = candidate
-							haveE2ERootDir = true
-							break
-						} else {
-							_, _ = fmt.Fprintf(os.Stderr, "Unable to stat path %v error:%v\n", candidate, err)
-						}
-					}
-				}
-			}
-		}
+		// if !haveE2ERootDir && configContext == E2eTesting {
+		// 	// try to work out the root directory of the mayastor-e2e repo so
+		// 	// that configuration file loading will work
+		// 	cwd, err := os.Getwd()
+		// 	if err == nil {
+		// 		comps := strings.Split(cwd, "/")
+		// 		for ix, comp := range comps {
+		// 			// Expect mayastor-e2e/src/...
+		// 			if comp == "mayastor-e2e" && len(comps[ix:]) > 2 && comps[ix+1] == "src" {
+		// 				candidate := path.Clean("/" + strings.Join(comps[:ix+1], "/"))
+		// 				info, err = os.Stat(candidate)
+		// 				if err == nil && info.IsDir() {
+		// 					_, _ = fmt.Fprintf(os.Stderr, "Setting e2eRootDir to %v\n", candidate)
+		// 					e2eRootDir = candidate
+		// 					haveE2ERootDir = true
+		// 					break
+		// 				} else {
+		// 					_, _ = fmt.Fprintf(os.Stderr, "Unable to stat path %v error:%v\n", candidate, err)
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// }
 
 		// Initialise the configuration
 		_ = cleanenv.ReadEnv(&e2eConfig)
@@ -500,10 +500,18 @@ func GetConfig() E2EConfig {
 				_, _ = fmt.Fprintln(os.Stderr, "	Use environment variable \"e2e_config_file\" to specify configuration file.")
 			}
 		} else {
+			// Get the directory of the current file
+			_, currentFile, _, ok := runtime.Caller(0)
+			if !ok {
+				panic("Unable to get the directory of the current file")
+			}
+			currentDir := filepath.Dir(currentFile)
+			configFileDir := filepath.Join(currentDir, ConfigDir)
+
 			var configFile string = path.Clean(e2eConfig.ConfigPaths.ConfigFile)
 			info, err = os.Stat(configFile)
 			if os.IsNotExist(err) {
-				configFile = path.Clean(ConfigDir + "/" + e2eConfig.ConfigPaths.ConfigFile)
+				configFile = path.Clean(configFileDir + "/" + e2eConfig.ConfigPaths.ConfigFile)
 				info, err = os.Stat(configFile)
 				if err != nil {
 					panic(fmt.Sprintf("Unable to access configuration file %v", configFile))
@@ -526,10 +534,17 @@ func GetConfig() E2EConfig {
 				_, _ = fmt.Fprintln(os.Stderr, "	Use environment variable \"e2e_platform_config_file\" to specify platform configuration.")
 			}
 		} else {
+			// Get the directory of the current file
+			_, currentFile, _, ok := runtime.Caller(0)
+			if !ok {
+				panic("Unable to get the directory of the current file")
+			}
+			currentDir := filepath.Dir(currentFile)
+			platformConfigFileDir := filepath.Join(currentDir, PlatformConfigDir)
 			var platformCfg string = path.Clean(e2eConfig.ConfigPaths.PlatformConfigFile)
 			info, err = os.Stat(platformCfg)
 			if os.IsNotExist(err) {
-				platformCfg = path.Clean(PlatformConfigDir + e2eConfig.ConfigPaths.PlatformConfigFile)
+				platformCfg = path.Clean(platformConfigFileDir + "/" + e2eConfig.ConfigPaths.PlatformConfigFile)
 				info, err = os.Stat(platformCfg)
 				if err != nil {
 					panic(fmt.Sprintf("Unable to access platform configuration file %v", platformCfg))
