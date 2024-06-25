@@ -41,7 +41,7 @@ spec:
           securityContext:
             privileged: true
             allowPrivilegeEscalation: true
-          image: ci-registry.mayastor-ci.mayadata.io/mayadata/e2e-agent:v2.7.0
+          image: openebs/e2e-agent:v2.7.0
           imagePullPolicy: Always
           volumeMounts:
             - name: host-root

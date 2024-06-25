@@ -188,7 +188,7 @@ func (mongo *MongoApp) MongoInstallReady() error {
 }
 
 const (
-	ycsbImage               = "ci-registry.mayastor-ci.mayadata.io/mayadata/e2e-ycsb:v1.0.0"
+	ycsbImage               = "openebs/e2e-ycsb:v1.0.0"
 	appWorkdir              = "/app/ycsb"
 	defaultThreadCount      = 8
 	defaultRecordCount      = 5_000

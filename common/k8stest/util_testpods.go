@@ -936,46 +936,6 @@ func MakeFioContainer(name string, args []string) coreV1.Container {
 	}
 }
 
-// MakeFsxContainer returns a container object setup to use e2e-fsx and run fsx with appropriate permissions.
-// Privileged: True, AllowPrivilegeEscalation: True, RunAsUser root
-func MakeFsxContainer(name string, args []string) coreV1.Container {
-	var z64 int64 = 0
-	var vTrue bool = true
-
-	sc := coreV1.SecurityContext{
-		Privileged:               &vTrue,
-		RunAsUser:                &z64,
-		AllowPrivilegeEscalation: &vTrue,
-	}
-	return coreV1.Container{
-		Name:            name,
-		Image:           common.GetFsxImage(),
-		ImagePullPolicy: coreV1.PullIfNotPresent,
-		Args:            args,
-		SecurityContext: &sc,
-	}
-}
-
-// MakeXFSTestsContainer returns a container object setup to use e2e-xfstests and run xfstests with appropriate permissions.
-// Privileged: True, AllowPrivilegeEscalation: True, RunAsUser root
-func MakeXFSTestContainer(name string, args []string) coreV1.Container {
-	var z64 int64 = 0
-	var vTrue bool = true
-
-	sc := coreV1.SecurityContext{
-		Privileged:               &vTrue,
-		RunAsUser:                &z64,
-		AllowPrivilegeEscalation: &vTrue,
-	}
-	return coreV1.Container{
-		Name:            name,
-		Image:           common.GetXFSTestsImage(),
-		ImagePullPolicy: coreV1.PullIfNotPresent,
-		Args:            args,
-		SecurityContext: &sc,
-	}
-}
-
 func fioPodBuilder(podName string, volName string, volType common.VolumeType, args []string) *PodBuilder {
 	// fio pod container
 	podContainer := MakeFioContainer(podName, args)
@@ -1025,73 +985,6 @@ func CreateFioPodWithNodeSelector(podName string, volName string, volType common
 	_, err = CreatePod(podObj, common.NSDefault)
 
 	return err
-}
-
-// MakeDisktestContainer returns a container object setup to use disktest and run disktest with appropriate permissions.
-// Privileged: True, AllowPrivilegeEscalation: True, RunAsUser root,
-// parameters:
-//
-//	name - name of the container (usually the pod name)
-//	args - container arguments, if empty the defaults to "sleep", "1000000"
-func MakeDisktestContainer(name string, args []string) coreV1.Container {
-	containerArgs := []string{"DiskTest"}
-	if len(args) == 0 {
-		containerArgs = []string{"sleep", "1000000"}
-	} else {
-		containerArgs = append(containerArgs, args...)
-	}
-	var z64 int64 = 0
-	var vTrue bool = true
-
-	sc := coreV1.SecurityContext{
-		Privileged:               &vTrue,
-		RunAsUser:                &z64,
-		AllowPrivilegeEscalation: &vTrue,
-	}
-	return coreV1.Container{
-		Name:            name,
-		Image:           common.GetDisktestImage(),
-		ImagePullPolicy: coreV1.PullIfNotPresent,
-		Args:            containerArgs,
-		SecurityContext: &sc,
-	}
-}
-
-// RunDisktest run DiskTest using kubectl and return output and err
-// command line generated is like this
-//
-//	Disktest devicepath [args] duration
-func RunDisktest(podName string, duration int, devicepath string, args ...string) ([]byte, error) {
-	logf.Log.Info("RunDisktest",
-		"podName", podName,
-		"duration", duration,
-		"devicepath", devicepath,
-		"args", args)
-
-	cmdArgs := []string{
-		"exec",
-		"-it",
-		podName,
-		"--",
-		"DiskTest",
-		devicepath,
-	}
-
-	if args != nil {
-		cmdArgs = append(cmdArgs, args...)
-	}
-	cmdArgs = append(cmdArgs, fmt.Sprintf("%d", duration))
-
-	cmd := exec.Command(
-		"kubectl",
-		cmdArgs...,
-	)
-	cmd.Dir = ""
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		logf.Log.Info("Running fio failed", "error", err)
-	}
-	return output, err
 }
 
 // DeleteMayastorPodOnNode deletes mayastor pods on a node with names matching the prefix

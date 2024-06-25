@@ -160,10 +160,7 @@ type E2EConfig struct {
 	ImagePullPolicy              string `yaml:"imagePullPolicy" env-default:"IfNotPresent" env:"e2e_image_pull_policy"`
 	InstallLoki                  bool   `yaml:"installLoki" env-default:"true" env:"install_loki"`
 	LokiStatefulsetOnControlNode bool   `yaml:"lokiOnControlNode" env-default:"true" env:"loki_on_control_node"`
-	E2eFioImage                  string `yaml:"e2eFioImage" env-default:"mayadata/e2e-fio:v3.36-e2e-8" env:"e2e_fio_image"`
-	E2eDisktestImage             string `yaml:"e2eDisktestImage" env-default:"mayadata/disktest:latest" env:"disktest_image"`
-	E2eFsxImage                  string `yaml:"e2eFsxImage" env-default:"mayadata/e2e-fsx" env:"e2e_fsx_image:v1.0.0"`
-	E2eXFSTestsImage             string `yaml:"e2eXFSTestsImage" env-default:"mayadata/e2e-xfstests" env:"e2e_xfstests_image"`
+	E2eFioImage                  string `yaml:"e2eFioImage" env-default:"openebs/e2e-fio:v3.36-e2e-8" env:"e2e_fio_image"`
 	SetSafeMountAlways           bool   `yaml:"setSafeMountAlways" env-default:"false" env:"safe_mount_always"`
 	// This is an advisory setting for individual tests
 	// If set to true - typically during test development - tests with multiple 'It' clauses should defer asserts till after

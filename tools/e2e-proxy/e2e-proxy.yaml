@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: e2e-proxy
-        image: ci-registry.mayastor-ci.mayadata.io/mayadata/e2e-proxy
+        image: openebs/e2e-proxy
         imagePullPolicy: Always
         ports:
           - containerPort: 8080

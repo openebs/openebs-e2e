@@ -9,10 +9,7 @@ import (
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 )
 
-// FIXME: for now hard code the tools CI registry
-const tools_CI_REGISTRY = "ci-registry.mayastor-ci.mayadata.io"
-
-// NSMayastor return the name of the namespace in which Mayastor/Openebspro is installed
+// NSMayastor return the name of the namespace in which Mayastor is installed
 func NSMayastor() string {
 	return e2e_config.GetConfig().Product.ProductNamespace
 }
@@ -47,19 +44,7 @@ func GetDefaultFioArguments() []string {
 }
 
 func GetFioImage() string {
-	return fmt.Sprintf("%s/%s", tools_CI_REGISTRY, e2e_config.GetConfig().E2eFioImage)
-}
-
-func GetFsxImage() string {
-	return fmt.Sprintf("%s/%s", tools_CI_REGISTRY, e2e_config.GetConfig().E2eFsxImage)
-}
-
-func GetXFSTestsImage() string {
-	return fmt.Sprintf("%s/%s", tools_CI_REGISTRY, e2e_config.GetConfig().E2eXFSTestsImage)
-}
-
-func GetDisktestImage() string {
-	return fmt.Sprintf("%s/%s", tools_CI_REGISTRY, e2e_config.GetConfig().E2eDisktestImage)
+	return e2e_config.GetConfig().E2eFioImage
 }
 
 func DefaultReplicaCount() int {
