@@ -155,7 +155,7 @@ type E2EConfig struct {
 	// Operational parameters
 	Cores int `yaml:"cores,omitempty"`
 	// Registry from where mayastor images are retrieved
-	DockerCache                  string `yaml:"dockercache" env:"e2e_docker_cache" env-default:"ci-docker-cache.mayastor-ci.mayadata.io"`
+	DockerCache                  string `yaml:"dockercache" env:"e2e_docker_cache" env-default:""`
 	ImageTag                     string `yaml:"imageTag" env:"e2e_image_tag"`
 	ImagePullPolicy              string `yaml:"imagePullPolicy" env-default:"IfNotPresent" env:"e2e_image_pull_policy"`
 	InstallLoki                  bool   `yaml:"installLoki" env-default:"true" env:"install_loki"`
