@@ -128,11 +128,11 @@ func retryBackoffOnUnavailable(f func() (err error)) {
 	if !isRetryErr(f()) {
 		return
 	}
-	timeout := 1 * time.Second
+	timeout := 5 * time.Second
 	for i := 0; i < 6; i++ {
 		logf.Log.Info("retrying gRPC call", "after", timeout)
 		time.Sleep(timeout)
-		timeout += timeout
+		timeout *= 2
 		if !isRetryErr(f()) {
 			return
 		}
