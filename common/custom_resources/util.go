@@ -13,7 +13,6 @@ import (
 	apiExtV1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	crtypes "github.com/openebs/openebs-e2e/common/custom_resources/types"
-	//	v1alpha1Ifc "mayastor-e2e/common/custom_resources/v1alpha1"
 	v1alpha1ExtIfc "github.com/openebs/openebs-e2e/common/custom_resources/v1alpha1Ext"
 	v1beta1Ifc "github.com/openebs/openebs-e2e/common/custom_resources/v1beta1"
 	v1beta2Ifc "github.com/openebs/openebs-e2e/common/custom_resources/v1beta2"

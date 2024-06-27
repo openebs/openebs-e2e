@@ -274,10 +274,11 @@ func RemoveFailedSnapshot(snapshotName string, snapshotContentName string, names
 	var annotations map[string]string
 	for ix := 0; ix < DefTimeoutSecs/timoSleepSecs; ix++ {
 		annotations, err = k8stest.GetSnapshotContentAnnotation(snapshotContentName)
-		if len(annotations) == 2 {
+		if len(annotations) > 1 {
 			break
 		}
 		time.Sleep(timoSleepSecs * time.Second)
+		logf.Log.Info("RemoveFailedSnapshot", "annotations", annotations)
 	}
 	if err != nil {
 		return err

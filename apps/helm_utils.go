@@ -32,7 +32,7 @@ func InstallHelmChart(helmChart, version, namespace, releaseName string, values 
 	// Execute the command.
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to install MongoDB with Helm: %v\n%s", err, output)
+		return fmt.Errorf("failed to install %s with Helm: %v\n%s", releaseName, err, output)
 	}
 	return nil
 }

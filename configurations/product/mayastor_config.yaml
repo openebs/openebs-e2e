@@ -106,3 +106,4 @@ product:
       2.6.0: "openebs.io/v1beta2"
     chartName: "mayastor/mayastor"
     chartVersion: "0.0.0-main"
+    localPVContainerName: "mayastor-localpv-provisioner"

@@ -5,11 +5,9 @@ package locations
 
 import (
 	"fmt"
-	"path"
+	"os"
 	"path/filepath"
 	"runtime"
-
-	"github.com/openebs/openebs-e2e/common/e2e_config"
 )
 
 // GetE2EAgentPath return the path e2e-agent yaml file
@@ -29,7 +27,7 @@ func GetE2EServiceMonitorPath() string {
 
 // GetE2EScriptsPath return the path e2e-agent yaml file
 func GetE2EScriptsPath() string {
-	return path.Clean(e2e_config.GetConfig().E2eRootDir + "/scripts")
+	return GetAbsolutePath("../../scripts")
 }
 
 func GetAbsolutePath(relativePath string) string {
@@ -56,6 +54,18 @@ func GetAbsolutePath(relativePath string) string {
 		panic("Error converting to absolute path")
 	}
 	fmt.Println("Absolute Path:", absConfigFile)
+	path, err := locationExists(absConfigFile)
+	if err != nil {
+		fmt.Println("directory not found", err)
+		panic("Error: directory not found")
+	}
+	return path
+}
 
-	return absConfigFile
+func locationExists(path string) (string, error) {
+	_, err := os.Stat(path)
+	if err != nil {
+		return "", err
+	}
+	return path, nil
 }

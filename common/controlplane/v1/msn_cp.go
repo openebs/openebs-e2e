@@ -152,7 +152,7 @@ func (cp CPv1) UpdateNodeLabel(nodeName string, labelKey, labelValue string) err
 	cmd := exec.Command(pluginPath, args...)
 
 	// Print the command that will be executed
-	fmt.Println("Executing command:", strings.Join(cmd.Args, " "))
+	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
 
 	if err := cmd.Run(); err != nil {
 		// Print the error message if the command fails

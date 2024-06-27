@@ -108,6 +108,7 @@ type ProductSpec struct {
 	DiskPoolAPIVersionMap            map[string]string `yaml:"diskPoolAPIVersionMap"`
 	ChartName                        string            `yaml:"chartName"`
 	ChartVersion                     string            `yaml:"chartVersion" env-default:"0.0.0-main"`
+	LocalPVContainerName             string            `yaml:"localPVContainerName" env-default:"mayastor-localpv-provisioner"`
 }
 
 // E2EConfig is an application configuration structure
@@ -448,29 +449,6 @@ func GetConfig() E2EConfig {
 		var err error
 		var info os.FileInfo
 		e2eRootDir, haveE2ERootDir := os.LookupEnv("e2e_root_dir")
-		// if !haveE2ERootDir && configContext == E2eTesting {
-		// 	// try to work out the root directory of the mayastor-e2e repo so
-		// 	// that configuration file loading will work
-		// 	cwd, err := os.Getwd()
-		// 	if err == nil {
-		// 		comps := strings.Split(cwd, "/")
-		// 		for ix, comp := range comps {
-		// 			// Expect mayastor-e2e/src/...
-		// 			if comp == "mayastor-e2e" && len(comps[ix:]) > 2 && comps[ix+1] == "src" {
-		// 				candidate := path.Clean("/" + strings.Join(comps[:ix+1], "/"))
-		// 				info, err = os.Stat(candidate)
-		// 				if err == nil && info.IsDir() {
-		// 					_, _ = fmt.Fprintf(os.Stderr, "Setting e2eRootDir to %v\n", candidate)
-		// 					e2eRootDir = candidate
-		// 					haveE2ERootDir = true
-		// 					break
-		// 				} else {
-		// 					_, _ = fmt.Fprintf(os.Stderr, "Unable to stat path %v error:%v\n", candidate, err)
-		// 				}
-		// 			}
-		// 		}
-		// 	}
-		// }
 
 		// Initialise the configuration
 		_ = cleanenv.ReadEnv(&e2eConfig)
@@ -565,8 +543,7 @@ func GetConfig() E2EConfig {
 		} else {
 			var productCfg string = path.Clean(e2eConfig.ConfigPaths.ProductConfigFile)
 			info, err = os.Stat(productCfg)
-			if os.IsNotExist(err) && haveE2ERootDir {
-				// productCfg = path.Clean("/Users/rohankumar/mayadata/mayastor-e2e-test/openebs-e2e" + PlatformConfigDir + e2eConfig.ConfigPaths.PlatformConfigFile)
+			if os.IsNotExist(err) {
 				productCfg = path.Clean(e2eConfig.ConfigPaths.ProductConfigFile)
 				info, err = os.Stat(productCfg)
 				if err != nil {
@@ -583,15 +560,6 @@ func GetConfig() E2EConfig {
 				panic(fmt.Sprintf("%v", err))
 			}
 		}
-
-		// if product := os.Getenv("e2e_product"); product != "" {
-		// 	if _, exists := productConfigMap[product]; !exists {
-		// 		panic(fmt.Errorf(`unknown product "%s"`, product))
-		// 	}
-		// 	e2eConfig.Product = *productConfigMap[product]
-		// } else {
-		// 	panic(fmt.Errorf(`required environment variable "e2e_product"`))
-		// }
 
 		// MayastorRootDir is either set from the environment variable
 		// e2e_mayastor_root_dir or is set in the configuration file.

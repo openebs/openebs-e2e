@@ -38,8 +38,8 @@ const (
 	UpgradeJobCompeletionTimeOutSecs = 1800 // in seconds
 	DefRebuildTimeoutSecs            = 600  // in seconds
 	sleepTime                        = 3    // in seconds
-	FioRunTime                       = 1800 // in seconds
-	toLocalpvProvisionerImage        = "3.5.0"
+	// FioRunTime                       = 1800 // in seconds
+	toLocalpvProvisionerImage = "3.5.0"
 )
 
 // DisablePartialRebuildUpgradeVersions contains list of product
@@ -48,8 +48,8 @@ var DisablePartialRebuildUpgradeVersions = []string{
 	"2.2.0", "2.3.0", "2.4.0", "2.5.0",
 }
 
-// here for no of loops we set default value as 10 and
-// volsize as 4096. Now accroding to VolSizeMb in tests loops can be
+// NoOfFioRunLoops here for no of loops we set default value as 10 and
+// volume size as 4096. Now according to VolSizeMb in tests loops can be
 // configured. For e.g. in upgrade tests we have 8192Mb size of volume
 // then no of loops will become 5. Same way for lesser volume, no of loops will increase.
 var NoOfFioRunLoops = CalculateNoOfFioRunLoops(VolSizeMb)
@@ -95,6 +95,7 @@ type TestApp struct {
 }
 
 func AreContainerImagesUpgraded(podList *coreV1.PodList, toUpgradeImageTag, dockerImageOrgName string) (bool, error) {
+	var localPVContainerName = e2e_config.GetConfig().Product.LocalPVContainerName
 	for _, pod := range podList.Items {
 		for _, container := range pod.Spec.Containers {
 			if strings.Contains(container.Image, dockerImageOrgName) {
@@ -104,7 +105,7 @@ func AreContainerImagesUpgraded(podList *coreV1.PodList, toUpgradeImageTag, dock
 				}
 				logf.Log.Info("Container images are", "container name: ", container.Name, " container image: ", container.Image)
 
-				if container.Name != "mayastor-localpv-provisioner" {
+				if container.Name != localPVContainerName {
 					if !strings.Contains(imageTag[len(imageTag)-1], toUpgradeImageTag) {
 						return false, nil
 					}
@@ -312,7 +313,7 @@ func PostUpgradeWaitForRebuildCompletion(volUuid string) error {
 	return nil
 }
 
-// CheckIfUpgradingToUstableBranch checks the plugin version
+// CheckIfUpgradingToUnstableBranch checks the plugin version
 // and then verifies if plugin version matches with the regex for
 // unstable tag. if it matches then plugin will start upgrade to
 // unstable tag with --allow-unstable flag. otherwise it will proceed
@@ -457,4 +458,71 @@ func IsPartialRebuildDisableNeeded(appVersion string) bool {
 		}
 	}
 	return false
+}
+
+func getTagFromContainerImageName(imageName string) (*string, error) {
+	components := strings.Split(imageName, ":")
+	if len(components) != 2 {
+		return nil, fmt.Errorf("image does not match expected format <name>:<tag>")
+	}
+	return &components[1], nil
+}
+
+func getContainerImageTags(podList *coreV1.PodList, dockerImageOrgName string) ([]string, error) {
+	var localPVContainerName = e2e_config.GetConfig().Product.LocalPVContainerName
+	var tags []string
+	for _, pod := range podList.Items {
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Image, dockerImageOrgName) && container.Name != localPVContainerName {
+				logf.Log.Info("Container images are", "container name: ", container.Name, " container image: ", container.Image)
+				imageTag, err := getTagFromContainerImageName(container.Image)
+				if err != nil {
+					return nil, err
+				}
+				tags = append(tags, *imageTag)
+			}
+		}
+	}
+	return tags, nil
+}
+
+// GetControlPlaneTags return the set of image tags for control plane components
+func GetControlPlaneTags(dockerImageOrgName string) ([]string, error) {
+	controlPlanePodList, _, err := k8stest.ListControlAndDataPlanePods()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list control plane pods in namespace: %s, err: %v", common.NSMayastor(), err)
+	}
+	return getContainerImageTags(controlPlanePodList, dockerImageOrgName)
+}
+
+func areContainerImageTagsNot(podList *coreV1.PodList, tag, dockerImageOrgName string) (bool, error) {
+	var localPVContainerName = e2e_config.GetConfig().Product.LocalPVContainerName
+	for _, pod := range podList.Items {
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Image, dockerImageOrgName) && container.Name != localPVContainerName {
+				logf.Log.Info("Container images are", "container name: ", container.Name, " container image: ", container.Image)
+				imageTag, err := getTagFromContainerImageName(container.Image)
+				if err != nil {
+					return false, err
+				}
+
+				if *imageTag == tag {
+					logf.Log.Info("", "pod.Name", pod.Name, "container.Name", container.Name, "container.Image", container.Image, "imageTag", imageTag)
+					return false, nil
+				}
+			}
+		}
+	}
+	return true, nil
+}
+
+// IsControlPlaneUpgradedUnstable return if control plane is upgraded to unstable version
+// unstable builds have different image tags so reverse the checking logic,
+// namely all control plane container image tags are no longer the version being upgraded from.
+func IsControlPlaneUpgradedUnstable(fromUpgradeImageTag, dockerImageOrgName string) (bool, error) {
+	controlPlanePodList, _, err := k8stest.ListControlAndDataPlanePods()
+	if err != nil {
+		return false, fmt.Errorf("failed to list control plane pods in namespace: %s, err: %v", common.NSMayastor(), err)
+	}
+	return areContainerImageTagsNot(controlPlanePodList, fromUpgradeImageTag, dockerImageOrgName)
 }

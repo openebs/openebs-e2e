@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/openebs/openebs-e2e/common"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type upgradeFlags string
@@ -49,7 +50,7 @@ func (cp CPv1) Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeede
 	cmd := exec.Command(kubectlPlugin, cmdArgs...)
 
 	// Print the command that will be executed
-	fmt.Println("Executing command:", strings.Join(cmd.Args, " "))
+	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
 
 	// Capture standard error output
 	var stderr bytes.Buffer
@@ -58,6 +59,7 @@ func (cp CPv1) Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeede
 	// Run the command
 	err := cmd.Run()
 	if err != nil {
+		logf.Log.Info(stderr.String())
 		return stderr.String(), fmt.Errorf("plugin failed to upgrade, err:%v", err)
 	}
 	return stderr.String(), nil
@@ -94,7 +96,7 @@ func (cp CPv1) UpgradeWithSkipDataPlaneRestart(isUpgradingToUnstableBranch, isPa
 	cmd := exec.Command(kubectlPlugin, cmdArgs...)
 
 	// Print the command that will be executed
-	fmt.Println("Executing command:", strings.Join(cmd.Args, " "))
+	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
 
 	_, err := cmd.Output()
 
@@ -133,7 +135,7 @@ func (cp CPv1) UpgradeWithSkipSingleReplicaValidation(isUpgradingToUnstableBranc
 	cmd := exec.Command(kubectlPlugin, cmdArgs...)
 
 	// Print the command that will be executed
-	fmt.Println("Executing command:", strings.Join(cmd.Args, " "))
+	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
 
 	_, err := cmd.Output()
 
@@ -171,7 +173,7 @@ func (cp CPv1) UpgradeWithSkipReplicaRebuild(isUpgradingToUnstableBranch, isPart
 	cmd := exec.Command(kubectlPlugin, cmdArgs...)
 
 	// Print the command that will be executed
-	fmt.Println("Executing command:", strings.Join(cmd.Args, " "))
+	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
 
 	_, err := cmd.Output()
 
@@ -209,7 +211,7 @@ func (cp CPv1) UpgradeWithSkipCordonNodeValidation(isUpgradingToUnstableBranch, 
 	cmd := exec.Command(kubectlPlugin, cmdArgs...)
 
 	// Print the command that will be executed
-	fmt.Println("Executing command:", strings.Join(cmd.Args, " "))
+	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
 
 	_, err := cmd.Output()
 
