@@ -48,7 +48,4 @@ const ScMaxSnapshots = "maxSnapshots"
 
 const FsxBlockFileName = "/dev/sdm"
 
-// Pool license error text
-const PoolLicenseFailureEventText = "Valid license required"
-
 const StrFioCriticalFailure = "fio Critical Failure"

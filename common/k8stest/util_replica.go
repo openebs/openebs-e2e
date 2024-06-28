@@ -225,8 +225,7 @@ func getNvmeDevice(initiatorIP string, maxRetries int, targetNqn string) (bool, 
 					for _, deviceData := range list["Devices"] {
 						devicePath = deviceData.DevicePath
 						// For mayastor the ModelNumber would be Mayastor NVMe controller
-						// For openebspro the ModelNumber would be Mayastor-Pro NVMe controller
-						// check if the device listed is mayastor/openebspro nvme controlled device
+						// check if the device listed is mayastor nvme controlled device
 						if deviceData.ModelNumber != nvmeControllerModel {
 							continue
 						}
@@ -520,8 +519,7 @@ func FsFreezeReplica(nodeName string) (string, error) {
 	var nvmeDevice string
 	for _, deviceData := range list["Devices"] {
 		// For mayastor the ModelNumber would be Mayastor NVMe controller
-		// For openebspro the ModelNumber would be Mayastor-Pro NVMe controller
-		// check if the device listed is mayastor/openebspro nvme controlled device
+		// check if the device listed is mayastor nvme controlled device
 		if deviceData.ModelNumber != nvmeControllerModel {
 			continue
 		}
@@ -566,8 +564,7 @@ func FsUnfreezeReplica(nodeName string) (string, error) {
 	var nvmeDevice string
 	for _, deviceData := range list["Devices"] {
 		// For mayastor the ModelNumber would be Mayastor NVMe controller
-		// For openebspro the ModelNumber would be Mayastor-Pro NVMe controller
-		// check if the device listed is mayastor/openebspro nvme controlled device
+		// check if the device listed is mayastor nvme controlled device
 		if deviceData.ModelNumber != nvmeControllerModel {
 			continue
 		}

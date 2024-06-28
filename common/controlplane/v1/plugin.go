@@ -6,12 +6,6 @@ import (
 	"strings"
 
 	"github.com/openebs/openebs-e2e/common/e2e_config"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-)
-
-const (
-	LicenseNotFoundErrOutput = "No license installed"
-	LicenseErrOutput         = "Error"
 )
 
 func GetPluginPath() string {
@@ -65,21 +59,4 @@ func CheckPluginError(jsonInput []byte, err error) error {
 		return fmt.Errorf("%s", string(jsonInput))
 	}
 	return err
-}
-
-func CheckPluginLicenseError(jsonInput []byte, err error) error {
-	// json error output trumps, error input
-	if strings.Contains(string(jsonInput), LicenseErrOutput) {
-		return fmt.Errorf("%s", string(jsonInput))
-	}
-	return err
-}
-
-// Not currently used but might still be useful when testing non-json output
-func CheckPluginLicenseNotFoundError(jsonInput []byte) bool {
-	if strings.Contains(string(jsonInput), LicenseNotFoundErrOutput) {
-		logf.Log.Info("No license found")
-		return true
-	}
-	return false
 }

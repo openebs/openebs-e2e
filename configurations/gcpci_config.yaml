@@ -13,9 +13,6 @@ basicVolumeIO:
 ciSmokeTest:
   # 300 * 1.5
     fioTimeout: 450
-License:
-  # 90 * 1.5
-    fioTimeout: 135
 multiVolumesPodIO:
   # 1800s * 1.5
     timeout: 2700s

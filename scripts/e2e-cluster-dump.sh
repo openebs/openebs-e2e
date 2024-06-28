@@ -66,8 +66,6 @@ function cluster-get {
         $pluginPath -n mayastor get nodes
         echo "-- Snapshot ----------"
         $pluginPath -n mayastor get volume-snapshots
-        echo "-- License ----------"
-        $pluginPath -n mayastor get license
     fi
 
 }
@@ -116,8 +114,6 @@ function cluster-describe {
         $pluginPath -n mayastor get nodes -o yaml
         echo "-- Snapshot ----------"
         $pluginPath -n mayastor get volume-snapshots -o yaml
-        echo "-- License ----------"
-        $pluginPath -n mayastor get license -o yaml
     fi
 }
 

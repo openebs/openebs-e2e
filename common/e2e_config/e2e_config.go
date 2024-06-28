@@ -56,13 +56,12 @@ type ProductSpec struct {
 	EventBusNatsSts                  string            `yaml:"eventBusNatsSts" env-default:"mayastor-nats"`
 	HaNodeAgentDs                    string            `yaml:"haNodeAgentDs" env-default:"mayastor-agent-ha-node"`
 	HaNodeAgentPodPrefix             string            `yaml:"haNodeAgentPodPrefix" env-default:"mayastor-agent-ha-node"`
-	HelmReleaseName                  string            `yaml:"helmReleaseName" env-default:"openebspro"`
+	HelmReleaseName                  string            `yaml:"helmReleaseName" env-default:"mayastor"`
 	IOEnginePodLabelValue            string            `yaml:"ioEnginePodLabelValue" env-default:"io-engine"`
 	IOEnginePodName                  string            `yaml:"ioEnginePodName" env-default:"mayastor"`
 	JaegersCrdName                   string            `yaml:"jaegersCrdName" env-default:"jaegers.jaegertracing.io"`
 	KubectlPluginName                string            `yaml:"kubectlPluginName" env-default:"kubectl-mayastor"`
 	KubectlPluginPort                int               `yaml:"kubectlPluginPort" env-default:"30011"`
-	LicenseDeploymentName            string            `yaml:"licenseDeploymentName" env-default:"mayastor-agent-license"`
 	LogConfigResources               []string          `yaml:"LogConfigResources"`
 	LogDumpCsiAttacherName           string            `yaml:"logDumpCsiAttacherName" env-default:"csi-attacher"`
 	LogDumpCsiDriverRegistrarName    string            `yaml:"logDumpCsiDriverRegistrarName" env-default:"csi-driver-registrar"`
@@ -406,8 +405,6 @@ type E2EConfig struct {
 	} `yaml:"scIscsiValidation"`
 	CommunicationDisruption struct {
 		SleepTimeInSec int `yaml:"sleepTimeInSec" env-default:"120"`
-		// FIXME Add the below configuration parameter to test other openebspro components
-		// MayastorComponent string `yaml:"mayastorComponent" env-default:"core-agents"`
 	} `yaml:"communicationDisruption"`
 	XFSTests struct {
 		VolMb             int    `yaml:"volMb" env-default:"4608"`

@@ -41,7 +41,6 @@ product:
       - "mayastor-agent-ha-node"
       - "mayastor-csi-controller"
       - "mayastor-csi-node"
-      - "mayastor-agent-license"
       - "mayastor-operator-diskpool"
       - "mayastor-api-rest"
       - "mayastor-localpv-provisioner"
@@ -91,9 +90,6 @@ product:
     statsPort: "9090"
     statsService: "mayastor-obs-callhome-stats"
     upgradePodLabelValue: "upgrade"
-    licenseJenkinsUrl: "undefined"
-    licenseJenkinsJobName: "undefined"
-    licenseBranchToBuild: "undefined"
     diskPoolAPIVersionMap:
       develop: "openebs.io/v1beta2"
       2.0.0: "openebs.io/v1alpha1"

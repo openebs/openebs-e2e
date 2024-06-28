@@ -29,7 +29,6 @@ import (
 const (
 	defTimeoutSecs           = 360
 	insufficientStorageEvent = "error in response: status code '507 Insufficient Storage'"
-	licencedCapacityError    = "Insufficient licensed capacity to perform operation"
 )
 
 // IsPVCDeleted Check for a deleted Persistent Volume Claim,
@@ -367,45 +366,6 @@ func VerifyPvcCreateAndFail(
 		return fmt.Errorf("timed out waiting for failure event")
 	}
 	return err
-}
-
-// Attempt to create a PV, but expect it to fail
-func PVCCreateAndFailNoLicense(
-	volSizeMb int,
-	volName string,
-	scName string,
-	volType common.VolumeType,
-	nameSpace string,
-	timeoutsecs int,
-) error {
-	return VerifyPvcCreateAndFail(
-		volSizeMb,
-		volName,
-		scName,
-		volType,
-		nameSpace,
-		timeoutsecs,
-		"Valid license required to perform operation",
-	)
-}
-
-func PVCCreateAndFailInsufficientLicencedCapacity(
-	volSizeMb int,
-	volName string,
-	scName string,
-	volType common.VolumeType,
-	nameSpace string,
-	timeoutsecs int,
-) error {
-	return VerifyPvcCreateAndFail(
-		volSizeMb,
-		volName,
-		scName,
-		volType,
-		nameSpace,
-		timeoutsecs,
-		licencedCapacityError,
-	)
 }
 
 // Attempt to create a PV, but expect it to fail
@@ -878,7 +838,7 @@ func TryMkOversizedPVC(volSizeMb int, volName string, scName string, volType com
 		return foundOversizeError, fmt.Errorf("PVC %s not found, namespace: %s", volName, nameSpace)
 	}
 
-	// Wait for the PVC to have a license failure event
+	// Wait for the PVC to have a failure event
 	for ix := 0; ix < defTimeoutSecs/timoSleepSecs; ix++ {
 		options := metaV1.ListOptions{
 			TypeMeta: metaV1.TypeMeta{Kind: "PersistentVolumeClaim"},
@@ -1091,67 +1051,6 @@ func MkRestorePVC(pvcSizeMb int, pvcName string, scName string, nameSpace string
 	return VerifyVolumeProvision(pvcName, nameSpace)
 }
 
-func MkRestorePVCAndFailLicencedCapacity(
-	pvcSizeMb int,
-	pvcName string,
-	scName string,
-	nameSpace string,
-	volType common.VolumeType,
-	snapshotName string,
-) error {
-
-	const timoSleepSecs = 5
-	snap, err := GetSnapshot(snapshotName, nameSpace)
-	if err != nil {
-		return fmt.Errorf("failed to get snapshot %s, error: %v", snapshotName, err)
-	} else if snap == nil {
-		return fmt.Errorf("snapshot %s not found, error: %v", snapshotName, err)
-	}
-	pvcSizeMbStr := fmt.Sprintf("%dMi", pvcSizeMb)
-	logf.Log.Info("Creating", "pvc", pvcName, "storageClass", scName, "size", pvcSizeMbStr, "snapshot", snapshotName)
-	// PVC create options
-	snapshotKind := "VolumeSnapshot"
-	snapshotGroup := snapshotv1.GroupName
-	err = NewPvcBuilder().
-		WithName(pvcName).
-		WithNamespace(nameSpace).
-		WithStorageClass(scName).
-		WithPvcSize(pvcSizeMbStr).
-		WithDataSourceApiGroup(snapshotGroup).
-		WithDataSourceName(snapshotName).
-		WithDataSourceKind(snapshotKind).
-		WithVolumeMode(volType).
-		BuildAndCreate()
-	if err != nil {
-		return err
-	}
-
-	var foundLicenseError bool
-	// Wait for the PVC to have a license failure event
-	for ix := 0; ix < defTimeoutSecs/timoSleepSecs; ix++ {
-		eventList, listerr := GetPvcEvents(pvcName, nameSpace)
-		if listerr != nil {
-			err = fmt.Errorf("failed to get namespace events, pvc: %s, namespace:  %s, error: %v", pvcName, nameSpace, listerr)
-			return err
-		}
-		for _, event := range eventList.Items {
-			if event.Type == "Warning" && strings.Contains(event.Message, licencedCapacityError) {
-				logf.Log.Info("Found event", "message", event.Message)
-				foundLicenseError = true
-				break
-			}
-		}
-		if foundLicenseError {
-			break
-		}
-		time.Sleep(timoSleepSecs * time.Second)
-	}
-	if !foundLicenseError {
-		return fmt.Errorf("timed out waiting for license failure error")
-	}
-	return err
-}
-
 // Wait for the PVC to bound
 func WaitPvcToBound(pvcName string, nameSpace string) error {
 	const timoSleepSecs = 1
@@ -1362,44 +1261,6 @@ func UpdatePvcSize(pvcName string, namespace string, volSizeMb int) (*coreV1.Per
 	}
 
 	return pvc, err
-}
-
-func UpdatePVSizeAndFailLicencedCapacity(
-	pvcName string,
-	namespace string,
-	pvcSizeMiB int,
-) error {
-
-	const timoSleepSecs = 5
-	_, err := UpdatePvcSize(pvcName, namespace, pvcSizeMiB)
-	if err != nil {
-		return fmt.Errorf("failed to update PVC size %s to %d, error: %v", pvcName, pvcSizeMiB, err)
-	}
-
-	var foundLicenseError bool
-	// Wait for the PVC to have a license failure event
-	for ix := 0; ix < defTimeoutSecs/timoSleepSecs; ix++ {
-		eventList, listerr := GetPvcEvents(pvcName, namespace)
-		if listerr != nil {
-			err = fmt.Errorf("failed to get namespace events, pvc: %s, namespace:  %s, error: %v", pvcName, namespace, listerr)
-			return err
-		}
-		for _, event := range eventList.Items {
-			if event.Type == "Warning" && strings.Contains(event.Message, licencedCapacityError) {
-				logf.Log.Info("Found event", "message", event.Message)
-				foundLicenseError = true
-				break
-			}
-		}
-		if foundLicenseError {
-			break
-		}
-		time.Sleep(timoSleepSecs * time.Second)
-	}
-	if !foundLicenseError {
-		return fmt.Errorf("timed out waiting for license failure error")
-	}
-	return err
 }
 
 // UpdatePVC update a PVC in given namespace, no options and no context

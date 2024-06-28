@@ -227,39 +227,3 @@ func (oacw OAClientWrapper) setVolumeMaxSnapshotCount(uuid string, maxSnapshotCo
 	}
 	return err, statusCode
 }
-
-// { Commented out implementation of license support
-//    so that we can use the latest Mayastor openapi spec - which does not include the License API
-//
-//func (oacw OAClientWrapper) getLicense() (openapiClient.License, error) {
-//	req := oacw.client().LicenseApi.GetLicense(context.TODO())
-//	license, _, err := req.Execute()
-//	return license, err
-//}
-//
-//func (oacw OAClientWrapper) installLicense(rawLicenseData []byte) (string, error, int) {
-//	var result string
-//	var err error
-//	var licenseData map[string]interface{}
-//	var statusCode int
-//	var resp *http.Response
-//
-//	if err = json.Unmarshal(rawLicenseData, &licenseData); err != nil {
-//		return "", err, 0
-//	}
-//
-//	req := oacw.client().LicenseApi.PutLicense(context.TODO())
-//	req = req.RequestBody(licenseData)
-//	result, resp, err = req.Execute()
-//	if resp != nil {
-//		statusCode = resp.StatusCode
-//	}
-//	return result, err, statusCode
-//}
-//
-//func (oacw OAClientWrapper) uninstallLicense(uuid string) error {
-//	req := oacw.client().LicenseApi.DelLicense(context.TODO(), uuid)
-//	_, err := req.Execute()
-//	return err
-//}
-//} Commented out implementation of license support */
