@@ -56,7 +56,7 @@ type CsiData struct {
 // 1. kubelet_volume_stats_available_bytes
 // 2. kubelet_volume_stats_capacity_bytes
 // 3. kubelet_volume_stats_used_bytes
-// address will be array of product(mayastor/bolt) node ip address
+// address will be array of product(mayastor) node ip address
 func GetCsiVolumeMetrics(query string, address []string) (CsiVolumeMetrics, error) {
 	if len(address) == 0 {
 		return CsiVolumeMetrics{}, fmt.Errorf("product nodes not found")

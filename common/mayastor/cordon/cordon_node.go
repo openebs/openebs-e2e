@@ -37,7 +37,7 @@ func VerifyUncordonNodesStatus() (bool, error) {
 	logf.Log.Info("Verifying node uncordon status")
 	nodes, err := k8stest.GetMayastorNodeNames()
 	if err != nil {
-		return false, fmt.Errorf("failed to list mayastor/bolt nodes, error %v", err)
+		return false, fmt.Errorf("failed to list mayastor nodes, error %v", err)
 	}
 	for _, node := range nodes {
 		cordonLabels, err := controlplane.GetCordonNodeLabels(node)

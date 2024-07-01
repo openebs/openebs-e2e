@@ -709,7 +709,6 @@ func createTempDir() (string, error) {
 //	and unmounts the directory
 //
 // This step is needed to replay metadata from log
-// More details at https://dcsw-bolt.atlassian.net/browse/GTM-1983
 func XFSCheckDevice(w http.ResponseWriter, r *http.Request) {
 	var device Device
 	var params string

@@ -575,7 +575,7 @@ func ListPodsByPrefix(ns string, prefix string) ([]coreV1.Pod, error) {
 	return pods, nil
 }
 
-// ExecuteCommandInPod FIXME: Explore how to make the stream interactive and more flexible, etc. - GTM-1714
+// ExecuteCommandInPod FIXME: Explore how to make the stream interactive and more flexible, etc.
 func ExecuteCommandInPod(namespace, podName string, cmd string) (string, string, error) {
 	logf.Log.Info("Executing command", "namespace", namespace, "podName", podName, "cmd", cmd)
 	command := []string{"sh", "-c", cmd}

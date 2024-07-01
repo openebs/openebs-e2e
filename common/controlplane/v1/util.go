@@ -15,7 +15,7 @@ import (
 )
 
 // GetClusterRestAPINodeIPs return a set of IP addresses which can be used to communicate
-// with bolt/mayastor using the REST API
+// mayastor using the REST API
 // returns test control nodes IP addresses
 func GetClusterRestAPINodeIPs() ([]string, error) {
 	// If environment variable is set that wins, this allows the invoker

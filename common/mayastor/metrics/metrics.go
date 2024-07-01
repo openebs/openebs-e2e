@@ -590,16 +590,16 @@ func MetricsTestSetup() error {
 	// 	return fmt.Errorf("failed to get helm chart directory, Error %v", err)
 	// }
 
-	// // Update bolt helm chart with metrics poll time
+	// // Update helm chart with metrics poll time
 	// err = k8sinstall.UpdateMetricsPollTimeInHelmChart(chartDir)
 	// if err != nil {
 	// 	return fmt.Errorf("failed to update helm chart with metrics polling interval, Error %v", err)
 	// }
 
-	// // Upgrade bolt helm release
+	// // Upgrade helm release
 	// err = k8sinstall.UpgradeHelmRelease(chartDir)
 	// if err != nil {
-	// 	return fmt.Errorf("failed to upgrade bolt helm chart with metrics polling interval, Error %v", err)
+	// 	return fmt.Errorf("failed to upgrade helm chart with metrics polling interval, Error %v", err)
 	// }
 
 	// Install prometheus stack

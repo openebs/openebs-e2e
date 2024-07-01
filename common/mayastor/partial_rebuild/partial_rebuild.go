@@ -133,7 +133,7 @@ func WaitForRebuildComplete(uuid string, timeoutSecs int) (bool, error) {
 			msv.State.Target.Rebuilds == 0 &&
 			/* The volume status may be reflected incorrectly as healthy,
 			during transition periods when the number replicas is lower than that in the volume spec.
-			Given enough time the status will transition to the expected value. https://dcsw-bolt.atlassian.net/browse/CAS-1055*/
+			Given enough time the status will transition to the expected value.*/
 			len(msv.State.Target.Children) == msv.Spec.Num_replicas {
 			isRebuildCompleted = true
 			break
