@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
-	"runtime"
 	"sync"
 
 	"gopkg.in/yaml.v3"
@@ -16,8 +14,8 @@ import (
 // const ConfigDir = "../../configurations"
 // const PlatformConfigDir = "../../configurations/platforms/"
 var (
-	ConfigDir         = "../../configurations"
-	PlatformConfigDir = "../../configurations/platforms/"
+	ConfigDir         = "/configurations"
+	PlatformConfigDir = "/configurations/platforms/"
 )
 
 type ConfigurationContext int
@@ -146,6 +144,7 @@ type E2EConfig struct {
 	// Generic configuration files used for CI and automation should not define MayastorRootDir and E2eRootDir
 	MayastorRootDir   string `yaml:"mayastorRootDir" env:"e2e_mayastor_root_dir"`
 	E2eRootDir        string `yaml:"e2eRootDir" env:"e2e_root_dir"`
+	OpenEbsE2eRootDir string `yaml:"openEbsE2eRootDir" env:"openebs_e2e_root_dir"`
 	SessionDir        string `yaml:"sessionDir" env:"e2e_session_dir"`
 	MayastorVersion   string `yaml:"mayastorVersion" env:"e2e_mayastor_version"`
 	KubectlPluginDir  string `yaml:"kubectlPluginDir" env:"e2e_kubectl_plugin_dir"`
@@ -446,6 +445,10 @@ func GetConfig() E2EConfig {
 		var err error
 		var info os.FileInfo
 		e2eRootDir, haveE2ERootDir := os.LookupEnv("e2e_root_dir")
+		openebsE2eRootDir, haveOpenebsE2eRootDir := os.LookupEnv("openebs_e2e_root_dir")
+		if !haveOpenebsE2eRootDir {
+			panic("openebs e2e root environment variable not set")
+		}
 
 		// Initialise the configuration
 		_ = cleanenv.ReadEnv(&e2eConfig)
@@ -472,18 +475,10 @@ func GetConfig() E2EConfig {
 				_, _ = fmt.Fprintln(os.Stderr, "	Use environment variable \"e2e_config_file\" to specify configuration file.")
 			}
 		} else {
-			// Get the directory of the current file
-			_, currentFile, _, ok := runtime.Caller(0)
-			if !ok {
-				panic("Unable to get the directory of the current file")
-			}
-			currentDir := filepath.Dir(currentFile)
-			configFileDir := filepath.Join(currentDir, ConfigDir)
-
 			var configFile string = path.Clean(e2eConfig.ConfigPaths.ConfigFile)
 			info, err = os.Stat(configFile)
 			if os.IsNotExist(err) {
-				configFile = path.Clean(configFileDir + "/" + e2eConfig.ConfigPaths.ConfigFile)
+				configFile = path.Clean(openebsE2eRootDir + ConfigDir + "/" + e2eConfig.ConfigPaths.ConfigFile)
 				info, err = os.Stat(configFile)
 				if err != nil {
 					panic(fmt.Sprintf("Unable to access configuration file %v", configFile))
@@ -506,17 +501,10 @@ func GetConfig() E2EConfig {
 				_, _ = fmt.Fprintln(os.Stderr, "	Use environment variable \"e2e_platform_config_file\" to specify platform configuration.")
 			}
 		} else {
-			// Get the directory of the current file
-			_, currentFile, _, ok := runtime.Caller(0)
-			if !ok {
-				panic("Unable to get the directory of the current file")
-			}
-			currentDir := filepath.Dir(currentFile)
-			platformConfigFileDir := filepath.Join(currentDir, PlatformConfigDir)
 			var platformCfg string = path.Clean(e2eConfig.ConfigPaths.PlatformConfigFile)
 			info, err = os.Stat(platformCfg)
 			if os.IsNotExist(err) {
-				platformCfg = path.Clean(platformConfigFileDir + "/" + e2eConfig.ConfigPaths.PlatformConfigFile)
+				platformCfg = path.Clean(openebsE2eRootDir + PlatformConfigDir + "/" + e2eConfig.ConfigPaths.PlatformConfigFile)
 				info, err = os.Stat(platformCfg)
 				if err != nil {
 					panic(fmt.Sprintf("Unable to access platform configuration file %v", platformCfg))
