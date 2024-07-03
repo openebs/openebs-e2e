@@ -19,6 +19,7 @@ import (
 type VolumeStatus string
 
 // List of VolumeStatus
+// List of VolumeStatus
 const (
 	VOLUMESTATUS_UNKNOWN  VolumeStatus = "Unknown"
 	VOLUMESTATUS_ONLINE   VolumeStatus = "Online"

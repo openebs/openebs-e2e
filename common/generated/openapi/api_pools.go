@@ -622,6 +622,12 @@ func (a *PoolsAPIService) GetPoolExecute(r ApiGetPoolRequest) (*Pool, *http.Resp
 type ApiGetPoolsRequest struct {
 	ctx context.Context
 	ApiService *PoolsAPIService
+	volumeId *string
+}
+
+func (r ApiGetPoolsRequest) VolumeId(volumeId string) ApiGetPoolsRequest {
+	r.volumeId = &volumeId
+	return r
 }
 
 func (r ApiGetPoolsRequest) Execute() ([]Pool, *http.Response, error) {
@@ -662,6 +668,9 @@ func (a *PoolsAPIService) GetPoolsExecute(r ApiGetPoolsRequest) ([]Pool, *http.R
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
 
+	if r.volumeId != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "volume_id", r.volumeId, "")
+	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 

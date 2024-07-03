@@ -9,6 +9,7 @@ Name | Type | Description | Notes
 **Labels** | Pointer to **map[string]string** | labels to be set on the node | [optional] 
 **Cordondrainstate** | Pointer to [**NullableCordonDrainState**](CordonDrainState.md) | the drain state | [optional] 
 **NodeNqn** | Pointer to **string** | NVMe Qualified Names (NQNs) are used to uniquely describe a host or NVM subsystem for the purposes of identification and authentication | [optional] 
+**Version** | Pointer to **string** | Version of the io-engine instance | [optional] 
 
 ## Methods
 
@@ -153,6 +154,31 @@ SetNodeNqn sets NodeNqn field to given value.
 `func (o *NodeSpec) HasNodeNqn() bool`
 
 HasNodeNqn returns a boolean if a field has been set.
+
+### GetVersion
+
+`func (o *NodeSpec) GetVersion() string`
+
+GetVersion returns the Version field if non-nil, zero value otherwise.
+
+### GetVersionOk
+
+`func (o *NodeSpec) GetVersionOk() (*string, bool)`
+
+GetVersionOk returns a tuple with the Version field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetVersion
+
+`func (o *NodeSpec) SetVersion(v string)`
+
+SetVersion sets Version field to given value.
+
+### HasVersion
+
+`func (o *NodeSpec) HasVersion() bool`
+
+HasVersion returns a boolean if a field has been set.
 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

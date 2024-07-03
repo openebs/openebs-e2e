@@ -31,6 +31,8 @@ type NodeSpec struct {
 	Cordondrainstate NullableCordonDrainState `json:"cordondrainstate,omitempty"`
 	// NVMe Qualified Names (NQNs) are used to uniquely describe a host or NVM subsystem for the purposes of identification and authentication
 	NodeNqn *string `json:"node_nqn,omitempty"`
+	// Version of the io-engine instance
+	Version *string `json:"version,omitempty"`
 }
 
 type _NodeSpec NodeSpec
@@ -208,6 +210,38 @@ func (o *NodeSpec) SetNodeNqn(v string) {
 	o.NodeNqn = &v
 }
 
+// GetVersion returns the Version field value if set, zero value otherwise.
+func (o *NodeSpec) GetVersion() string {
+	if o == nil || IsNil(o.Version) {
+		var ret string
+		return ret
+	}
+	return *o.Version
+}
+
+// GetVersionOk returns a tuple with the Version field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *NodeSpec) GetVersionOk() (*string, bool) {
+	if o == nil || IsNil(o.Version) {
+		return nil, false
+	}
+	return o.Version, true
+}
+
+// HasVersion returns a boolean if a field has been set.
+func (o *NodeSpec) HasVersion() bool {
+	if o != nil && !IsNil(o.Version) {
+		return true
+	}
+
+	return false
+}
+
+// SetVersion gets a reference to the given string and assigns it to the Version field.
+func (o *NodeSpec) SetVersion(v string) {
+	o.Version = &v
+}
+
 func (o NodeSpec) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -228,6 +262,9 @@ func (o NodeSpec) ToMap() (map[string]interface{}, error) {
 	}
 	if !IsNil(o.NodeNqn) {
 		toSerialize["node_nqn"] = o.NodeNqn
+	}
+	if !IsNil(o.Version) {
+		toSerialize["version"] = o.Version
 	}
 	return toSerialize, nil
 }

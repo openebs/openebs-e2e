@@ -358,7 +358,7 @@ Name | Type | Description  | Notes
 
 ## GetPools
 
-> []Pool GetPools(ctx).Execute()
+> []Pool GetPools(ctx).VolumeId(volumeId).Execute()
 
 
 
@@ -375,10 +375,11 @@ import (
 )
 
 func main() {
+	volumeId := "38400000-8cf0-11bd-b23e-10b96e4ef00d" // string |  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.PoolsAPI.GetPools(context.Background()).Execute()
+	resp, r, err := apiClient.PoolsAPI.GetPools(context.Background()).VolumeId(volumeId).Execute()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error when calling `PoolsAPI.GetPools``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
@@ -390,12 +391,16 @@ func main() {
 
 ### Path Parameters
 
-This endpoint does not need any parameter.
+
 
 ### Other Parameters
 
 Other parameters are passed through a pointer to a apiGetPoolsRequest struct via the builder pattern
 
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **volumeId** | **string** |  | 
 
 ### Return type
 

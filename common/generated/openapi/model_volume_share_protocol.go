@@ -20,7 +20,7 @@ type VolumeShareProtocol string
 
 // List of VolumeShareProtocol
 const (
-	NVMF  VolumeShareProtocol = "nvmf"
+	NVMF VolumeShareProtocol = "nvmf"
 	ISCSI VolumeShareProtocol = "iscsi"
 )
 

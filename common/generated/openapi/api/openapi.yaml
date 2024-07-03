@@ -1574,6 +1574,14 @@ paths:
   /pools:
     get:
       operationId: get_pools
+      parameters:
+      - explode: true
+        in: query
+        name: volume_id
+        required: false
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: form
       responses:
         "200":
           content:
@@ -3172,7 +3180,7 @@ components:
       example:
         rebuildProgress: null
         state: Online
-        uri: nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:37d83441-e8ef-4e17-a29e-25169d91cb96
+        uri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
       properties:
         rebuildProgress:
           description: current rebuild progress (%)
@@ -3194,7 +3202,7 @@ components:
       description: Create Nexus Body
       example:
         children:
-        - nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:37d83441-e8ef-4e17-a29e-25169d91cb96
+        - nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
         size: 80241024
       properties:
         children:
@@ -3314,8 +3322,6 @@ components:
         - ""
         inclusion:
         - ""
-        affinitykey:
-        - ""
       properties:
         exclusion:
           additionalProperties:
@@ -3343,20 +3349,7 @@ components:
              inclusive label key value in the form "NAME: VALUE"
           example: ""
           type: object
-        affinitykey:
-          description: |-
-            This feature includes resources with identical $label keys. For example,
-             if the affinity key is set to "Zone":
-             Initially, a resource that matches the label is selected, example "Zone: A".
-             Subsequently, all other resources must match the given label "Zone: A",
-             effectively adding this requirement as an inclusion label.
-          example: ""
-          items:
-            example: Zone
-            type: string
-          type: array
       required:
-      - affinitykey
       - exclusion
       - inclusion
       type: object
@@ -3579,8 +3572,8 @@ components:
     RebuildRecord:
       description: Rebuild record of a Child
       example:
-      - childUri: nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:37d83441-e8ef-4e17-a29e-25169d91cb96
-        srcUri: nvmf://10.1.0.9:8420/nqn.2019-05.io.openebs:37d83441-e8ef-4e17-a29e-25169d91cb25
+      - childUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
+        srcUri: nvmf://10.1.0.9:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb25
         state: Completed
         blocksTotal: 13452
         blocksRecovered: 13452
@@ -3647,8 +3640,8 @@ components:
     RebuildHistory:
       example:
         records:
-        - - childUri: nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:37d83441-e8ef-4e17-a29e-25169d91cb96
-            srcUri: nvmf://10.1.0.9:8420/nqn.2019-05.io.openebs:37d83441-e8ef-4e17-a29e-25169d91cb25
+        - - childUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
+            srcUri: nvmf://10.1.0.9:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb25
             state: Completed
             blocksTotal: 13452
             blocksRecovered: 13452
@@ -3658,8 +3651,8 @@ components:
             isPartial: true
             startTime: 2023-06-20T07:25:25.974218428Z
             endTime: 2023-06-20T07:25:25.975338717Z
-        - - childUri: nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:37d83441-e8ef-4e17-a29e-25169d91cb96
-            srcUri: nvmf://10.1.0.9:8420/nqn.2019-05.io.openebs:37d83441-e8ef-4e17-a29e-25169d91cb25
+        - - childUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
+            srcUri: nvmf://10.1.0.9:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb25
             state: Completed
             blocksTotal: 13452
             blocksRecovered: 13452
@@ -3689,7 +3682,7 @@ components:
         children:
         - rebuildProgress: null
           state: Online
-          uri: nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:replica1
+          uri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:replica1
         deviceUri: null
         node: io-engine-1
         rebuilds: 0
@@ -3775,6 +3768,9 @@ components:
             of identification and authentication
           example: nqn.2014-08.org.nvmexpress:uuid:804b1e8c-b42d-4d15-92b4-7c4e4d0f507
           type: string
+        version:
+          description: Version of the io-engine instance
+          type: string
       required:
       - grpcEndpoint
       - id
@@ -3800,6 +3796,9 @@ components:
             NVMe Qualified Names (NQNs) are used to uniquely describe a host or NVM subsystem for the purposes
             of identification and authentication
           example: nqn.2014-08.org.nvmexpress:uuid:804b1e8c-b42d-4d15-92b4-7c4e4d0f507
+          type: string
+        version:
+          description: Version of the io-engine instance
           type: string
       required:
       - grpcEndpoint
@@ -3959,7 +3958,7 @@ components:
         share: null
         state: null
         poolUuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
-        uri: nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:fb04022b-1ca1-4789-bcd4-dacbcb54e23c
+        uri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:fb04022b-1ca1-4789-bcd4-dacbcb54e23c
         uuid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         space:
           capacity_bytes: 80241024
@@ -4002,7 +4001,7 @@ components:
           type: boolean
         uri:
           description: uri usable by nexus to access it
-          example: nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:fb04022b-1ca1-4789-bcd4-dacbcb54e23c
+          example: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:fb04022b-1ca1-4789-bcd4-dacbcb54e23c
           type: string
         uuid:
           description: uuid of the replica
@@ -4163,7 +4162,7 @@ components:
       example:
         nexuses:
         - children:
-          - nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:37d83441-e8ef-4e17-a29e-25169d91cb96
+          - nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
           managed: false
           node: io-engine-1
           operation: null
@@ -4173,7 +4172,7 @@ components:
           state: Created
           uuid: 514ed1c8-7174-49ac-b9cd-ad44ef670a67
         - children:
-          - nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:37d83441-e8ef-4e17-a29e-25169d91cb96
+          - nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
           managed: false
           node: io-engine-1
           operation: null
@@ -4272,7 +4271,7 @@ components:
       description: User specification of a nexus.
       example:
         children:
-        - nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:37d83441-e8ef-4e17-a29e-25169d91cb96
+        - nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
         managed: false
         node: io-engine-1
         operation: null
@@ -4595,8 +4594,8 @@ components:
           children:
           - rebuildProgress: null
             state: Online
-            uri: nvmf://10.1.0.6:8420/nqn.2019-05.io.openebs:a76adcd6-9df0-47a1-90a5-2d5bf4151572
-          deviceUri: nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:nexus-a76adcd6-9df0-47a1-90a5-2d5bf4151573
+            uri: nvmf://10.1.0.6:8420/nqn.2019-05.com.org:a76adcd6-9df0-47a1-90a5-2d5bf4151572
+          deviceUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:nexus-a76adcd6-9df0-47a1-90a5-2d5bf4151573
           protocol: nvmf
           node: io-engine-1
           rebuilds: 0
@@ -4711,8 +4710,8 @@ components:
               children:
               - rebuildProgress: null
                 state: Online
-                uri: nvmf://10.1.0.6:8420/nqn.2019-05.io.openebs:a76adcd6-9df0-47a1-90a5-2d5bf4151572
-              deviceUri: nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:nexus-a76adcd6-9df0-47a1-90a5-2d5bf4151573
+                uri: nvmf://10.1.0.6:8420/nqn.2019-05.com.org:a76adcd6-9df0-47a1-90a5-2d5bf4151572
+              deviceUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:nexus-a76adcd6-9df0-47a1-90a5-2d5bf4151573
               protocol: nvmf
               node: io-engine-1
               rebuilds: 0
@@ -4741,8 +4740,8 @@ components:
               children:
               - rebuildProgress: null
                 state: Online
-                uri: nvmf://10.1.0.6:8420/nqn.2019-05.io.openebs:a76adcd6-9df0-47a1-90a5-2d5bf4151572
-              deviceUri: nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:nexus-a76adcd6-9df0-47a1-90a5-2d5bf4151573
+                uri: nvmf://10.1.0.6:8420/nqn.2019-05.com.org:a76adcd6-9df0-47a1-90a5-2d5bf4151572
+              deviceUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:nexus-a76adcd6-9df0-47a1-90a5-2d5bf4151573
               protocol: nvmf
               node: io-engine-1
               rebuilds: 0
@@ -4787,8 +4786,8 @@ components:
             children:
             - rebuildProgress: null
               state: Online
-              uri: nvmf://10.1.0.6:8420/nqn.2019-05.io.openebs:a76adcd6-9df0-47a1-90a5-2d5bf4151572
-            deviceUri: nvmf://10.1.0.5:8420/nqn.2019-05.io.openebs:nexus-a76adcd6-9df0-47a1-90a5-2d5bf4151573
+              uri: nvmf://10.1.0.6:8420/nqn.2019-05.com.org:a76adcd6-9df0-47a1-90a5-2d5bf4151572
+            deviceUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:nexus-a76adcd6-9df0-47a1-90a5-2d5bf4151573
             protocol: nvmf
             node: io-engine-1
             rebuilds: 0
@@ -5471,8 +5470,8 @@ components:
       example:
         endpoint: 10.1.0.5:50055
         labels:
-          openebs.io/csi-node.nvme-ana: "true,"
-          openebs.io/zone: us-east-1a
+          org.io/csi-node.nvme-ana: "true,"
+          org.io/zone: us-east-1a
       properties:
         endpoint:
           description: gRPC server endpoint of the app node.

@@ -6,13 +6,12 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **Exclusion** | **map[string]string** | Excludes resources with the same $label name, eg:  \&quot;Zone\&quot; would not allow for resources with the same \&quot;Zone\&quot; value  to be used for a certain operation, eg:  A node with \&quot;Zone: A\&quot; would not be paired up with a node with \&quot;Zone: A\&quot;,  but it could be paired up with a node with \&quot;Zone: B\&quot;  exclusive label NAME in the form \&quot;NAME\&quot;, and not \&quot;NAME: VALUE\&quot; | 
 **Inclusion** | **map[string]string** | Includes resources with the same $label or $label:$value eg:  if label is \&quot;Zone: A\&quot;:  A resource with \&quot;Zone: A\&quot; would be paired up with a resource with \&quot;Zone: A\&quot;,  but not with a resource with \&quot;Zone: B\&quot;  if label is \&quot;Zone\&quot;:  A resource with \&quot;Zone: A\&quot; would be paired up with a resource with \&quot;Zone: B\&quot;,  but not with a resource with \&quot;OtherLabel: B\&quot;  inclusive label key value in the form \&quot;NAME: VALUE\&quot; | 
-**Affinitykey** | **[]string** | This feature includes resources with identical $label keys. For example,  if the affinity key is set to \&quot;Zone\&quot;:  Initially, a resource that matches the label is selected, example \&quot;Zone: A\&quot;.  Subsequently, all other resources must match the given label \&quot;Zone: A\&quot;,  effectively adding this requirement as an inclusion label. | 
 
 ## Methods
 
 ### NewLabelledTopology
 
-`func NewLabelledTopology(exclusion map[string]string, inclusion map[string]string, affinitykey []string, ) *LabelledTopology`
+`func NewLabelledTopology(exclusion map[string]string, inclusion map[string]string, ) *LabelledTopology`
 
 NewLabelledTopology instantiates a new LabelledTopology object
 This constructor will assign default values to properties that have it defined,
@@ -65,26 +64,6 @@ and a boolean to check if the value has been set.
 `func (o *LabelledTopology) SetInclusion(v map[string]string)`
 
 SetInclusion sets Inclusion field to given value.
-
-
-### GetAffinitykey
-
-`func (o *LabelledTopology) GetAffinitykey() []string`
-
-GetAffinitykey returns the Affinitykey field if non-nil, zero value otherwise.
-
-### GetAffinitykeyOk
-
-`func (o *LabelledTopology) GetAffinitykeyOk() (*[]string, bool)`
-
-GetAffinitykeyOk returns a tuple with the Affinitykey field if it's non-nil, zero value otherwise
-and a boolean to check if the value has been set.
-
-### SetAffinitykey
-
-`func (o *LabelledTopology) SetAffinitykey(v []string)`
-
-SetAffinitykey sets Affinitykey field to given value.
 
 
 

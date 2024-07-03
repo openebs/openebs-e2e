@@ -25,8 +25,6 @@ type LabelledTopology struct {
 	Exclusion map[string]string `json:"exclusion"`
 	// Includes resources with the same $label or $label:$value eg:  if label is \"Zone: A\":  A resource with \"Zone: A\" would be paired up with a resource with \"Zone: A\",  but not with a resource with \"Zone: B\"  if label is \"Zone\":  A resource with \"Zone: A\" would be paired up with a resource with \"Zone: B\",  but not with a resource with \"OtherLabel: B\"  inclusive label key value in the form \"NAME: VALUE\"
 	Inclusion map[string]string `json:"inclusion"`
-	// This feature includes resources with identical $label keys. For example,  if the affinity key is set to \"Zone\":  Initially, a resource that matches the label is selected, example \"Zone: A\".  Subsequently, all other resources must match the given label \"Zone: A\",  effectively adding this requirement as an inclusion label.
-	Affinitykey []string `json:"affinitykey"`
 }
 
 type _LabelledTopology LabelledTopology
@@ -35,11 +33,10 @@ type _LabelledTopology LabelledTopology
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewLabelledTopology(exclusion map[string]string, inclusion map[string]string, affinitykey []string) *LabelledTopology {
+func NewLabelledTopology(exclusion map[string]string, inclusion map[string]string) *LabelledTopology {
 	this := LabelledTopology{}
 	this.Exclusion = exclusion
 	this.Inclusion = inclusion
-	this.Affinitykey = affinitykey
 	return &this
 }
 
@@ -99,30 +96,6 @@ func (o *LabelledTopology) SetInclusion(v map[string]string) {
 	o.Inclusion = v
 }
 
-// GetAffinitykey returns the Affinitykey field value
-func (o *LabelledTopology) GetAffinitykey() []string {
-	if o == nil {
-		var ret []string
-		return ret
-	}
-
-	return o.Affinitykey
-}
-
-// GetAffinitykeyOk returns a tuple with the Affinitykey field value
-// and a boolean to check if the value has been set.
-func (o *LabelledTopology) GetAffinitykeyOk() ([]string, bool) {
-	if o == nil {
-		return nil, false
-	}
-	return o.Affinitykey, true
-}
-
-// SetAffinitykey sets field value
-func (o *LabelledTopology) SetAffinitykey(v []string) {
-	o.Affinitykey = v
-}
-
 func (o LabelledTopology) MarshalJSON() ([]byte, error) {
 	toSerialize,err := o.ToMap()
 	if err != nil {
@@ -135,7 +108,6 @@ func (o LabelledTopology) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["exclusion"] = o.Exclusion
 	toSerialize["inclusion"] = o.Inclusion
-	toSerialize["affinitykey"] = o.Affinitykey
 	return toSerialize, nil
 }
 
@@ -146,7 +118,6 @@ func (o *LabelledTopology) UnmarshalJSON(data []byte) (err error) {
 	requiredProperties := []string{
 		"exclusion",
 		"inclusion",
-		"affinitykey",
 	}
 
 	allProperties := make(map[string]interface{})
