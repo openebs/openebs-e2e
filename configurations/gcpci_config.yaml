@@ -1,0 +1,29 @@
+# configuration/parameters for CI/CD e2e test runs
+# note this file intentionally has no parameters
+# default values are encoded in
+#   src/common/e2e_config/e2e_config.go
+configName: gcpci
+grpcMandated: true
+deferredAssert: true
+beforeEachCheckAndRestart: true
+networkInterface: ens4
+basicVolumeIO:
+  # 100 * 1.5
+    fioLoopTimeout: 150
+ciSmokeTest:
+  # 300 * 1.5
+    fioTimeout: 450
+multiVolumesPodIO:
+  # 1800s * 1.5
+    timeout: 2700s
+maximumVolsIO:
+  # 900s * 1.5 failed
+  # try 900s * 2
+    timeout: 1800s
+    loopCount: 4
+pvcReadWriteOnce:
+  # 120 * 1.5
+    fioTimeout: 180
+msvRebuild:
+  # 180s * 1.5
+    timeout: 270s

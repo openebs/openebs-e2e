@@ -1,0 +1,57 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: e2e-proxy
+  namespace: e2e-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: e2e-proxy
+  template:
+    metadata:
+      labels:
+        app: e2e-proxy
+    spec:
+      containers:
+      - name: e2e-proxy
+        image: openebs/e2e-proxy
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+      nodeSelector:
+        openebs-test-control: ''
+      tolerations:
+      - key: node-role.kubernetes.io/master
+      - key: node-role.kubernetes.io/control-plane
+      - key: openebs-test-control
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: e2e-proxy
+  namespace: e2e-agent
+spec:
+  selector:
+    app: e2e-proxy
+  type: NodePort
+  ports:
+  - name: main
+    port: 8080
+    targetPort: 8080
