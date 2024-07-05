@@ -1,0 +1,6 @@
+**/cscope.*
+artifacts/
+.idea
+/.vagrant
+__pycache__
+tools/e2e-fio/e2e_fio_version.h

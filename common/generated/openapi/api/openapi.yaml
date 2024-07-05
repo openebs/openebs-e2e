@@ -1,0 +1,5760 @@
+openapi: 3.0.3
+info:
+  title: IoEngine RESTful API
+  version: v0
+servers:
+- url: /v0
+paths:
+  /nexuses:
+    get:
+      operationId: get_nexuses
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Nexus'
+                type: array
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nexuses
+  /nexuses/{nexus_id}:
+    delete:
+      operationId: del_nexus
+      parameters:
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nexuses
+    get:
+      operationId: get_nexus
+      parameters:
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Nexus'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nexuses
+  /nexuses/{nexus_id}/children:
+    get:
+      operationId: get_nexus_children
+      parameters:
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Child'
+                type: array
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Children
+  /nexuses/{nexus_id}/children/{child_id}:
+    delete:
+      operationId: del_nexus_child
+      parameters:
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: child_id
+        required: true
+        schema:
+          format: url
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Children
+    get:
+      operationId: get_nexus_child
+      parameters:
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: child_id
+        required: true
+        schema:
+          format: url
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Child'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Children
+    put:
+      operationId: put_nexus_child
+      parameters:
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: child_id
+        required: true
+        schema:
+          format: url
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Child'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Children
+  /nodes:
+    get:
+      operationId: get_nodes
+      parameters:
+      - explode: true
+        in: query
+        name: node_id
+        required: false
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Node'
+                type: array
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nodes
+  /nodes/{id}:
+    get:
+      operationId: get_node
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nodes
+  /nodes/{id}/cordon/{label}:
+    delete:
+      operationId: delete_node_cordon
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: label
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nodes
+    put:
+      operationId: put_node_cordon
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: label
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nodes
+  /nodes/{id}/drain/{label}:
+    put:
+      operationId: put_node_drain
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: label
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nodes
+  /nodes/{id}/label/{key}={value}:
+    put:
+      description: Add labels to node.
+      operationId: put_node_label
+      parameters:
+      - example: io-engine-1
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: The key of the label to be added.
+        explode: false
+        in: path
+        name: key
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: The value of the label to be added.
+        explode: false
+        in: path
+        name: value
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Overwrite existing label if the label key exists.
+        explode: true
+        in: query
+        name: overwrite
+        required: false
+        schema:
+          default: false
+          type: boolean
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nodes
+  /nodes/{id}/label/{key}:
+    delete:
+      operationId: delete_node_label
+      parameters:
+      - example: io-engine-1
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: The key of the label to be removed.
+        explode: false
+        in: path
+        name: key
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nodes
+  /nodes/{id}/nexuses:
+    get:
+      operationId: get_node_nexuses
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Nexus'
+                type: array
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nexuses
+  /nodes/{id}/pools:
+    get:
+      operationId: get_node_pools
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Pool'
+                type: array
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Pools
+  /nodes/{id}/replicas:
+    get:
+      operationId: get_node_replicas
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Replica'
+                type: array
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+  /nodes/{node_id}/nexuses/{nexus_id}:
+    delete:
+      operationId: del_node_nexus
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nexuses
+    get:
+      operationId: get_node_nexus
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Nexus'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nexuses
+    put:
+      operationId: put_node_nexus
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNexusBody'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Nexus'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nexuses
+  /nodes/{node_id}/nexuses/{nexus_id}/children:
+    get:
+      operationId: get_node_nexus_children
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Child'
+                type: array
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Children
+  /nodes/{node_id}/nexuses/{nexus_id}/children/{child_id}:
+    delete:
+      operationId: del_node_nexus_child
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: child_id
+        required: true
+        schema:
+          format: url
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Children
+    get:
+      operationId: get_node_nexus_child
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: child_id
+        required: true
+        schema:
+          format: url
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Child'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Children
+    put:
+      operationId: put_node_nexus_child
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: child_id
+        required: true
+        schema:
+          format: url
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Child'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Children
+  /nodes/{node_id}/nexuses/{nexus_id}/share:
+    delete:
+      operationId: del_node_nexus_share
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nexuses
+  /nodes/{node_id}/nexuses/{nexus_id}/share/{protocol}:
+    put:
+      operationId: put_node_nexus_share
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: nexus_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: protocol
+        required: true
+        schema:
+          $ref: '#/components/schemas/NexusShareProtocol'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Nexuses
+  /nodes/{node_id}/pools/{pool_id}:
+    delete:
+      operationId: del_node_pool
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Pools
+    get:
+      operationId: get_node_pool
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pool'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Pools
+    put:
+      operationId: put_node_pool
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePoolBody'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pool'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Pools
+  /nodes/{node_id}/pools/{pool_id}/replicas:
+    get:
+      operationId: get_node_pool_replicas
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Replica'
+                type: array
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+  /nodes/{node_id}/pools/{pool_id}/replicas/{replica_id}:
+    delete:
+      operationId: del_node_pool_replica
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      - explode: false
+        in: path
+        name: replica_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+    get:
+      operationId: get_node_pool_replica
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      - explode: false
+        in: path
+        name: replica_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Replica'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+    put:
+      operationId: put_node_pool_replica
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      - explode: false
+        in: path
+        name: replica_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReplicaBody'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Replica'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+  /nodes/{node_id}/pools/{pool_id}/replicas/{replica_id}/share:
+    delete:
+      operationId: del_node_pool_replica_share
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      - explode: false
+        in: path
+        name: replica_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+  /nodes/{node_id}/pools/{pool_id}/replicas/{replica_id}/share/nvmf:
+    put:
+      operationId: put_node_pool_replica_share
+      parameters:
+      - explode: false
+        in: path
+        name: node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      - explode: false
+        in: path
+        name: replica_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - description: NQNs of hosts allowed to connect to this replica
+        explode: true
+        in: query
+        name: allowed-hosts
+        required: false
+        schema:
+          items:
+            $ref: '#/components/schemas/HostNqn'
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+  /nodes/{node}/block_devices:
+    get:
+      operationId: get_node_block_devices
+      parameters:
+      - description: specifies whether to list all devices or only usable ones
+        explode: true
+        in: query
+        name: all
+        required: false
+        schema:
+          type: boolean
+        style: form
+      - explode: false
+        in: path
+        name: node
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/BlockDevice'
+                type: array
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - BlockDevices
+  /nodes/{node}/jsongrpc/{method}:
+    put:
+      operationId: put_node_jsongrpc
+      parameters:
+      - explode: false
+        in: path
+        name: node
+        required: true
+        schema:
+          $ref: '#/components/schemas/NodeId'
+        style: simple
+      - explode: false
+        in: path
+        name: method
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonGeneric'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonGeneric'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - JsonGrpc
+  /pools:
+    get:
+      operationId: get_pools
+      parameters:
+      - explode: true
+        in: query
+        name: volume_id
+        required: false
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Pool'
+                type: array
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Pools
+  /pools/{pool_id}:
+    delete:
+      operationId: del_pool
+      parameters:
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Pools
+    get:
+      operationId: get_pool
+      parameters:
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pool'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Pools
+  /pools/{pool_id}/replicas/{replica_id}:
+    delete:
+      operationId: del_pool_replica
+      parameters:
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      - explode: false
+        in: path
+        name: replica_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+    put:
+      operationId: put_pool_replica
+      parameters:
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      - explode: false
+        in: path
+        name: replica_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReplicaBody'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Replica'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+  /pools/{pool_id}/replicas/{replica_id}/share:
+    delete:
+      operationId: del_pool_replica_share
+      parameters:
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      - explode: false
+        in: path
+        name: replica_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+  /pools/{pool_id}/replicas/{replica_id}/share/nvmf:
+    put:
+      operationId: put_pool_replica_share
+      parameters:
+      - explode: false
+        in: path
+        name: pool_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/PoolId'
+        style: simple
+      - explode: false
+        in: path
+        name: replica_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - description: NQNs of hosts allowed to connect to this replica
+        explode: true
+        in: query
+        name: allowed-hosts
+        required: false
+        schema:
+          items:
+            $ref: '#/components/schemas/HostNqn'
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+  /replicas:
+    get:
+      operationId: get_replicas
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Replica'
+                type: array
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+  /replicas/{id}:
+    get:
+      operationId: get_replica
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Replica'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Replicas
+  /specs:
+    get:
+      operationId: get_specs
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Specs'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Specs
+  /volumes:
+    get:
+      operationId: get_volumes
+      parameters:
+      - description: |-
+          The uuid of a volume to retrieve.
+          This can be used to "bypass" the 404 error when a volume does not exist.
+        explode: true
+        in: query
+        name: volume_id
+        required: false
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: form
+      - description: the maximum number of results to return
+        explode: true
+        in: query
+        name: max_entries
+        required: true
+        schema:
+          default: 0
+          type: integer
+        style: form
+      - description: the offset to start pagination from
+        explode: true
+        in: query
+        name: starting_token
+        required: false
+        schema:
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volumes'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+  /volumes/{volume_id}:
+    delete:
+      operationId: del_volume
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+    get:
+      operationId: get_volume
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+    put:
+      operationId: put_volume
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVolumeBody'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+  /volumes/{volume_id}/rebuild-history:
+    get:
+      operationId: get_rebuild_history
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RebuildHistory'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+  /volumes/{volume_id}/replica_count/{replica_count}:
+    put:
+      operationId: put_volume_replica_count
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      - explode: false
+        in: path
+        name: replica_count
+        required: true
+        schema:
+          format: uint8
+          maximum: 255
+          minimum: 1
+          type: integer
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+  /volumes/{volume_id}/property:
+    put:
+      operationId: put_volume_property
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetVolumePropertyBody'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+  /volumes/{volume_id}/target:
+    delete:
+      operationId: del_volume_target
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      - description: "Force unpublish if the node is not online. This should only\
+          \ be used when it is safe to do so, eg: when the node is not coming back\
+          \ up."
+        explode: true
+        in: query
+        name: force
+        required: false
+        schema:
+          default: false
+          type: boolean
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+    put:
+      description: |-
+        Create a volume target connectable for front-end IO from the specified node.
+        Due to a limitation, this must currently be an io-engine storage node.
+      operationId: put_volume_target
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishVolumeBody'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+  /volumes/{volume_id}/size:
+    put:
+      description: Resize a volume to required size.
+      operationId: put_volume_size
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResizeVolumeBody'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+  /volumes/{volume_id}/shutdown_targets:
+    delete:
+      operationId: del_volume_shutdown_targets
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+  /volumes/{volume_id}/share/{protocol}:
+    put:
+      operationId: put_volume_share
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      - explode: false
+        in: path
+        name: protocol
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeShareProtocol'
+        style: simple
+      - description: "Host if specified, is allowed to connect the target."
+        explode: true
+        in: query
+        name: frontend_host
+        required: false
+        schema:
+          type: string
+        style: form
+        x-api-scope: internal
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: string
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+  /volumes{volume_id}/share:
+    delete:
+      operationId: del_share
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+  /volumes/{volume_id}/snapshots/{snapshot_id}:
+    delete:
+      operationId: del_volume_snapshot
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      - explode: false
+        in: path
+        name: snapshot_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/SnapshotId'
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Snapshots
+    get:
+      operationId: get_volume_snapshot
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      - explode: false
+        in: path
+        name: snapshot_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/SnapshotId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolumeSnapshot'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Snapshots
+    put:
+      operationId: put_volume_snapshot
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      - explode: false
+        in: path
+        name: snapshot_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/SnapshotId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolumeSnapshot'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Snapshots
+  /volumes/{volume_id}/snapshots:
+    get:
+      operationId: get_volume_snapshots
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      - description: the maximum number of results to return
+        explode: true
+        in: query
+        name: max_entries
+        required: true
+        schema:
+          default: 0
+          type: integer
+        style: form
+      - description: the offset to start pagination from
+        explode: true
+        in: query
+        name: starting_token
+        required: false
+        schema:
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolumeSnapshots'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Snapshots
+  /volumes/snapshots/{snapshot_id}:
+    delete:
+      operationId: del_snapshot
+      parameters:
+      - explode: false
+        in: path
+        name: snapshot_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/SnapshotId'
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Snapshots
+    get:
+      operationId: get_volumes_snapshot
+      parameters:
+      - explode: false
+        in: path
+        name: snapshot_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/SnapshotId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolumeSnapshot'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Snapshots
+  /volumes/snapshots:
+    get:
+      operationId: get_volumes_snapshots
+      parameters:
+      - description: The uuid of the snapshot to retrieve.
+        explode: true
+        in: query
+        name: snapshot_id
+        required: false
+        schema:
+          $ref: '#/components/schemas/SnapshotId'
+        style: form
+      - description: The uuid of the snapshots source volume.
+        explode: true
+        in: query
+        name: volume_id
+        required: false
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: form
+      - description: the maximum number of results to return
+        explode: true
+        in: query
+        name: max_entries
+        required: true
+        schema:
+          default: 0
+          type: integer
+        style: form
+      - description: the offset to start pagination from
+        explode: true
+        in: query
+        name: starting_token
+        required: false
+        schema:
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolumeSnapshots'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Snapshots
+  /snapshots/{snapshot_id}/volumes/{volume_id}:
+    put:
+      operationId: put_snapshot_volume
+      parameters:
+      - explode: false
+        in: path
+        name: snapshot_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/SnapshotId'
+        style: simple
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVolumeBody'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Volumes
+  /watches/volumes/{volume_id}:
+    delete:
+      operationId: del_watch_volume
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      - description: URL callback
+        explode: true
+        in: query
+        name: callback
+        required: true
+        schema:
+          format: uri
+          type: string
+        style: form
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Watches
+    get:
+      operationId: get_watch_volume
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/RestWatch'
+                type: array
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Watches
+    put:
+      operationId: put_watch_volume
+      parameters:
+      - explode: false
+        in: path
+        name: volume_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/VolumeId'
+        style: simple
+      - description: URL callback
+        explode: true
+        in: query
+        name: callback
+        required: true
+        schema:
+          format: uri
+          type: string
+        style: form
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - Watches
+  /app-nodes:
+    get:
+      operationId: get_app_nodes
+      parameters:
+      - description: The maximum number of results to return.
+        explode: true
+        in: query
+        name: max_entries
+        required: true
+        schema:
+          default: 0
+          type: integer
+        style: form
+      - description: The offset to start pagination from.
+        explode: true
+        in: query
+        name: starting_token
+        required: false
+        schema:
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppNodes'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+      security:
+      - JWT: []
+      tags:
+      - AppNodes
+  /app-nodes/{app_node_id}:
+    delete:
+      operationId: deregister_app_node
+      parameters:
+      - description: ID of the app node to be deregistered.
+        explode: false
+        in: path
+        name: app_node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/AppNodeId'
+        style: simple
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - AppNodes
+    get:
+      operationId: get_app_node
+      parameters:
+      - description: Id of the app node.
+        explode: false
+        in: path
+        name: app_node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/AppNodeId'
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppNode'
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+      security:
+      - JWT: []
+      tags:
+      - AppNodes
+    put:
+      operationId: register_app_node
+      parameters:
+      - explode: false
+        in: path
+        name: app_node_id
+        required: true
+        schema:
+          $ref: '#/components/schemas/AppNodeId'
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterAppNode'
+        description: Contents of the app node to be registered.
+        required: true
+      responses:
+        "204":
+          description: OK
+        "4XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Client side error
+        "5XX":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestJsonError'
+          description: Server side error
+      security:
+      - JWT: []
+      tags:
+      - AppNodes
+components:
+  responses:
+    ClientError:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RestJsonError'
+      description: Client side error
+    ServerError:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RestJsonError'
+      description: Server side error
+  schemas:
+    VolumeId:
+      example: ec4e66fd-3b33-4439-b504-d49aba53da26
+      format: uuid
+      type: string
+    SnapshotId:
+      example: 25823425-41fa-434a-9efd-a356b70b5d7c
+      format: uuid
+      type: string
+    ReplicaId:
+      example: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+      format: uuid
+      type: string
+    NodeId:
+      description: storage node identifier
+      example: io-engine-1
+      type: string
+    AppNodeId:
+      description: App node identifier.
+      example: csi-node-1
+      type: string
+    PoolId:
+      description: storage pool identifier
+      example: pool-1
+      type: string
+    PoolUuid:
+      description: storage pool unique identifier
+      example: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+      format: uuid
+      type: string
+    BlockDevice:
+      description: Block device information
+      example:
+        devpath: devpath
+        is_rotational: true
+        connection_type: connection_type
+        available: true
+        devlinks:
+        - devlinks
+        - devlinks
+        filesystem:
+          fstype: ""
+          label: ""
+          mountpoint: ""
+          uuid: ""
+        devmajor: 0
+        devtype: devtype
+        partition:
+          number: 1
+          parent: parent
+          scheme: scheme
+          name: name
+          typeid: typeid
+          uuid: uuid
+        size: 0
+        devminor: 6
+        devname: devname
+        model: model
+      properties:
+        available:
+          description: |-
+            identifies if device is available for use (ie. is not "currently" in
+             use)
+          type: boolean
+        connection_type:
+          description: the type of bus through which the device is connected to the
+            system
+          type: string
+        devlinks:
+          description: list of udev generated symlinks by which device may be identified
+          items:
+            type: string
+          type: array
+        devmajor:
+          description: major device number
+          format: int32
+          type: integer
+        devminor:
+          description: minor device number
+          format: int32
+          type: integer
+        devname:
+          description: entry in /dev associated with device
+          type: string
+        devpath:
+          description: official device path
+          type: string
+        devtype:
+          description: currently "disk" or "partition"
+          type: string
+        filesystem:
+          $ref: '#/components/schemas/BlockDevice_filesystem'
+        is_rotational:
+          description: indicates whether the device is rotational or non-rotational
+          type: boolean
+        model:
+          description: device model - useful for identifying devices
+          type: string
+        partition:
+          $ref: '#/components/schemas/BlockDevice_partition'
+        size:
+          description: size of device in (512 byte) blocks
+          format: int64
+          minimum: 0
+          type: integer
+      required:
+      - available
+      - connection_type
+      - devlinks
+      - devmajor
+      - devminor
+      - devname
+      - devpath
+      - devtype
+      - model
+      - size
+      type: object
+    ChildState:
+      description: State of a Nexus Child
+      enum:
+      - Unknown
+      - Online
+      - Degraded
+      - Faulted
+      example: Online
+      type: string
+    ChildStateReason:
+      description: Reason for the state of a Nexus Child
+      enum:
+      - OutOfSpace
+      example: OutOfSpace
+      type: string
+    Child:
+      description: Child information
+      example:
+        rebuildProgress: null
+        state: Online
+        uri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
+      properties:
+        rebuildProgress:
+          description: current rebuild progress (%)
+          maximum: 100
+          minimum: 0
+          type: integer
+        state:
+          $ref: '#/components/schemas/ChildState'
+        state_reason:
+          $ref: '#/components/schemas/ChildStateReason'
+        uri:
+          description: uri of the child device
+          type: string
+      required:
+      - state
+      - uri
+      type: object
+    CreateNexusBody:
+      description: Create Nexus Body
+      example:
+        children:
+        - nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
+        size: 80241024
+      properties:
+        children:
+          description: |-
+            replica can be iscsi and nvmf remote targets or a local spdk bdev
+             (i.e. bdev:///name-of-the-bdev).
+
+             uris to the targets we connect to
+          items:
+            type: string
+          type: array
+        size:
+          description: size of the device in bytes
+          format: int64
+          minimum: 0
+          type: integer
+      required:
+      - children
+      - size
+      type: object
+    CreatePoolBody:
+      description: Create Pool Body
+      example:
+        disks:
+        - malloc:///disk?size_mb=100
+      properties:
+        disks:
+          description: disk device paths or URIs to be claimed by the pool
+          items:
+            description: |-
+              Pool device URI
+               Can be specified in the form of a file path or a URI
+               eg: /dev/sda, aio:///dev/sda, malloc:///disk?size_mb=100
+            example: malloc:///disk?size_mb=100
+            type: string
+          type: array
+        labels:
+          additionalProperties:
+            type: string
+          description: labels to be set on the pools
+          type: object
+      required:
+      - disks
+      type: object
+    HostNqn:
+      description: |-
+        NVMe Qualified Names (NQNs) are used to uniquely describe a host or NVM subsystem for the purposes
+        of identification and authentication
+      example: nqn.2014-08.org.nvmexpress:uuid:804b1e8c-b42d-4d15-92b4-7c4e4d0f507
+      type: string
+    CreateReplicaBody:
+      description: Create Replica Body
+      example:
+        size: 80241024
+        thin: false
+      properties:
+        share:
+          $ref: '#/components/schemas/ReplicaShareProtocol'
+        allowed-hosts:
+          items:
+            $ref: '#/components/schemas/HostNqn'
+          type: array
+        size:
+          description: size of the replica in bytes
+          format: int64
+          minimum: 0
+          type: integer
+        thin:
+          description: thin provisioning
+          type: boolean
+      required:
+      - size
+      - thin
+      type: object
+    PoolTopology:
+      additionalProperties: false
+      description: |-
+        Used to determine how to place/distribute the data during volume creation and replica replacement.
+         If left empty then the control plane will select from all available resources.
+      example:
+        explicit: null
+        labelled: null
+      nullable: true
+      oneOf: []
+      properties:
+        labelled:
+          allOf:
+          - $ref: '#/components/schemas/LabelledTopology'
+          description: volume pool topology definition through labels
+      type: object
+    ExplicitNodeTopology:
+      description: "volume topology, explicitly selected"
+      example:
+        allowed_nodes:
+        - ""
+        preferred_nodes:
+        - ""
+      properties:
+        allowed_nodes:
+          description: replicas can only be placed on these nodes
+          items:
+            type: string
+          type: array
+        preferred_nodes:
+          description: preferred nodes to place the replicas
+          items:
+            type: string
+          type: array
+      required:
+      - allowed_nodes
+      - preferred_nodes
+      type: object
+    LabelledTopology:
+      description: labelled topology
+      example:
+        exclusion:
+        - ""
+        inclusion:
+        - ""
+      properties:
+        exclusion:
+          additionalProperties:
+            type: string
+          description: |-
+            Excludes resources with the same $label name, eg:
+             "Zone" would not allow for resources with the same "Zone" value
+             to be used for a certain operation, eg:
+             A node with "Zone: A" would not be paired up with a node with "Zone: A",
+             but it could be paired up with a node with "Zone: B"
+             exclusive label NAME in the form "NAME", and not "NAME: VALUE"
+          example: ""
+          type: object
+        inclusion:
+          additionalProperties:
+            type: string
+          description: |-
+            Includes resources with the same $label or $label:$value eg:
+             if label is "Zone: A":
+             A resource with "Zone: A" would be paired up with a resource with "Zone: A",
+             but not with a resource with "Zone: B"
+             if label is "Zone":
+             A resource with "Zone: A" would be paired up with a resource with "Zone: B",
+             but not with a resource with "OtherLabel: B"
+             inclusive label key value in the form "NAME: VALUE"
+          example: ""
+          type: object
+      required:
+      - exclusion
+      - inclusion
+      type: object
+    Topology:
+      description: node and pool topology for volumes
+      properties:
+        node_topology:
+          $ref: '#/components/schemas/NodeTopology'
+        pool_topology:
+          $ref: '#/components/schemas/PoolTopology'
+      type: object
+    NodeTopology:
+      additionalProperties: false
+      description: |-
+        Used to determine how to place/distribute the data during volume creation and replica replacement.
+         If left empty then the control plane will select from all available resources.
+      example:
+        explicit: null
+        labelled: null
+      nullable: true
+      oneOf: []
+      properties:
+        explicit:
+          allOf:
+          - $ref: '#/components/schemas/ExplicitNodeTopology'
+          description: "volume topology, explicitly selected"
+        labelled:
+          allOf:
+          - $ref: '#/components/schemas/LabelledTopology'
+          description: volume topology definition through labels
+      type: object
+    VolumePolicy:
+      description: Volume policy used to determine if and how to replace a replica
+      example:
+        self_heal: true
+      properties:
+        self_heal:
+          description: If true the control plane will attempt to heal the volume by
+            itself
+          type: boolean
+      required:
+      - self_heal
+      type: object
+    CreateVolumeBody:
+      description: Create Volume Body
+      example:
+        policy:
+          self_heal: true
+        replicas: 1
+        size: 10485761
+        thin: false
+        topology: null
+        affinity_group: null
+        max_snapshots: 10
+      properties:
+        policy:
+          $ref: '#/components/schemas/VolumePolicy'
+        replicas:
+          description: number of storage replicas
+          format: uint8
+          maximum: 255
+          minimum: 0
+          type: integer
+        size:
+          description: size of the volume in bytes
+          format: int64
+          minimum: 0
+          type: integer
+        thin:
+          description: flag indicating whether or not the volume is thin provisioned
+          type: boolean
+        topology:
+          $ref: '#/components/schemas/Topology'
+        labels:
+          additionalProperties:
+            type: string
+          description: Optionally used to store custom volume information
+          type: object
+        affinity_group:
+          allOf:
+          - $ref: '#/components/schemas/AffinityGroup'
+          description: Affinity Group related information.
+        max_snapshots:
+          description: Max Snapshots limit per volume.
+          format: int32
+          minimum: 0
+          type: integer
+      required:
+      - policy
+      - replicas
+      - size
+      - thin
+      type: object
+    SetVolumePropertyBody:
+      description: Set Volume Properties Body
+      example:
+        max_snapshots: 10
+      nullable: true
+      oneOf: []
+      properties:
+        max_snapshots:
+          description: Max Snapshots limit per volume.
+          format: int32
+          minimum: 0
+          type: integer
+      type: object
+    AffinityGroup:
+      description: Affinity Group related information.
+      example:
+        id: ag
+      properties:
+        id:
+          description: Identification of the Affinity Group.
+          type: string
+      required:
+      - id
+      type: object
+    VolumeContentSource:
+      additionalProperties: false
+      description: Volume Content Source i.e the snapshot or the volume.
+      nullable: true
+      oneOf: []
+      properties:
+        snapshot:
+          $ref: '#/components/schemas/SnapshotAsSource'
+      type: object
+    SnapshotAsSource:
+      description: The snapshot source for the volume content.
+      properties:
+        snapshot:
+          example: 25823425-41fa-434a-9efd-a356b70b5d7c
+          format: uuid
+          type: string
+        volume:
+          example: ec4e66fd-3b33-4439-b504-d49aba53da26
+          format: uuid
+          type: string
+      required:
+      - snapshot
+      - volume
+      type: object
+    ResizeVolumeBody:
+      description: Resize Volume Body
+      example:
+        size: 104857610
+      properties:
+        size:
+          description: New required size of the volume in bytes
+          format: uint64
+          minimum: 0
+          type: integer
+      required:
+      - size
+      type: object
+    PublishVolumeBody:
+      description: Publish Volume Body
+      example:
+        node: io-engine-1
+        protocol: nvmf
+        publish_context:
+          io_timeout: "30"
+          ctrl_loss_timeout: "1980"
+        republish: false
+        reuse_existing: true
+      properties:
+        publish_context:
+          additionalProperties:
+            type: string
+          description: Controller Volume Publish context
+          type: object
+        reuse_existing:
+          description: Allows reusing of the current target.
+          type: boolean
+        node:
+          allOf:
+          - $ref: '#/components/schemas/NodeId'
+          description: |-
+            The node where the target will reside in.
+            It may be moved elsewhere during volume republish.
+        protocol:
+          allOf:
+          - $ref: '#/components/schemas/VolumeShareProtocol'
+          description: The protocol used to connect to the front-end node.
+        republish:
+          description: Allows republishing the volume on the node by shutting down
+            the existing target first.
+          type: boolean
+        frontend_node:
+          description: |-
+            The node where the front-end workload resides.
+            If the workload moves then the volume must be republished.
+          type: string
+      required:
+      - protocol
+      - publish_context
+      type: object
+    JsonGeneric:
+      description: "Generic JSON value eg: { \"size\": 1024 }"
+      type: object
+    NexusState:
+      description: State of the Nexus
+      enum:
+      - Unknown
+      - Online
+      - Degraded
+      - Faulted
+      - ShuttingDown
+      - Shutdown
+      type: string
+    RebuildJobState:
+      description: State of the rebuild job
+      enum:
+      - Init
+      - Rebuilding
+      - Stopped
+      - Paused
+      - Failed
+      - Completed
+      type: string
+    RebuildRecord:
+      description: Rebuild record of a Child
+      example:
+      - childUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
+        srcUri: nvmf://10.1.0.9:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb25
+        state: Completed
+        blocksTotal: 13452
+        blocksRecovered: 13452
+        blocksTransferred: 12343
+        blocksRemaining: 0
+        blockSize: 512
+        isPartial: true
+        startTime: 2023-06-20T07:25:25.974218428Z
+        endTime: 2023-06-20T07:25:25.975338717Z
+      properties:
+        childUri:
+          description: Uri of the rebuilding child
+          type: string
+        srcUri:
+          description: Uri of source child for rebuild job
+          type: string
+        rebuildJobState:
+          $ref: '#/components/schemas/RebuildJobState'
+        blocksTotal:
+          description: Total blocks to rebuild
+          format: uint64
+          type: integer
+        blocksRecovered:
+          description: Number of blocks processed
+          format: uint64
+          type: integer
+        blocksTransferred:
+          description: Number of blocks to transferred
+          format: uint64
+          type: integer
+        blocksRemaining:
+          description: Number of blocks remaining
+          format: uint64
+          type: integer
+        blockSize:
+          description: Size of each block in the task
+          format: uint64
+          type: integer
+        isPartial:
+          description: "True means its Partial rebuild job. If false, its Full rebuild\
+            \ job"
+          type: boolean
+        startTime:
+          description: Start time of the rebuild job (UTC)
+          format: date-time
+          type: string
+        endTime:
+          description: End time of the rebuild job (UTC)
+          format: date-time
+          type: string
+      required:
+      - blockSize
+      - blocksRecovered
+      - blocksRemaining
+      - blocksTotal
+      - blocksTransferred
+      - childUri
+      - endTime
+      - isPartial
+      - rebuildJobState
+      - srcUri
+      - startTime
+      type: object
+    RebuildHistory:
+      example:
+        records:
+        - - childUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
+            srcUri: nvmf://10.1.0.9:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb25
+            state: Completed
+            blocksTotal: 13452
+            blocksRecovered: 13452
+            blocksTransferred: 12343
+            blocksRemaining: 0
+            blockSize: 512
+            isPartial: true
+            startTime: 2023-06-20T07:25:25.974218428Z
+            endTime: 2023-06-20T07:25:25.975338717Z
+        - - childUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
+            srcUri: nvmf://10.1.0.9:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb25
+            state: Completed
+            blocksTotal: 13452
+            blocksRecovered: 13452
+            blocksTransferred: 12343
+            blocksRemaining: 0
+            blockSize: 512
+            isPartial: true
+            startTime: 2023-06-20T07:25:25.974218428Z
+            endTime: 2023-06-20T07:25:25.975338717Z
+        targetUuid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        targetUuid:
+          description: Id of the volume target
+          format: uuid
+          type: string
+        records:
+          description: Array of rebuild record
+          items:
+            $ref: '#/components/schemas/RebuildRecord'
+          type: array
+      required:
+      - records
+      - targetUuid
+    Nexus:
+      description: Nexus information
+      example:
+        children:
+        - rebuildProgress: null
+          state: Online
+          uri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:replica1
+        deviceUri: null
+        node: io-engine-1
+        rebuilds: 0
+        protocol: nvmf
+        size: 8024024
+        state: Online
+        uuid: 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+      properties:
+        children:
+          description: Array of Nexus Children
+          items:
+            $ref: '#/components/schemas/Child'
+          type: array
+        deviceUri:
+          description: |-
+            URI of the device for the volume (missing if not published).
+             Missing property and empty string are treated the same.
+          type: string
+        node:
+          description: id of the io-engine instance
+          type: string
+        rebuilds:
+          description: total number of rebuild tasks
+          format: int32
+          minimum: 0
+          type: integer
+        protocol:
+          $ref: '#/components/schemas/Protocol'
+        size:
+          description: size of the volume in bytes
+          format: int64
+          minimum: 0
+          type: integer
+        state:
+          $ref: '#/components/schemas/NexusState'
+        uuid:
+          description: uuid of the nexus
+          format: uuid
+          type: string
+      required:
+      - children
+      - deviceUri
+      - node
+      - protocol
+      - rebuilds
+      - size
+      - state
+      - uuid
+      type: object
+    NodeStatus:
+      description: deemed state of the node
+      enum:
+      - Unknown
+      - Online
+      - Offline
+      type: string
+    NodeSpec:
+      additionalProperties: false
+      description: Node spec
+      example:
+        grpcEndpoint: 10.1.0.5:10124
+        id: io-engine-1
+      properties:
+        grpcEndpoint:
+          description: gRPC endpoint of the io-engine instance
+          type: string
+        id:
+          description: storage node identifier
+          example: io-engine-1
+          type: string
+        labels:
+          additionalProperties:
+            type: string
+          description: labels to be set on the node
+          type: object
+        cordondrainstate:
+          allOf:
+          - $ref: '#/components/schemas/CordonDrainState'
+          description: the drain state
+        node_nqn:
+          description: |-
+            NVMe Qualified Names (NQNs) are used to uniquely describe a host or NVM subsystem for the purposes
+            of identification and authentication
+          example: nqn.2014-08.org.nvmexpress:uuid:804b1e8c-b42d-4d15-92b4-7c4e4d0f507
+          type: string
+        version:
+          description: Version of the io-engine instance
+          type: string
+      required:
+      - grpcEndpoint
+      - id
+      type: object
+    NodeState:
+      description: io-engine storage node information
+      example:
+        grpcEndpoint: 10.1.0.5:10124
+        id: io-engine-1
+        status: Online
+      properties:
+        grpcEndpoint:
+          description: gRPC endpoint of the io-engine instance
+          type: string
+        id:
+          description: storage node identifier
+          example: io-engine-1
+          type: string
+        status:
+          $ref: '#/components/schemas/NodeStatus'
+        node_nqn:
+          description: |-
+            NVMe Qualified Names (NQNs) are used to uniquely describe a host or NVM subsystem for the purposes
+            of identification and authentication
+          example: nqn.2014-08.org.nvmexpress:uuid:804b1e8c-b42d-4d15-92b4-7c4e4d0f507
+          type: string
+        version:
+          description: Version of the io-engine instance
+          type: string
+      required:
+      - grpcEndpoint
+      - id
+      - status
+      type: object
+    Node:
+      description: io-engine storage node information
+      example:
+        id: io-engine-1
+        state:
+          grpcEndpoint: 10.1.0.5:10124
+          id: io-engine-1
+          status: Online
+        spec:
+          grpcEndpoint: 10.1.0.5:10124
+          id: io-engine-1
+      properties:
+        id:
+          description: storage node identifier
+          example: io-engine-1
+          type: string
+        spec:
+          $ref: '#/components/schemas/NodeSpec'
+        state:
+          $ref: '#/components/schemas/NodeState'
+      required:
+      - id
+      type: object
+    PoolStatus:
+      description: current status of the pool
+      enum:
+      - Unknown
+      - Online
+      - Degraded
+      - Faulted
+      type: string
+    Pool:
+      description: "Pool object, comprised of a spec and a state"
+      example:
+        id: pool-1
+        state:
+          node: io-engine-1
+          committed: 0
+          disks:
+          - aio:///dev/sda?uuid=caede6dd-5732-4771-8cb6-c32315ed28d3
+          - aio:///dev/sda?uuid=caede6dd-5732-4771-8cb6-c32315ed28d3
+          id: pool-1
+          used: 0
+          capacity: 10737418240
+          status: null
+        spec:
+          node: io-engine-1
+          disks:
+          - /dev/sda
+          - /dev/sda
+          id: pool-1
+          labels:
+            key: labels
+          status: null
+      minProperties: 2
+      properties:
+        id:
+          description: storage pool identifier
+          example: pool-1
+          type: string
+        spec:
+          $ref: '#/components/schemas/PoolSpec'
+        state:
+          $ref: '#/components/schemas/PoolState'
+      required:
+      - id
+      type: object
+    PoolState:
+      description: "State of a pool, as reported by io-engine"
+      example:
+        node: io-engine-1
+        committed: 0
+        disks:
+        - aio:///dev/sda?uuid=caede6dd-5732-4771-8cb6-c32315ed28d3
+        - aio:///dev/sda?uuid=caede6dd-5732-4771-8cb6-c32315ed28d3
+        id: pool-1
+        used: 0
+        capacity: 10737418240
+        status: null
+      properties:
+        capacity:
+          description: size of the pool in bytes
+          example: 10737418240
+          format: int64
+          minimum: 0
+          type: integer
+        disks:
+          description: absolute disk paths claimed by the pool
+          items:
+            description: |-
+              Pool device URI
+               Can be specified in the form of a file path or a URI
+               eg: /dev/sda, aio:///dev/sda, malloc:///disk?size_mb=100
+            example: aio:///dev/sda?uuid=caede6dd-5732-4771-8cb6-c32315ed28d3
+            type: string
+          type: array
+        id:
+          description: storage pool identifier
+          example: pool-1
+          type: string
+        node:
+          description: storage node identifier
+          example: io-engine-1
+          type: string
+        status:
+          $ref: '#/components/schemas/PoolStatus'
+        used:
+          description: used bytes from the pool
+          format: int64
+          minimum: 0
+          type: integer
+        committed:
+          description: accrued size of all replicas contained in this pool
+          format: int64
+          minimum: 0
+          type: integer
+      required:
+      - capacity
+      - disks
+      - id
+      - node
+      - status
+      - used
+      type: object
+    ReplicaState:
+      description: state of the replica
+      enum:
+      - Unknown
+      - Online
+      - Degraded
+      - Faulted
+      type: string
+    ReplicaKind:
+      default: Regular
+      description: "Type of replica, example regular or snapshot."
+      enum:
+      - Regular
+      - Snapshot
+      - SnapshotClone
+      type: string
+    Replica:
+      description: Replica information
+      example:
+        node: io-engine-1
+        allowed-hosts:
+        - nqn.2014-08.org.nvmexpress:uuid:804b1e8c-b42d-4d15-92b4-7c4e4d0f507
+        - nqn.2014-08.org.nvmexpress:uuid:804b1e8c-b42d-4d15-92b4-7c4e4d0f507
+        size: 80241024
+        kind: null
+        pool: pool-1
+        share: null
+        state: null
+        poolUuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+        uri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:fb04022b-1ca1-4789-bcd4-dacbcb54e23c
+        uuid: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        space:
+          capacity_bytes: 80241024
+          allocated_bytes_all_snapshots: 80241024
+          cluster_size: 80241024
+          allocated_bytes_snapshots: 80241024
+          allocated_bytes: 80241024
+          allocated_clusters: 80241024
+          clusters: 80241024
+        thin: false
+      properties:
+        node:
+          description: storage node identifier
+          example: io-engine-1
+          type: string
+        pool:
+          description: storage pool identifier
+          example: pool-1
+          type: string
+        poolUuid:
+          description: storage pool unique identifier
+          example: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+          format: uuid
+          type: string
+        share:
+          $ref: '#/components/schemas/Protocol'
+        size:
+          description: size of the replica in bytes
+          example: 80241024
+          format: int64
+          minimum: 0
+          type: integer
+        space:
+          $ref: '#/components/schemas/ReplicaSpaceUsage'
+        state:
+          $ref: '#/components/schemas/ReplicaState'
+        thin:
+          description: thin provisioning
+          example: false
+          type: boolean
+        uri:
+          description: uri usable by nexus to access it
+          example: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:fb04022b-1ca1-4789-bcd4-dacbcb54e23c
+          type: string
+        uuid:
+          description: uuid of the replica
+          format: uuid
+          type: string
+        allowed-hosts:
+          description: NQNs of hosts allowed to connect to this replica
+          items:
+            $ref: '#/components/schemas/HostNqn'
+          type: array
+        kind:
+          $ref: '#/components/schemas/ReplicaKind'
+      required:
+      - kind
+      - node
+      - pool
+      - share
+      - size
+      - state
+      - thin
+      - uri
+      - uuid
+      type: object
+    ReplicaSpaceUsage:
+      description: |
+        Replica space usage information.
+        Useful for capacity management, eg: figure out how much of a thin-provisioned replica is allocated.
+      example:
+        capacity_bytes: 80241024
+        allocated_bytes_all_snapshots: 80241024
+        cluster_size: 80241024
+        allocated_bytes_snapshots: 80241024
+        allocated_bytes: 80241024
+        allocated_clusters: 80241024
+        clusters: 80241024
+      properties:
+        capacity_bytes:
+          description: Replica capacity in bytes.
+          example: 80241024
+          format: int64
+          minimum: 0
+          type: integer
+        allocated_bytes:
+          description: Amount of actually allocated disk space for this replica in
+            bytes.
+          example: 80241024
+          format: int64
+          minimum: 0
+          type: integer
+        allocated_bytes_snapshots:
+          default: 0
+          description: Amount of actually allocated disk space for this replica's
+            snapshots in bytes.
+          example: 80241024
+          format: int64
+          minimum: 0
+          type: integer
+        allocated_bytes_all_snapshots:
+          default: 0
+          description: |
+            Amount of actually allocated disk space for this replica's snapshots and its predecessors in bytes.
+            For a restored/cloned replica this includes snapshots from the parent source.
+          example: 80241024
+          format: int64
+          minimum: 0
+          type: integer
+        cluster_size:
+          description: Cluster size in bytes.
+          example: 80241024
+          format: int64
+          minimum: 0
+          type: integer
+        clusters:
+          description: Total number of clusters.
+          example: 80241024
+          format: int64
+          minimum: 0
+          type: integer
+        allocated_clusters:
+          description: Number of actually used clusters.
+          example: 80241024
+          format: int64
+          minimum: 0
+          type: integer
+      required:
+      - allocated_bytes
+      - allocated_bytes_snapshots
+      - allocated_clusters
+      - capacity_bytes
+      - cluster_size
+      - clusters
+      type: object
+    RestJsonError:
+      description: Rest Json Error format
+      example:
+        details: The Pool 'pooloop' was not found
+        kind: NotFound
+      properties:
+        details:
+          description: detailed error information
+          type: string
+        message:
+          description: last reported error information
+          type: string
+        kind:
+          description: error kind
+          enum:
+          - Timeout
+          - Deserialize
+          - Internal
+          - InvalidArgument
+          - DeadlineExceeded
+          - NotFound
+          - AlreadyExists
+          - PermissionDenied
+          - ResourceExhausted
+          - FailedPrecondition
+          - NotShared
+          - NotPublished
+          - AlreadyPublished
+          - AlreadyShared
+          - Aborted
+          - OutOfRange
+          - Unimplemented
+          - Unavailable
+          - Unauthenticated
+          - Unauthorized
+          - Conflict
+          - FailedPersist
+          - Deleting
+          - InUse
+          - CapacityLimitExceeded
+          - NotAcceptable
+          type: string
+      required:
+      - details
+      - kind
+      - message
+      type: object
+    RestWatch:
+      description: Watch Resource in the store
+      example:
+        callback: https://api.myserver.com/volume/e2fc5ce8-a56e-47a1-94e9-04dd2f73b88f/callback
+        resource: e2fc5ce8-a56e-47a1-94e9-04dd2f73b88f
+      properties:
+        callback:
+          description: callback used to notify the watch of a change
+          type: string
+        resource:
+          description: id of the resource to watch on
+          type: string
+      required:
+      - callback
+      - resource
+      type: object
+    Specs:
+      description: Specs detailing the requested configuration of the objects.
+      example:
+        nexuses:
+        - children:
+          - nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
+          managed: false
+          node: io-engine-1
+          operation: null
+          owner: null
+          share: none
+          size: 80241024
+          state: Created
+          uuid: 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+        - children:
+          - nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
+          managed: false
+          node: io-engine-1
+          operation: null
+          owner: null
+          share: none
+          size: 80241024
+          state: Created
+          uuid: 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+        replicas:
+        - managed: false
+          operation: null
+          owners:
+            nexuses:
+            - 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+            volume: null
+          pool: pooloop
+          poolUuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+          share: none
+          size: 80241024
+          state: Created
+          thin: false
+          uuid: 37d83441-e8ef-4e17-a29e-25169d91cb96
+        - managed: false
+          operation: null
+          owners:
+            nexuses:
+            - 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+            volume: null
+          pool: pooloop
+          poolUuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+          share: none
+          size: 80241024
+          state: Created
+          thin: false
+          uuid: 37d83441-e8ef-4e17-a29e-25169d91cb96
+        volumes:
+        - num_replicas: 2
+          size: 80241024
+          state: Created
+          target_node: io-engine-1
+          uuid: 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+          thin: false
+          max_snapshots: 10
+        - num_replicas: 2
+          size: 80241024
+          state: Created
+          target_node: io-engine-1
+          uuid: 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+          thin: false
+          max_snapshots: 10
+        pools:
+        - node: io-engine-1
+          disks:
+          - /dev/sda
+          - /dev/sda
+          id: pool-1
+          labels:
+            key: labels
+          status: null
+        - node: io-engine-1
+          disks:
+          - /dev/sda
+          - /dev/sda
+          id: pool-1
+          labels:
+            key: labels
+          status: null
+      properties:
+        nexuses:
+          description: Nexus Specs
+          items:
+            $ref: '#/components/schemas/NexusSpec'
+          type: array
+        pools:
+          description: Pool Specs
+          items:
+            $ref: '#/components/schemas/PoolSpec'
+          type: array
+        replicas:
+          description: Replica Specs
+          items:
+            $ref: '#/components/schemas/ReplicaSpec'
+          type: array
+        volumes:
+          description: Volume Specs
+          items:
+            $ref: '#/components/schemas/VolumeSpec'
+          type: array
+      required:
+      - nexuses
+      - pools
+      - replicas
+      - volumes
+      type: object
+    NexusSpec:
+      description: User specification of a nexus.
+      example:
+        children:
+        - nvmf://10.1.0.5:8420/nqn.2019-05.com.org:37d83441-e8ef-4e17-a29e-25169d91cb96
+        managed: false
+        node: io-engine-1
+        operation: null
+        owner: null
+        share: none
+        size: 80241024
+        state: Created
+        uuid: 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+      properties:
+        children:
+          description: List of children.
+          items:
+            type: string
+          type: array
+        managed:
+          description: Managed by our control plane
+          type: boolean
+        node:
+          description: Node where the nexus should live.
+          type: string
+        operation:
+          $ref: '#/components/schemas/NexusSpec_operation'
+        owner:
+          description: "Volume which owns this nexus, if any"
+          format: uuid
+          type: string
+        share:
+          $ref: '#/components/schemas/Protocol'
+        size:
+          description: Size of the nexus.
+          format: int64
+          minimum: 0
+          type: integer
+        status:
+          $ref: '#/components/schemas/SpecStatus'
+        uuid:
+          description: Nexus Id
+          format: uuid
+          type: string
+      required:
+      - children
+      - managed
+      - node
+      - share
+      - size
+      - status
+      - uuid
+      type: object
+    PoolSpec:
+      description: User specification of a pool.
+      example:
+        node: io-engine-1
+        disks:
+        - /dev/sda
+        - /dev/sda
+        id: pool-1
+        labels:
+          key: labels
+        status: null
+      properties:
+        disks:
+          description: absolute disk paths claimed by the pool
+          items:
+            description: |-
+              Pool device URI
+               Can be specified in the form of a file path or a URI
+               eg: /dev/sda, aio:///dev/sda, malloc:///disk?size_mb=100
+            example: /dev/sda
+            type: string
+          type: array
+        id:
+          description: storage pool identifier
+          example: pool-1
+          type: string
+        labels:
+          additionalProperties:
+            type: string
+          description: labels to be set on the pools
+          type: object
+        node:
+          description: storage node identifier
+          example: io-engine-1
+          type: string
+        status:
+          $ref: '#/components/schemas/SpecStatus'
+      required:
+      - disks
+      - id
+      - node
+      - status
+      type: object
+    ReplicaSpec:
+      description: User specification of a replica.
+      example:
+        managed: false
+        operation: null
+        owners:
+          nexuses:
+          - 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+          volume: null
+        pool: pooloop
+        poolUuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+        share: none
+        size: 80241024
+        state: Created
+        thin: false
+        uuid: 37d83441-e8ef-4e17-a29e-25169d91cb96
+      properties:
+        managed:
+          description: Managed by our control plane
+          type: boolean
+        operation:
+          $ref: '#/components/schemas/ReplicaSpec_operation'
+        owners:
+          $ref: '#/components/schemas/ReplicaSpec_owners'
+        pool:
+          description: The pool that the replica should live on.
+          type: string
+        poolUuid:
+          description: storage pool unique identifier
+          example: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+          format: uuid
+          type: string
+        share:
+          $ref: '#/components/schemas/Protocol'
+        size:
+          description: The size that the replica should be.
+          format: int64
+          minimum: 0
+          type: integer
+        status:
+          $ref: '#/components/schemas/SpecStatus'
+        thin:
+          description: Thin provisioning.
+          type: boolean
+        uuid:
+          description: uuid of the replica
+          format: uuid
+          type: string
+        kind:
+          $ref: '#/components/schemas/ReplicaKind'
+      required:
+      - managed
+      - owners
+      - pool
+      - share
+      - size
+      - status
+      - thin
+      - uuid
+      type: object
+    VolumeSpec:
+      description: User specification of a volume.
+      example:
+        num_replicas: 2
+        size: 80241024
+        state: Created
+        target_node: io-engine-1
+        uuid: 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+        thin: false
+        max_snapshots: 10
+      properties:
+        labels:
+          additionalProperties:
+            type: string
+          description: Optionally used to store custom volume information
+          type: object
+        num_replicas:
+          description: Number of children the volume should have.
+          format: uint8
+          maximum: 255
+          minimum: 0
+          type: integer
+        operation:
+          $ref: '#/components/schemas/VolumeSpec_operation'
+        size:
+          description: Size that the volume should be.
+          format: int64
+          minimum: 0
+          type: integer
+        status:
+          $ref: '#/components/schemas/SpecStatus'
+        target:
+          $ref: '#/components/schemas/VolumeTarget'
+        uuid:
+          description: Volume Id
+          format: uuid
+          type: string
+        topology:
+          $ref: '#/components/schemas/Topology'
+        policy:
+          $ref: '#/components/schemas/VolumePolicy'
+        thin:
+          description: Thin provisioning flag.
+          type: boolean
+        as_thin:
+          description: Volume converted to thin provisioned.
+          type: boolean
+        affinity_group:
+          $ref: '#/components/schemas/AffinityGroup'
+        content_source:
+          $ref: '#/components/schemas/VolumeContentSource'
+        num_snapshots:
+          description: Number of snapshots taken on this volume.
+          format: int32
+          minimum: 0
+          type: integer
+        max_snapshots:
+          description: Max snapshots to limit per volume.
+          format: int32
+          minimum: 0
+          type: integer
+      required:
+      - num_paths
+      - num_replicas
+      - num_snapshots
+      - policy
+      - protocol
+      - size
+      - status
+      - thin
+      - uuid
+      type: object
+    VolumeTarget:
+      description: Specification of a volume target
+      example:
+        node: io-engine-1
+        protocol: nvmf
+      properties:
+        node:
+          description: The node where front-end IO will be sent to
+          type: string
+        protocol:
+          $ref: '#/components/schemas/VolumeShareProtocol'
+        frontend_nodes:
+          description: |-
+            The nodes where the front-end workload resides.
+            If the workload moves then the volume must be republished.
+          items:
+            $ref: '#/components/schemas/NodeAccessInfo'
+          type: array
+      required:
+      - node
+      type: object
+    NodeAccessInfo:
+      description: Frontend Node access information.
+      properties:
+        name:
+          description: The nodename of the node.
+          type: string
+        nqn:
+          description: The Nvme Nqn of the node's initiator.
+          type: string
+      required:
+      - name
+      - nqn
+      type: object
+    SpecStatus:
+      description: Common base state for a resource
+      enum:
+      - Creating
+      - Created
+      - Deleting
+      - Deleted
+      type: string
+    VolumeStatus:
+      description: current volume status
+      enum:
+      - Unknown
+      - Online
+      - Degraded
+      - Faulted
+      - Shutdown
+      type: string
+    ReplicaSnapshotStatus:
+      description: Current ReplicaSnapshot status
+      enum:
+      - Unknown
+      - Online
+      - Offline
+      type: string
+    VolumeShareProtocol:
+      description: Volume Share Protocol
+      enum:
+      - nvmf
+      - iscsi
+      type: string
+    NexusShareProtocol:
+      description: Nexus Share Protocol
+      enum:
+      - nvmf
+      - iscsi
+      type: string
+    ReplicaShareProtocol:
+      description: Replica Share Protocol
+      enum:
+      - nvmf
+      type: string
+    Protocol:
+      description: Common Protocol
+      enum:
+      - none
+      - nvmf
+      - iscsi
+      - nbd
+      type: string
+    WatchCallback:
+      additionalProperties: false
+      description: Watch Callbacks
+      nullable: true
+      oneOf: []
+      properties:
+        uri:
+          type: string
+      type: object
+    VolumeState:
+      description: Runtime state of the volume
+      example:
+        target:
+          children:
+          - rebuildProgress: null
+            state: Online
+            uri: nvmf://10.1.0.6:8420/nqn.2019-05.com.org:a76adcd6-9df0-47a1-90a5-2d5bf4151572
+          deviceUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:nexus-a76adcd6-9df0-47a1-90a5-2d5bf4151573
+          protocol: nvmf
+          node: io-engine-1
+          rebuilds: 0
+          share: none
+          size: 80241024
+          state: Online
+          uuid: 61d6afc8-15c6-4127-b0aa-15a570198880
+        size: 80241024
+        status: Online
+        uuid: 4be37dbd-4b60-44f3-b807-08f6693522ac
+        replica_topology:
+          "03f0c3f1-4d3e-44e5-b768-4c50e53f7a34":
+            node: io-engine-1
+            pool: pool-1
+            state: Online
+      properties:
+        target:
+          allOf:
+          - $ref: '#/components/schemas/Nexus'
+          description: target exposed via a Nexus
+        size:
+          description: size of the volume in bytes
+          format: int64
+          minimum: 0
+          type: integer
+        status:
+          $ref: '#/components/schemas/VolumeStatus'
+        uuid:
+          description: name of the volume
+          format: uuid
+          type: string
+        replica_topology:
+          additionalProperties:
+            $ref: '#/components/schemas/ReplicaTopology'
+          description: replica topology information
+          type: object
+        usage:
+          $ref: '#/components/schemas/VolumeUsage'
+      required:
+      - replica_topology
+      - size
+      - status
+      - uuid
+      type: object
+    VolumeUsage:
+      description: Volume space usage
+      properties:
+        capacity:
+          description: Capacity of the volume in bytes.
+          format: int64
+          minimum: 0
+          type: integer
+        allocated:
+          description: "-| Allocated size in bytes, related the largest healthy replica,\
+            \ including snapshots. For example, if a volume has 2 replicas, each with\
+            \ 1MiB allocated space, then this field will be 1MiB."
+          format: int64
+          minimum: 0
+          type: integer
+        allocated_replica:
+          description: "-| Allocated size in bytes, related to the largest healthy\
+            \ replica, excluding snapshots."
+          format: int64
+          minimum: 0
+          type: integer
+        allocated_snapshots:
+          description: "-| Allocated size in bytes, related the healthy replica with\
+            \ the highest snapshot usage."
+          format: int64
+          minimum: 0
+          type: integer
+        allocated_all_snapshots:
+          description: "-| For a restored/cloned volume, allocated size in bytes,\
+            \ related to the healthy replica with largest parent snapshot allocation."
+          format: int64
+          minimum: 0
+          type: integer
+        total_allocated:
+          description: "-| Allocated size in bytes, accrued from all the replicas,\
+            \ including snapshots. For example, if a volume has 2 replicas, each with\
+            \ 1MiB allocated space, then this field will be 2MiB."
+          format: int64
+          minimum: 0
+          type: integer
+        total_allocated_replicas:
+          description: "-| Allocated size in bytes, accrued from all the replicas,\
+            \ excluding snapshots."
+        total_allocated_snapshots:
+          description: "-| Allocated size in bytes, accrued from all the replica's\
+            \ snapshots."
+          format: int64
+          minimum: 0
+          type: integer
+      required:
+      - allocated
+      - allocated_all_snapshots
+      - allocated_replica
+      - allocated_snapshots
+      - capacity
+      - total_allocated
+      - total_allocated_replicas
+      - total_allocated_snapshots
+      type: object
+      example: null
+    Volumes:
+      description: Array of volumes plus the next token for subsequent get requests
+        when using pagination.
+      example:
+        entries:
+        - state:
+            target:
+              children:
+              - rebuildProgress: null
+                state: Online
+                uri: nvmf://10.1.0.6:8420/nqn.2019-05.com.org:a76adcd6-9df0-47a1-90a5-2d5bf4151572
+              deviceUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:nexus-a76adcd6-9df0-47a1-90a5-2d5bf4151573
+              protocol: nvmf
+              node: io-engine-1
+              rebuilds: 0
+              share: none
+              size: 80241024
+              state: Online
+              uuid: 61d6afc8-15c6-4127-b0aa-15a570198880
+            size: 80241024
+            status: Online
+            uuid: 4be37dbd-4b60-44f3-b807-08f6693522ac
+            replica_topology:
+              "03f0c3f1-4d3e-44e5-b768-4c50e53f7a34":
+                node: io-engine-1
+                pool: pool-1
+                state: Online
+          spec:
+            num_replicas: 2
+            size: 80241024
+            state: Created
+            target_node: io-engine-1
+            uuid: 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+            thin: false
+            max_snapshots: 10
+        - state:
+            target:
+              children:
+              - rebuildProgress: null
+                state: Online
+                uri: nvmf://10.1.0.6:8420/nqn.2019-05.com.org:a76adcd6-9df0-47a1-90a5-2d5bf4151572
+              deviceUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:nexus-a76adcd6-9df0-47a1-90a5-2d5bf4151573
+              protocol: nvmf
+              node: io-engine-1
+              rebuilds: 0
+              share: none
+              size: 80241024
+              state: Online
+              uuid: 61d6afc8-15c6-4127-b0aa-15a570198880
+            size: 80241024
+            status: Online
+            uuid: 4be37dbd-4b60-44f3-b807-08f6693522ac
+            replica_topology:
+              "03f0c3f1-4d3e-44e5-b768-4c50e53f7a34":
+                node: io-engine-1
+                pool: pool-1
+                state: Online
+          spec:
+            num_replicas: 2
+            size: 80241024
+            state: Created
+            target_node: io-engine-1
+            uuid: 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+            thin: false
+            max_snapshots: 10
+        next_token: 0
+      properties:
+        entries:
+          items:
+            $ref: '#/components/schemas/Volume'
+          type: array
+        next_token:
+          type: integer
+      required:
+      - entries
+      type: object
+    Volume:
+      description: |-
+        Volumes
+        Volume information
+      example:
+        state:
+          target:
+            children:
+            - rebuildProgress: null
+              state: Online
+              uri: nvmf://10.1.0.6:8420/nqn.2019-05.com.org:a76adcd6-9df0-47a1-90a5-2d5bf4151572
+            deviceUri: nvmf://10.1.0.5:8420/nqn.2019-05.com.org:nexus-a76adcd6-9df0-47a1-90a5-2d5bf4151573
+            protocol: nvmf
+            node: io-engine-1
+            rebuilds: 0
+            share: none
+            size: 80241024
+            state: Online
+            uuid: 61d6afc8-15c6-4127-b0aa-15a570198880
+          size: 80241024
+          status: Online
+          uuid: 4be37dbd-4b60-44f3-b807-08f6693522ac
+          replica_topology:
+            "03f0c3f1-4d3e-44e5-b768-4c50e53f7a34":
+              node: io-engine-1
+              pool: pool-1
+              state: Online
+        spec:
+          num_replicas: 2
+          size: 80241024
+          state: Created
+          target_node: io-engine-1
+          uuid: 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+          thin: false
+          max_snapshots: 10
+      properties:
+        spec:
+          $ref: '#/components/schemas/VolumeSpec'
+        state:
+          $ref: '#/components/schemas/VolumeState'
+      required:
+      - spec
+      - state
+      type: object
+    VolumeSnapshots:
+      description: Array of volume snapshots plus the next token for subsequent get
+        requests when using pagination.
+      example:
+        entries:
+        - definition:
+            metadata:
+              txn_id: txn_id
+              spec_size: 0
+              total_allocated_size: 0
+              size: 0
+              num_restores: 0
+              transactions:
+                key:
+                - source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                  uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                  status: null
+                - source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                  uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                  status: null
+              num_snapshot_replicas: 0
+              status: null
+              timestamp: 2000-01-23T04:56:07.000+00:00
+            spec:
+              source_volume: ec4e66fd-3b33-4439-b504-d49aba53da26
+              uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+          state:
+            replica_snapshots:
+            - offline:
+                source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                pool_id: pool-1
+                uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+              online:
+                size: 0
+                predecessor_alloc_size: 0
+                allocated_size: 0
+                source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                pool_id: pool-1
+                uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+                timestamp: 2000-01-23T04:56:07.000+00:00
+            - offline:
+                source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                pool_id: pool-1
+                uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+              online:
+                size: 0
+                predecessor_alloc_size: 0
+                allocated_size: 0
+                source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                pool_id: pool-1
+                uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+                timestamp: 2000-01-23T04:56:07.000+00:00
+            ready_as_source: false
+            allocated_size: 0
+            source_volume: ec4e66fd-3b33-4439-b504-d49aba53da26
+            uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+            timestamp: 2000-01-23T04:56:07.000+00:00
+        - definition:
+            metadata:
+              txn_id: txn_id
+              spec_size: 0
+              total_allocated_size: 0
+              size: 0
+              num_restores: 0
+              transactions:
+                key:
+                - source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                  uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                  status: null
+                - source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                  uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                  status: null
+              num_snapshot_replicas: 0
+              status: null
+              timestamp: 2000-01-23T04:56:07.000+00:00
+            spec:
+              source_volume: ec4e66fd-3b33-4439-b504-d49aba53da26
+              uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+          state:
+            replica_snapshots:
+            - offline:
+                source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                pool_id: pool-1
+                uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+              online:
+                size: 0
+                predecessor_alloc_size: 0
+                allocated_size: 0
+                source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                pool_id: pool-1
+                uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+                timestamp: 2000-01-23T04:56:07.000+00:00
+            - offline:
+                source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                pool_id: pool-1
+                uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+              online:
+                size: 0
+                predecessor_alloc_size: 0
+                allocated_size: 0
+                source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                pool_id: pool-1
+                uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+                timestamp: 2000-01-23T04:56:07.000+00:00
+            ready_as_source: false
+            allocated_size: 0
+            source_volume: ec4e66fd-3b33-4439-b504-d49aba53da26
+            uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+            timestamp: 2000-01-23T04:56:07.000+00:00
+        next_token: 0
+      properties:
+        entries:
+          items:
+            $ref: '#/components/schemas/VolumeSnapshot'
+          type: array
+        next_token:
+          type: integer
+      required:
+      - entries
+      type: object
+    VolumeSnapshot:
+      description: Volume Snapshot Information.
+      example:
+        definition:
+          metadata:
+            txn_id: txn_id
+            spec_size: 0
+            total_allocated_size: 0
+            size: 0
+            num_restores: 0
+            transactions:
+              key:
+              - source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                status: null
+              - source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+                uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+                status: null
+            num_snapshot_replicas: 0
+            status: null
+            timestamp: 2000-01-23T04:56:07.000+00:00
+          spec:
+            source_volume: ec4e66fd-3b33-4439-b504-d49aba53da26
+            uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+        state:
+          replica_snapshots:
+          - offline:
+              source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+              pool_id: pool-1
+              uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+              pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+            online:
+              size: 0
+              predecessor_alloc_size: 0
+              allocated_size: 0
+              source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+              pool_id: pool-1
+              uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+              pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+              timestamp: 2000-01-23T04:56:07.000+00:00
+          - offline:
+              source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+              pool_id: pool-1
+              uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+              pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+            online:
+              size: 0
+              predecessor_alloc_size: 0
+              allocated_size: 0
+              source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+              pool_id: pool-1
+              uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+              pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+              timestamp: 2000-01-23T04:56:07.000+00:00
+          ready_as_source: false
+          allocated_size: 0
+          source_volume: ec4e66fd-3b33-4439-b504-d49aba53da26
+          uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+          timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        definition:
+          $ref: '#/components/schemas/VolumeSnapshotDefinition'
+        state:
+          $ref: '#/components/schemas/VolumeSnapshotState'
+      required:
+      - definition
+      - state
+      type: object
+    VolumeSnapshotDefinition:
+      description: Volume Snapshot Metadata and Spec information.
+      example:
+        metadata:
+          txn_id: txn_id
+          spec_size: 0
+          total_allocated_size: 0
+          size: 0
+          num_restores: 0
+          transactions:
+            key:
+            - source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+              uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+              status: null
+            - source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+              uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+              status: null
+          num_snapshot_replicas: 0
+          status: null
+          timestamp: 2000-01-23T04:56:07.000+00:00
+        spec:
+          source_volume: ec4e66fd-3b33-4439-b504-d49aba53da26
+          uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+      properties:
+        metadata:
+          $ref: '#/components/schemas/VolumeSnapshotMetadata'
+        spec:
+          $ref: '#/components/schemas/VolumeSnapshotSpec'
+      required:
+      - metadata
+      - spec
+      type: object
+    VolumeSnapshotMetadata:
+      description: Volume Snapshot Metadata information.
+      example:
+        txn_id: txn_id
+        spec_size: 0
+        total_allocated_size: 0
+        size: 0
+        num_restores: 0
+        transactions:
+          key:
+          - source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+            uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+            status: null
+          - source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+            uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+            status: null
+        num_snapshot_replicas: 0
+        status: null
+        timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        status:
+          $ref: '#/components/schemas/SpecStatus'
+        timestamp:
+          description: Timestamp when snapshot is taken on the storage system.
+          format: date-time
+          type: string
+        size:
+          description: Size in bytes of the snapshot (which is equivalent to its source
+            size).
+          format: int64
+          minimum: 0
+          type: integer
+        spec_size:
+          description: Spec size in bytes of the snapshot (which is equivalent to
+            its source spec size).
+          format: int64
+          minimum: 0
+          type: integer
+        total_allocated_size:
+          description: Size in bytes taken by the snapshot and its predecessors.
+          format: int64
+          minimum: 0
+          type: integer
+        txn_id:
+          type: string
+        transactions:
+          additionalProperties:
+            items:
+              $ref: '#/components/schemas/ReplicaSnapshot'
+            type: array
+          type: object
+        num_restores:
+          description: Number of restores done from this snapshot.
+          format: int32
+          minimum: 0
+          type: integer
+        num_snapshot_replicas:
+          description: Number of snapshot replicas for a volumesnapshot.
+          format: int32
+          minimum: 0
+          type: integer
+      required:
+      - num_restores
+      - num_snapshot_replicas
+      - size
+      - spec_size
+      - status
+      - total_allocated_size
+      - transactions
+      - txn_id
+      type: object
+    VolumeSnapshotSpec:
+      description: Volume Snapshot Spec information.
+      example:
+        source_volume: ec4e66fd-3b33-4439-b504-d49aba53da26
+        uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+      properties:
+        uuid:
+          example: 25823425-41fa-434a-9efd-a356b70b5d7c
+          format: uuid
+          type: string
+        source_volume:
+          example: ec4e66fd-3b33-4439-b504-d49aba53da26
+          format: uuid
+          type: string
+      required:
+      - source_volume
+      - uuid
+      type: object
+    VolumeSnapshotState:
+      description: Volume Snapshot State information.
+      example:
+        replica_snapshots:
+        - offline:
+            source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+            pool_id: pool-1
+            uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+            pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+          online:
+            size: 0
+            predecessor_alloc_size: 0
+            allocated_size: 0
+            source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+            pool_id: pool-1
+            uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+            pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+            timestamp: 2000-01-23T04:56:07.000+00:00
+        - offline:
+            source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+            pool_id: pool-1
+            uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+            pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+          online:
+            size: 0
+            predecessor_alloc_size: 0
+            allocated_size: 0
+            source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+            pool_id: pool-1
+            uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+            pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+            timestamp: 2000-01-23T04:56:07.000+00:00
+        ready_as_source: false
+        allocated_size: 0
+        source_volume: ec4e66fd-3b33-4439-b504-d49aba53da26
+        uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+        timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        uuid:
+          example: 25823425-41fa-434a-9efd-a356b70b5d7c
+          format: uuid
+          type: string
+        allocated_size:
+          description: |-
+            Runtime size in bytes of the snapshot. Equal to the volume allocation at the time of the snapshot creation.
+            It may grow larger if any of its predecessors are deleted.
+          format: int64
+          minimum: 0
+          type: integer
+        source_volume:
+          example: ec4e66fd-3b33-4439-b504-d49aba53da26
+          format: uuid
+          type: string
+        timestamp:
+          description: Timestamp when snapshot is taken on the storage system.
+          format: date-time
+          type: string
+        ready_as_source:
+          default: false
+          description: Indicates if a snapshot is ready to be used as a new volume
+            source.
+          type: boolean
+        replica_snapshots:
+          description: List of individual ReplicaSnapshotStates.
+          items:
+            $ref: '#/components/schemas/ReplicaSnapshotState'
+          type: array
+      required:
+      - allocated_size
+      - ready_as_source
+      - replica_snapshots
+      - source_volume
+      - uuid
+      type: object
+    ReplicaSnapshot:
+      description: Replica Snapshot information.
+      example:
+        source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+        uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+        status: null
+      properties:
+        uuid:
+          example: 25823425-41fa-434a-9efd-a356b70b5d7c
+          format: uuid
+          type: string
+        source_id:
+          example: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+          format: uuid
+          type: string
+        status:
+          $ref: '#/components/schemas/SpecStatus'
+      required:
+      - source_id
+      - status
+      - uuid
+      type: object
+    ReplicaSnapshotState:
+      additionalProperties: false
+      description: Replica Snapshot state information.
+      example:
+        offline:
+          source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+          pool_id: pool-1
+          uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+          pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+        online:
+          size: 0
+          predecessor_alloc_size: 0
+          allocated_size: 0
+          source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+          pool_id: pool-1
+          uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+          pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+          timestamp: 2000-01-23T04:56:07.000+00:00
+      nullable: true
+      oneOf: []
+      properties:
+        online:
+          $ref: '#/components/schemas/OnlineReplicaSnapshotState'
+        offline:
+          $ref: '#/components/schemas/OfflineReplicaSnapshotState'
+      type: object
+    OnlineReplicaSnapshotState:
+      description: Online ReplicaSnapshotState representation.
+      example:
+        size: 0
+        predecessor_alloc_size: 0
+        allocated_size: 0
+        source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+        pool_id: pool-1
+        uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+        pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+        timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        uuid:
+          example: 25823425-41fa-434a-9efd-a356b70b5d7c
+          format: uuid
+          type: string
+        source_id:
+          example: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+          format: uuid
+          type: string
+        pool_id:
+          description: storage pool identifier
+          example: pool-1
+          type: string
+        pool_uuid:
+          description: storage pool unique identifier
+          example: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+          format: uuid
+          type: string
+        timestamp:
+          description: Timestamp when the replica snapshot is taken on the storage
+            system.
+          format: date-time
+          type: string
+        size:
+          description: Replica snapshot size.
+          format: int64
+          minimum: 0
+          type: integer
+        allocated_size:
+          description: |-
+            Runtime size in bytes of the snapshot. Equal to the volume allocation at the time of the snapshot creation.
+            It may grow larger if any of its predecessors are deleted.
+          format: int64
+          minimum: 0
+          type: integer
+        predecessor_alloc_size:
+          description: Total allocated size of all the snapshot predecessors.
+          format: int64
+          minimum: 0
+          type: integer
+      required:
+      - allocated_size
+      - pool_id
+      - pool_uuid
+      - predecessor_alloc_size
+      - size
+      - source_id
+      - timestamp
+      - uuid
+      type: object
+    OfflineReplicaSnapshotState:
+      description: Offline ReplicaSnapshotState representation.
+      example:
+        source_id: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+        pool_id: pool-1
+        uuid: 25823425-41fa-434a-9efd-a356b70b5d7c
+        pool_uuid: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+      properties:
+        uuid:
+          example: 25823425-41fa-434a-9efd-a356b70b5d7c
+          format: uuid
+          type: string
+        source_id:
+          example: bcf680de-4714-4c4a-aa6e-1e23fa3e87fe
+          format: uuid
+          type: string
+        pool_id:
+          description: storage pool identifier
+          example: pool-1
+          type: string
+        pool_uuid:
+          description: storage pool unique identifier
+          example: 22ca10d3-4f2b-4b95-9814-9181c025cc1a
+          format: uuid
+          type: string
+      required:
+      - pool_id
+      - pool_uuid
+      - source_id
+      - uuid
+      type: object
+    ReplicaTopology:
+      description: Volume Replica information.
+      properties:
+        node:
+          description: storage node identifier
+          example: io-engine-1
+          type: string
+        pool:
+          description: storage pool identifier
+          example: pool-1
+          type: string
+        state:
+          $ref: '#/components/schemas/ReplicaState'
+        child-status:
+          $ref: '#/components/schemas/ChildState'
+        child-status-reason:
+          $ref: '#/components/schemas/ChildStateReason'
+        usage:
+          $ref: '#/components/schemas/ReplicaUsage'
+        rebuild-progress:
+          description: current rebuild progress (%)
+          maximum: 100
+          minimum: 0
+          type: integer
+      required:
+      - state
+      type: object
+    ReplicaUsage:
+      description: |
+        Replica space usage information.
+        Useful for capacity management, eg: figure out how much of a thin-provisioned replica is allocated.
+      properties:
+        capacity:
+          default: 0
+          description: Replica capacity in bytes.
+          example: 80241024
+          format: int64
+          minimum: 0
+          type: integer
+        allocated:
+          default: 0
+          description: Amount of actually allocated disk space for this replica in
+            bytes.
+          example: 80241024
+          format: int64
+          minimum: 0
+          type: integer
+        allocated_snapshots:
+          default: 0
+          description: Amount of actually allocated disk space for this replica's
+            snapshots in bytes.
+          example: 80241024
+          format: int64
+          minimum: 0
+          type: integer
+        allocated_all_snapshots:
+          default: 0
+          description: |
+            Amount of actually allocated disk space for this replica's snapshots and its predecessors in bytes.
+            For a restored/cloned replica this includes snapshots from the parent source.
+          example: 80241024
+          format: int64
+          minimum: 0
+          type: integer
+      required:
+      - allocated
+      - allocated_all_snapshots
+      - allocated_snapshots
+      - capacity
+      type: object
+    CordonDrainState:
+      description: The drain state
+      nullable: true
+      oneOf: []
+      properties:
+        cordonedstate:
+          $ref: '#/components/schemas/CordonedState'
+        drainingstate:
+          $ref: '#/components/schemas/DrainState'
+        drainedstate:
+          $ref: '#/components/schemas/DrainState'
+      type: object
+    CordonLabels:
+      items:
+        type: string
+      type: array
+    DrainLabels:
+      items:
+        type: string
+      type: array
+    CordonedState:
+      description: The item is cordoned
+      properties:
+        cordonlabels:
+          items:
+            type: string
+          type: array
+      required:
+      - cordonlabels
+      type: object
+    DrainState:
+      description: The item is draining
+      properties:
+        cordonlabels:
+          items:
+            type: string
+          type: array
+        drainlabels:
+          items:
+            type: string
+          type: array
+      required:
+      - cordonlabels
+      - drainlabels
+      type: object
+    RegisterAppNode:
+      example:
+        endpoint: 10.1.0.5:50055
+        labels:
+          org.io/csi-node.nvme-ana: "true,"
+          org.io/zone: us-east-1a
+      properties:
+        endpoint:
+          description: gRPC server endpoint of the app node.
+          format: url
+          type: string
+        labels:
+          additionalProperties:
+            type: string
+          description: Labels to be set on the app node.
+          type: object
+      required:
+      - endpoint
+      - id
+      type: object
+    AppNode:
+      description: "Represents an application node, which connects to the target node\
+        \ via a share protocol (eg: nvmf)."
+      example:
+        id: csi-node-1
+        state:
+          endpoint: http://example.com/aeiou
+          id: csi-node-1
+          status: Online
+        spec:
+          endpoint: http://example.com/aeiou
+          id: csi-node-1
+          labels:
+            key: labels
+      properties:
+        id:
+          description: App node identifier.
+          example: csi-node-1
+          type: string
+        spec:
+          $ref: '#/components/schemas/AppNodeSpec'
+        state:
+          $ref: '#/components/schemas/AppNodeState'
+      required:
+      - id
+      - spec
+      type: object
+    AppNodeSpec:
+      description: App node attributes.
+      example:
+        endpoint: http://example.com/aeiou
+        id: csi-node-1
+        labels:
+          key: labels
+      properties:
+        id:
+          description: App node identifier.
+          example: csi-node-1
+          type: string
+        endpoint:
+          description: gRPC server endpoint of the app node.
+          format: url
+          type: string
+        labels:
+          additionalProperties:
+            type: string
+          description: Labels to be set on the app node.
+          type: object
+      required:
+      - endpoint
+      - id
+      type: object
+    AppNodeState:
+      description: Deemed state of the app node.
+      example:
+        endpoint: http://example.com/aeiou
+        id: csi-node-1
+        status: Online
+      properties:
+        id:
+          description: App node identifier.
+          example: csi-node-1
+          type: string
+        endpoint:
+          description: gRPC server endpoint of the app node.
+          format: url
+          type: string
+        status:
+          description: Deemed Status of the app node.
+          enum:
+          - Online
+          - Offline
+          type: string
+      required:
+      - endpoint
+      - id
+      - status
+      type: object
+    AppNodes:
+      description: Array of app nodes plus the next token for subsequent get requests
+        when using pagination.
+      example:
+        entries:
+        - id: csi-node-1
+          state:
+            endpoint: http://example.com/aeiou
+            id: csi-node-1
+            status: Online
+          spec:
+            endpoint: http://example.com/aeiou
+            id: csi-node-1
+            labels:
+              key: labels
+        - id: csi-node-1
+          state:
+            endpoint: http://example.com/aeiou
+            id: csi-node-1
+            status: Online
+          spec:
+            endpoint: http://example.com/aeiou
+            id: csi-node-1
+            labels:
+              key: labels
+        next_token: 0
+      properties:
+        entries:
+          items:
+            $ref: '#/components/schemas/AppNode'
+          type: array
+        next_token:
+          type: integer
+      required:
+      - entries
+      type: object
+    BlockDevice_filesystem:
+      description: filesystem information in case where a filesystem is present
+      example:
+        fstype: ""
+        label: ""
+        mountpoint: ""
+        uuid: ""
+      properties:
+        fstype:
+          description: "filesystem type: ext3, ntfs, ..."
+          type: string
+        label:
+          description: volume label
+          type: string
+        mountpoint:
+          description: path where filesystem is currently mounted
+          type: string
+        uuid:
+          description: UUID identifying the volume (filesystem)
+          type: string
+      required:
+      - fstype
+      - label
+      - mountpoint
+      - uuid
+      type: object
+    BlockDevice_partition:
+      description: partition information in case where device represents a partition
+      example:
+        number: 1
+        parent: parent
+        scheme: scheme
+        name: name
+        typeid: typeid
+        uuid: uuid
+      properties:
+        name:
+          description: partition name
+          type: string
+        number:
+          description: partition number
+          format: int32
+          type: integer
+        parent:
+          description: devname of parent device to which this partition belongs
+          type: string
+        scheme:
+          description: "partition scheme: gpt, dos, ..."
+          type: string
+        typeid:
+          description: partition type identifier
+          type: string
+        uuid:
+          description: UUID identifying partition
+          type: string
+      required:
+      - name
+      - number
+      - parent
+      - scheme
+      - typeid
+      - uuid
+      type: object
+    NexusSpec_operation:
+      description: Record of the operation in progress
+      example:
+        operation: Create
+        result: null
+      properties:
+        operation:
+          description: Record of the operation
+          enum:
+          - Create
+          - Destroy
+          - Share
+          - Unshare
+          - AddChild
+          - RemoveChild
+          - Shutdown
+          type: string
+        result:
+          description: Result of the operation
+          type: boolean
+      required:
+      - operation
+      type: object
+    ReplicaSpec_operation:
+      description: Record of the operation in progress
+      example:
+        operation: Create
+        result: null
+      properties:
+        operation:
+          description: Record of the operation
+          enum:
+          - Create
+          - Destroy
+          - Share
+          - Unshare
+          type: string
+        result:
+          description: Result of the operation
+          type: boolean
+      required:
+      - operation
+      type: object
+    ReplicaSpec_owners:
+      description: Owner Resource
+      example:
+        nexuses:
+        - 514ed1c8-7174-49ac-b9cd-ad44ef670a67
+        volume: null
+      properties:
+        nexuses:
+          items:
+            format: uuid
+            type: string
+          type: array
+        volume:
+          format: uuid
+          type: string
+      required:
+      - nexuses
+      type: object
+    VolumeSpec_operation:
+      description: Record of the operation in progress
+      example:
+        operation: Create
+        result: null
+      properties:
+        operation:
+          description: Record of the operation
+          enum:
+          - Create
+          - Destroy
+          - Share
+          - Unshare
+          - SetReplica
+          - RemoveUnusedReplica
+          - Publish
+          - Republish
+          - Unpublish
+          - CreateSnapshot
+          - DestroySnapshot
+          - Resize
+          - SetVolumeProperty
+          type: string
+        result:
+          description: Result of the operation
+          type: boolean
+      required:
+      - operation
+      type: object
+  securitySchemes:
+    JWT:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
