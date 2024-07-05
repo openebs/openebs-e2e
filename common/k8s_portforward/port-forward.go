@@ -395,6 +395,20 @@ func PortForwardService(svcName string, namespace string, port int) (string, err
 }
 
 func TryPortForwardNode(address string, port int) string {
+	// On some deployments port forwarding is not enabled
+	enabled := false
+	val, defined := os.LookupEnv("e2e_port_forwarding_enabled")
+	if defined {
+		switch val {
+		case "True", "true", "Yes", "yes", "y", "Y", "1":
+			enabled = true
+		default:
+			enabled = false
+		}
+	}
+	if !enabled {
+		return fmt.Sprintf("%s:%d", address, port)
+	}
 	addrPort, err := PortForwardNode(address, port)
 	if err != nil {
 		log.Log.Info(fmt.Sprintf("TryPortForwardNode: falling back to %s:%v", address, port))
