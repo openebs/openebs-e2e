@@ -27,8 +27,8 @@ product:
     haNodeAgentDs: "mayastor-agent-ha-node"
     haNodeAgentPodPrefix: "mayastor-agent-ha-node"
     helmReleaseName: "mayastor"
-    iOEnginePodLabelValue: "io-engine"
-    iOEnginePodName: "mayastor-io-engine"
+    ioEnginePodLabelValue: "io-engine"
+    ioEnginePodName: "mayastor-io-engine"
     jaegersCrdName: "jaegers.jaegertracing.io"
     kubectlPluginName: "kubectl-mayastor"
     kubectlPluginPort: 30011
