@@ -56,11 +56,11 @@ type ProductSpec struct {
 	HaNodeAgentPodPrefix             string            `yaml:"haNodeAgentPodPrefix" env-default:"mayastor-agent-ha-node"`
 	HelmReleaseName                  string            `yaml:"helmReleaseName" env-default:"mayastor"`
 	IOEnginePodLabelValue            string            `yaml:"ioEnginePodLabelValue" env-default:"io-engine"`
-	IOEnginePodName                  string            `yaml:"ioEnginePodName" env-default:"mayastor"`
+	IOEnginePodName                  string            `yaml:"ioEnginePodName"`
 	JaegersCrdName                   string            `yaml:"jaegersCrdName" env-default:"jaegers.jaegertracing.io"`
 	KubectlPluginName                string            `yaml:"kubectlPluginName" env-default:"kubectl-mayastor"`
 	KubectlPluginPort                int               `yaml:"kubectlPluginPort" env-default:"30011"`
-	LogConfigResources               []string          `yaml:"LogConfigResources"`
+	LogConfigResources               []string          `yaml:"logConfigResources"`
 	LogDumpCsiAttacherName           string            `yaml:"logDumpCsiAttacherName" env-default:"csi-attacher"`
 	LogDumpCsiDriverRegistrarName    string            `yaml:"logDumpCsiDriverRegistrarName" env-default:"csi-driver-registrar"`
 	LogDumpCsiProvisionerName        string            `yaml:"logDumpCsiProvisionerName" env-default:"csi-provisioner"`
