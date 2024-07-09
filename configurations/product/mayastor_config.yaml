@@ -1,5 +1,5 @@
 product:
-    agentCoreContainerName: "agent-core-test"
+    agentCoreContainerName: "agent-core"
     alertManagerPodPrefix: "alertmanager"
     controlPlaneAgent: "mayastor-agent-core"
     controlPlaneCoreAgent: "mayastor-agent-core"
