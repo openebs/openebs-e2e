@@ -6,6 +6,7 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/kubernetes-csi/external-snapshotter/client/v6 v6.3.0
 	github.com/onsi/ginkgo v1.16.5
+	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.10
 	github.com/openebs/openebs-e2e/apps v0.0.0
 	github.com/pkg/errors v0.9.1
@@ -34,11 +35,13 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
+	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
+	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
@@ -60,6 +63,7 @@ require (
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
+	golang.org/x/tools v0.9.3 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect

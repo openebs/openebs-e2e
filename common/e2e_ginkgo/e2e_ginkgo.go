@@ -9,11 +9,9 @@ import (
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"github.com/openebs/openebs-e2e/common/k8stest"
 
-	"github.com/openebs/openebs-e2e/common/reporter"
-
 	"github.com/openebs/openebs-e2e/common/loki"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -38,13 +36,8 @@ func InitTesting(t *testing.T, classname string, reportname string) {
 		}
 	}
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	reporters := reporter.GetReporters(reportname)
-	if len(reporters) != 0 {
-		ginkgo.RunSpecsWithDefaultAndCustomReporters(t, classname, reporter.GetReporters(reportname))
-		loki.SendLokiMarker("Start of test " + classname)
-	} else {
-		ginkgo.RunSpecs(t, reportname)
-	}
+	ginkgo.RunSpecs(t, classname)
+	loki.SendLokiMarker("Start of test " + classname)
 }
 
 func SetupTestEnvBasic() error {
@@ -69,8 +62,8 @@ var resourceCheckError error
 
 // BeforeEachCheck asserts that the state of mayastor resources is fit for the test to run
 func BeforeEachCheck() error {
-	testDesc := ginkgo.CurrentGinkgoTestDescription()
-	common.SetTestCaseLogsPath(testDesc.TestText)
+	testDesc := ginkgo.CurrentSpecReport()
+	common.SetTestCaseLogsPath(testDesc.FullText())
 
 	log.Log.Info("BeforeEachCheck",
 		"FailQuick", e2e_config.GetConfig().FailQuick,
@@ -123,8 +116,8 @@ func BeforeEachCheck() error {
 // This function exists for tests which are disruptive and need more control when performing
 // checks after a test case has completed
 func GenerateSupportBundleIfTestFailed() {
-	testDesc := ginkgo.CurrentGinkgoTestDescription()
-	if testDesc.Failed {
+	testDesc := ginkgo.CurrentSpecReport()
+	if testDesc.Failed() {
 		logsPath, err := common.GetTestCaseLogsPath()
 		if err == nil {
 			k8stest.GenerateSupportBundle(logsPath)
@@ -141,7 +134,7 @@ func afterEachCheckResources(canGenSupportBundle bool) error {
 		return fmt.Errorf("prior ResourceCheck failed")
 	}
 	var waitForPools bool
-	if !ginkgo.CurrentGinkgoTestDescription().Failed {
+	if !ginkgo.CurrentSpecReport().Failed() {
 		waitForPools = true
 	}
 	err := k8stest.ResourceCheck(waitForPools)
@@ -170,8 +163,8 @@ func AfterEachCheckResourceOnly() error {
 func AfterEachCheck() error {
 	canGenSupportBundle := true
 	log.Log.Info("AfterEachCheck")
-	testDesc := ginkgo.CurrentGinkgoTestDescription()
-	if testDesc.Failed {
+	testDesc := ginkgo.CurrentSpecReport()
+	if testDesc.Failed() {
 		haveFailedTestCases = true
 		logsPath, err := common.GetTestCaseLogsPath()
 		if err == nil {
