@@ -90,6 +90,16 @@ type ProductSpec struct {
 	PartialRebuildCpTimeout          string            `yaml:"partialRebuildCpTimeout" env-default:"600s"`
 	PodLabelKey                      string            `yaml:"podLabelKey" env-default:"app"`
 	PoolCrdName                      string            `yaml:"poolCrdName" env-default:"mayastorpools.openebs.io"`
+	PostgresDatabaseName             string            `yaml:"postgresDatabaseName" env-default:"test"`
+	PostgresAuthPassword             string            `yaml:"postgresAuthPassword" env-default:"admin123"`
+	PostgresAuthRootPassword         string            `yaml:"postgresAuthRootPassword" env-default:"r00tAdmin"`
+	PostgresAuthUsername             string            `yaml:"postgresAuthUsername" env-default:"admin"`
+	PostgresDatabasePort             int               `yaml:"postgresDatabasePort" env-default:"5432"`
+	PostgresDefaultChartVersion      string            `yaml:"postgresDefaultChartVersion" env-default:"15.2.5"`
+	PostgresHelmRepo                 string            `yaml:"postgresHelmRepo" env-default:"bitnami/postgresql"`
+	PostgresHelmRepoName             string            `yaml:"postgresHelmRepoName" env-default:"bitnami"`
+	PostgresHelmRepoUrl              string            `yaml:"postgresHelmRepoUrl" env-default:"https://charts.bitnami.com/bitnami"`
+	PostgresReleaseName              string            `yaml:"postgresReleaseName" env-default:"ms-app"`
 	ProductName                      string            `yaml:"productName" env-default:"mayastor"`
 	ProductNamespace                 string            `yaml:"productNamespace" env-default:"mayastor"`
 	PrometheusPodPrefix              string            `yaml:"prometheusPodPrefix" env-default:"prometheus"`
