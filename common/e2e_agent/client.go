@@ -594,6 +594,13 @@ func GetStats(agentAddr string, serviceAddr string) (string, error) {
 	return out, err
 }
 
+// ZeroHugePages sets Huge Pages value to 0 on the selected node
+func ZeroHugePages(serverAddr string) (string, error) {
+	url := "http://" + getAgentAddress(serverAddr) + "/hugepagezero"
+	logf.Log.Info("Executing hugepagezero", "addr", serverAddr)
+	return sendRequestGetResponse("POST", url, nil, false)
+}
+
 type E2eAgentErrcode int
 
 const (

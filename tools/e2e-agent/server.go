@@ -152,6 +152,7 @@ func handleRequests() {
 	router.HandleFunc("/event/unsubscribeall", EventUnsubscribeAll).Methods("POST")
 	router.HandleFunc("/stats", GetStats).Methods("POST")
 	router.HandleFunc("/cmp", Cmp).Methods("POST")
+	router.HandleFunc("/hugepagezero", ZeroingHugePages).Methods("POST")
 	log.Fatal(http.ListenAndServe(podIP+":"+restPort, router))
 }
 
@@ -957,6 +958,25 @@ func ZeroingDisk(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprint(w, string(output))
 	klog.Info(string(output))
+}
+
+func ZeroingHugePages(w http.ResponseWriter, r *http.Request) {
+	params := make([]string, 2)
+	cmdStr := "bash"
+	params[0] = "-c"
+	params[1] = "echo 0 | sudo tee /proc/sys/vm/nr_hugepages"
+
+	klog.Info("executing command ", params[1])
+	cmd := exec.Command(cmdStr, params...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		klog.Error("failed to execute command ", params[1], "Error", err)
+		msg := fmt.Sprintf("failed to execute command %s, err: %v", params[1], err)
+		WrapResult(msg, ErrGeneral, w)
+		return
+	}
+	klog.Info(string(output))
+	WrapResult(string(output), ErrNone, w)
 }
 
 func Parted(w http.ResponseWriter, r *http.Request) {

@@ -5,7 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/openebs/openebs-e2e/common/e2e_agent"
 	"os/exec"
+	"strings"
 
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 
@@ -345,4 +347,65 @@ func GetIOEngineHostNameLabel() (string, error) {
 		}
 	}
 	return "", nil
+}
+
+// ZeroNodeHugePages sets huge pages to 0 on current node
+func ZeroNodeHugePages(nodeName string) (string, error) {
+	ip, err := GetNodeIPAddress(nodeName)
+	if err != nil {
+		return "", err
+	}
+	output, err := e2e_agent.ZeroHugePages(*ip)
+	if err != nil {
+		return "", err
+	}
+	msg, errCode, err := e2e_agent.UnwrapResult(output)
+	if err != nil || errCode != 0 {
+		return "", fmt.Errorf("errCode=%v ; err=%v", errCode, err)
+	}
+	return msg, nil
+}
+
+// ListAllNonMsnNodes list all nodes without io-engine label and without master node
+func ListAllNonMsnNodes() (*v1.NodeList, error) {
+	nodeList, err := gTestEnv.KubeInt.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
+	if err != nil {
+		return nil, errors.New("failed to list nodes")
+	}
+
+	nodeListWithoutIOEngineLabelPresent := &v1.NodeList{}
+	for _, node := range nodeList.Items {
+		if value, ok := node.Labels[e2e_config.GetConfig().Product.EngineLabel]; ok && value == e2e_config.GetConfig().Product.EngineLabelValue {
+			continue
+		} else if !strings.Contains(node.Name, "master") {
+			nodeListWithoutIOEngineLabelPresent.Items = append(nodeListWithoutIOEngineLabelPresent.Items, node)
+		}
+	}
+	return nodeListWithoutIOEngineLabelPresent, nil
+}
+
+func UpdateNodeTaints(nodeName string, taintKey string) error {
+	// Get the node object
+	node, err := gTestEnv.KubeInt.CoreV1().Nodes().Get(context.TODO(), nodeName, metaV1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("error getting node: %v", err)
+	}
+
+	// Iterate through the taints and remove the specified one
+	var newTaints []coreV1.Taint
+	for _, taint := range node.Spec.Taints {
+		if taint.Key != taintKey {
+			newTaints = append(newTaints, taint)
+		}
+	}
+	node.Spec.Taints = newTaints
+
+	// Update the node object with the new taints
+	_, err = gTestEnv.KubeInt.CoreV1().Nodes().Update(context.TODO(), node, metaV1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("error updating node taints: %v", err)
+	}
+
+	fmt.Println("Node taints updated successfully")
+	return nil
 }
