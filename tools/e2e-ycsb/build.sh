@@ -9,7 +9,7 @@
 # as long as we do not make breaking changes.
 
 set -e
-IMAGE="mayadata/e2e-ycsb"
+IMAGE="openebs/e2e-ycsb"
 TAG="v1.0.0"
 registry=""
 tag_as_latest=""
@@ -34,18 +34,23 @@ done
 
 if docker build -t ${IMAGE} . ; then
     if [ "${registry}" != "" ]; then
-        if [ "${tag_as_latest}" == "Y" ];  then
-            echo "tagging as latest and pushing image"
-            docker tag ${IMAGE} $registry/${IMAGE}
-            docker push $registry/${IMAGE}
-        fi
-        if [ "${TAG}" != "" ];  then
-            echo "tagging as ${TAG} and pushing image to ${registry}"
-            docker tag ${IMAGE} $registry/${IMAGE}:${TAG}
-            docker push $registry/${IMAGE}:${TAG}
-        else
-            echo "TAG was not defined - image not retagged and pushed"
-        fi
+        echo "image registry: ${registry}"
+        YCSB_IMAGE="${registry}/${IMAGE}"
+    else
+        echo "image registry: dockerhub"
+        YCSB_IMAGE="${IMAGE}"
+    fi
+    if [ "${tag_as_latest}" == "Y" ];  then
+        echo "tagging as latest and push image ${YCSB_IMAGE}"
+        docker tag ${IMAGE} ${YCSB_IMAGE}
+        docker push ${YCSB_IMAGE}
+    fi
+    if [ "${TAG}" != "" ];  then
+        echo "tagging as ${TAG} and push image  ${YCSB_IMAGE}"
+        docker tag ${IMAGE} ${YCSB_IMAGE}:${TAG}
+        docker push ${YCSB_IMAGE}:${TAG}
+    else
+        echo "TAG was not defined - image not retagged and pushed"
     fi
 else
     exit 1
