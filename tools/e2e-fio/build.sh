@@ -10,8 +10,8 @@
 # The exception to this rule is the e2e-fio image, only to correct
 # existing semantics.
 set -e
-IMAGE="mayadata/e2e-fio"
-TAG="v3.36-e2e-8"
+IMAGE="openebs/e2e-fio"
+TAG="v3.37-e2e-0"
 registry=""
 tag_as_latest=""
 
@@ -38,18 +38,23 @@ echo "#define VERSION \"$TAG\"" > e2e_fio_version.h
 # Note always builds image with latest tag in local registry
 if docker build -t ${IMAGE} . ; then
     if [ "${registry}" != "" ]; then
-        if [ "${tag_as_latest}" == "Y" ];  then
-            echo "tagging as latest and pushing image"
-            docker tag ${IMAGE} $registry/${IMAGE}
-            docker push $registry/${IMAGE}
-        fi
-        if [ "${TAG}" != "" ];  then
-            echo "tagging as ${TAG} and pushing image"
-            docker tag ${IMAGE} $registry/${IMAGE}:${TAG}
-            docker push $registry/${IMAGE}:${TAG}
-        else
-            echo "TAG was not defined - image not retagged and pushed"
-        fi
+        echo "image registry: ${registry}"
+        FIO_IMAGE="${registry}/${IMAGE}"
+    else
+        echo "image registry: dockerhub"
+        FIO_IMAGE="${IMAGE}"
+    fi
+    if [ "${tag_as_latest}" == "Y" ];  then
+        echo "tagging as latest and push image ${FIO_IMAGE}"
+        docker tag ${IMAGE} ${FIO_IMAGE}
+        docker push ${FIO_IMAGE}
+    fi
+    if [ "${TAG}" != "" ];  then
+        echo "tagging as ${TAG} and push image  ${FIO_IMAGE}"
+        docker tag ${IMAGE} ${FIO_IMAGE}:${TAG}
+        docker push ${FIO_IMAGE}:${TAG}
+    else
+        echo "TAG was not defined - image not retagged and pushed"
     fi
 else
     exit 1

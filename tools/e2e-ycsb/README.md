@@ -7,4 +7,4 @@ For more details check [YCSB](https://github.com/brianfrankcooper/YCSB)
 ## Building
 Run `./build.sh`
 
-This builds the image `mayadata/e2e-ycsb`
+This builds the image `openebs/e2e-ycsb`

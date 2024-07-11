@@ -1,10 +1,10 @@
 # VERSION 0.1
 FROM alpine:edge
 
-MAINTAINER mayastor mayastor@mayadata.io
+MAINTAINER openebs openebs@openebs.io
 
 RUN apk --no-cache add \
-    	fio=3.36-r0 gcc musl-dev
+    	fio=3.37-r0 gcc musl-dev
 
 ADD e2e_fio.c /
 ADD liveness.c /
