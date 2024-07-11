@@ -1,9 +1,14 @@
-FROM ubuntu:22.04
+FROM ubuntu:20.04
 
-RUN apt update && \
-    apt install -y wget && \
-    apt install -y tar && \
-    apt install -y default-jre
+# Set environment variable to prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+# Set the timezone environment variable to UTC
+ENV TZ=UTC
+
+RUN apt-get update && \
+    apt-get install -y wget && \
+    apt-get install -y tar && \
+    apt-get install -y default-jre
 
 RUN echo "JAVA_HOME=$(java -XshowSettings:properties -version 2>&1 | sed '/^[[:space:]]*java\.home/!d;s/^[[:space:]]*java\.home[[:space:]]*=[[:space:]]*//')" >> /etc/environment
 RUN tail /etc/environment
