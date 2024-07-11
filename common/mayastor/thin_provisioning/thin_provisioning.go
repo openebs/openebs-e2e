@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/onsi/ginkgo"
+	_ "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/k8stest"
