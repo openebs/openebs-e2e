@@ -61,10 +61,10 @@ var msAppLabels = []string{
 type NexusHa struct {
 	TestPodName      string
 	TestNode         string
-	scName           string
+	ScName           string
 	TestDeployName   string
 	TestPodAppLabels string
-	volName          string
+	VolName          string
 	NexusNode        string
 	Uuid             string
 	Platform         types.Platform
@@ -84,11 +84,11 @@ func (c *NexusHa) CreatePodAndNexusOnDifferentNode(replicas int, prefix string, 
 	if err != nil {
 		return fmt.Errorf("failed to create storage %v", err)
 	}
-	logf.Log.Info("storage", "scName", c.scName)
-	fioPodName := "fio-" + c.volName
+	logf.Log.Info("storage", "ScName", c.ScName)
+	fioPodName := "fio-" + c.VolName
 	c.TestPodName = fioPodName
 	// create fio pod on other node
-	err = k8stest.CreateFioPodOnNode(fioPodName, c.volName, nodeName, fioArgs)
+	err = k8stest.CreateFioPodOnNode(fioPodName, c.VolName, nodeName, fioArgs)
 	if err != nil {
 		return fmt.Errorf("failed to create pod on node %v", err)
 	}
@@ -192,11 +192,11 @@ func (c *NexusHa) CreateMongoPodAndNexusOnDifferentNode(replicas int, result *st
 	if err != nil {
 		return apps.MongoApp{}, fmt.Errorf("failed to create storage %v", err)
 	}
-	logf.Log.Info("storage", "scName", c.scName)
+	logf.Log.Info("storage", "ScName", c.ScName)
 	app, err := apps.NewMongoBuilder().
 		WithYcsb().
-		WithOwnStorageClass(c.scName).
-		WithPvc(c.volName).
+		WithOwnStorageClass(c.ScName).
+		WithPvc(c.VolName).
 		WithNodeSelector(nodeName).
 		Build()
 	if err != nil {
@@ -319,12 +319,12 @@ func (c *NexusHa) CreateAnotherPodAndNexus(replicas int, prefix string, fioArgs 
 	if err != nil {
 		return fmt.Errorf("failed to create storage %v", err)
 	}
-	logf.Log.Info("storage", "scName", c.scName)
-	fioPodName := "fio-" + c.volName
+	logf.Log.Info("storage", "ScName", c.ScName)
+	fioPodName := "fio-" + c.VolName
 	c.TestPodName = fioPodName
 
 	// create fio pod on other node
-	err = k8stest.CreateFioPodOnNode(fioPodName, c.volName, nodeName, fioArgs)
+	err = k8stest.CreateFioPodOnNode(fioPodName, c.VolName, nodeName, fioArgs)
 	if err != nil {
 		return fmt.Errorf("failed to create pod on node %v", err)
 	}
@@ -363,9 +363,9 @@ func (c *NexusHa) CreateAnotherPodAndNexus(replicas int, prefix string, fioArgs 
 }
 
 func (c *NexusHa) CreateScAndVolume(prefix string, replicas int, volSizeMb int) error {
-	scName := fmt.Sprintf("%s-repl-%d", prefix, replicas)
+	ScName := fmt.Sprintf("%s-repl-%d", prefix, replicas)
 	err := k8stest.NewScBuilder().
-		WithName(scName).
+		WithName(ScName).
 		WithNamespace(common.NSDefault).
 		WithProtocol(common.ShareProtoNvmf).
 		WithReplicas(replicas).
@@ -373,37 +373,37 @@ func (c *NexusHa) CreateScAndVolume(prefix string, replicas int, volSizeMb int) 
 		WithReclaimPolicy(coreV1.PersistentVolumeReclaimDelete).
 		BuildAndCreate()
 	if err != nil {
-		return fmt.Errorf("failed to create storage class %s", scName)
+		return fmt.Errorf("failed to create storage class %s", ScName)
 	}
-	volName := fmt.Sprintf("vol-%s", scName)
-	uid, err := k8stest.MkPVC(volSizeMb, volName, scName, common.VolFileSystem, common.NSDefault)
+	VolName := fmt.Sprintf("vol-%s", ScName)
+	uid, err := k8stest.MkPVC(volSizeMb, VolName, ScName, common.VolFileSystem, common.NSDefault)
 	if err != nil {
-		return fmt.Errorf("failed to create pvc %s", volName)
+		return fmt.Errorf("failed to create pvc %s", VolName)
 	}
-	c.scName = scName
-	c.volName = volName
+	c.ScName = ScName
+	c.VolName = VolName
 	c.Uuid = uid
 	return nil
 }
 
 func (c *NexusHa) DeleteScAndVolume() error {
-	pvc, err := k8stest.GetPVC(c.volName, common.NSDefault)
+	pvc, err := k8stest.GetPVC(c.VolName, common.NSDefault)
 	if err != nil {
-		logf.Log.Error(err, "failed to get pvc", "pvc", c.volName)
+		logf.Log.Error(err, "failed to get pvc", "pvc", c.VolName)
 		return err
 	}
-	logf.Log.Info("pvc", "pvName ->", pvc.Spec.VolumeName, "volume->", c.volName)
+	logf.Log.Info("pvc", "pvName ->", pvc.Spec.VolumeName, "volume->", c.VolName)
 
 	//Delete the volume
-	err = k8stest.RmPVC(c.volName, c.scName, common.NSDefault)
+	err = k8stest.RmPVC(c.VolName, c.ScName, common.NSDefault)
 	if err != nil {
-		logf.Log.Error(err, "failed to delete", "pvc", c.volName)
+		logf.Log.Error(err, "failed to delete", "pvc", c.VolName)
 		return err
 	}
 
-	err = k8stest.RmStorageClass(c.scName)
+	err = k8stest.RmStorageClass(c.ScName)
 	if err != nil {
-		logf.Log.Error(err, "failed to delete ", "storage class", c.scName)
+		logf.Log.Error(err, "failed to delete ", "storage class", c.ScName)
 		return err
 	}
 	return nil
@@ -440,7 +440,7 @@ func (c *NexusHa) VerifyReplicasAdnCleanUp() error {
 			return fmt.Errorf("failed to delete pod %s", c.TestPodName)
 		}
 	}
-	res := k8stest.CompareVolumeReplicas(c.volName, common.NSDefault)
+	res := k8stest.CompareVolumeReplicas(c.VolName, common.NSDefault)
 	switch res.Result {
 	case common.CmpReplicasMismatch:
 		return fmt.Errorf("replica contents do not match %s", res.Description)
@@ -683,8 +683,8 @@ func (c *NexusHa) CreateDeploymentAndNexusOnDifferentNode(replicas int, prefix s
 	if err != nil {
 		return fmt.Errorf("failed to create storage %v", err)
 	}
-	logf.Log.Info("storage", "scName", c.scName)
-	fioDeployName := "fio-" + c.volName
+	logf.Log.Info("storage", "ScName", c.ScName)
+	fioDeployName := "fio-" + c.VolName
 	c.TestDeployName = fioDeployName
 	// create fio deployment on other node
 	err = c.createFioDeployment(fioArgs, nodeName)
@@ -810,7 +810,7 @@ func (c *NexusHa) createFioDeployment(fioArgs []string, nodeName string) error {
 				WithVolumeBuilders(
 					k8stest.NewVolumeBuilder().
 						WithName("ms-volume").
-						WithPVCSource(c.volName),
+						WithPVCSource(c.VolName),
 				),
 		).
 		Build()
