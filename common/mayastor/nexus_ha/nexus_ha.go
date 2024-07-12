@@ -109,7 +109,7 @@ func (c *NexusHa) CreateFioDeploy(fioArgs []string, deployName string) error {
 		Build()
 
 	if err != nil {
-		return fmt.Errorf("failed to create deployment %s definittion object in %s namesppace", c.TestDeployName, common.NSDefault)
+		return fmt.Errorf("failed to create deployment %s definittion object in %s namesppace", deployName, common.NSDefault)
 	}
 
 	err = k8stest.CreateDeployment(deployObj)
