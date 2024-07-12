@@ -71,6 +71,56 @@ type NexusHa struct {
 	NonNexusNode     string
 }
 
+func (c *NexusHa) CreateFioDeploy(fioArgs []string, deployName string) error {
+	labelKey := "e2e-test"
+	labelValue := "maxsnap"
+	labelselector := map[string]string{
+		labelKey: labelValue,
+	}
+	mount := coreV1.VolumeMount{
+		Name:      "ms-volume",
+		MountPath: common.FioFsMountPoint,
+	}
+	var volMounts []coreV1.VolumeMount
+	volMounts = append(volMounts, mount)
+
+	logf.Log.Info("fio", "arguments", fioArgs)
+	deployObj, err := k8stest.NewDeploymentBuilder().
+		WithName(deployName).
+		WithNamespace(common.NSDefault).
+		WithLabelsNew(labelselector).
+		WithSelectorMatchLabelsNew(labelselector).
+		WithPodTemplateSpecBuilder(
+			k8stest.NewPodtemplatespecBuilder().
+				WithLabels(labelselector).
+				WithContainerBuildersNew(
+					k8stest.NewContainerBuilder().
+						WithName(deployName).
+						WithImage(common.GetFioImage()).
+						WithVolumeMountsNew(volMounts).
+						WithImagePullPolicy(coreV1.PullAlways).
+						WithArgumentsNew(fioArgs)).
+				WithVolumeBuilders(
+					k8stest.NewVolumeBuilder().
+						WithName("ms-volume").
+						WithPVCSource(c.volName),
+				),
+		).
+		Build()
+
+	if err != nil {
+		return fmt.Errorf("failed to create deployment %s definittion object in %s namesppace", c.TestDeployName, common.NSDefault)
+	}
+
+	err = k8stest.CreateDeployment(deployObj)
+	if err != nil {
+		return fmt.Errorf("failed to create deployment %s, error %v", c.TestDeployName, err)
+	}
+	labels := fmt.Sprintf("%s=%s", labelKey, labelValue)
+	c.TestPodAppLabels = labels
+	return verifyApplicationPodRunning(c.TestDeployName, common.NSDefault, labels, true)
+}
+
 // CreatePodAndNexusOnDifferentNode A function to create pod and nexus on different node
 func (c *NexusHa) CreatePodAndNexusOnDifferentNode(replicas int, prefix string, fioArgs []string, volSizeMb int) error {
 	var errs common.ErrorAccumulator
