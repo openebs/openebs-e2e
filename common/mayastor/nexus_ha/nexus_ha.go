@@ -103,7 +103,7 @@ func (c *NexusHa) CreateFioDeploy(fioArgs []string, deployName string) error {
 				WithVolumeBuilders(
 					k8stest.NewVolumeBuilder().
 						WithName("ms-volume").
-						WithPVCSource(c.volName),
+						WithPVCSource(c.VolName),
 				),
 		).
 		Build()
