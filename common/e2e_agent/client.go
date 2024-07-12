@@ -73,6 +73,27 @@ type CmpPaths struct {
 	Path2 string `json:"path2"`
 }
 
+type Lvm struct {
+	Pv                          string `json:"pv"`                          // Physical volume
+	Vg                          string `json:"vg"`                          // Volume group
+	ThinPoolAutoExtendThreshold int    `json:"thinPoolAutoExtendThreshold"` // thin pool auto extend threshold
+	ThinPoolAutoExtendPercent   int    `json:"ThinPoolAutoExtendPercent"`   // thin pool auto extend percent
+}
+
+type LoopDevice struct {
+	// Size in bytes
+	Size int64 `json:"size"`
+	// The backing image name
+	// eg: fake123
+	ImageName string `json:"imageName"`
+	// Image directory
+	// eg: /tmp
+	ImgDir string `json:"imgDir"`
+	// the disk name
+	// eg: /tmp/loop9002
+	DiskPath string `json:"diskPath"`
+}
+
 func sendRequest(reqType, url string, data interface{}) error {
 	_, err := sendRequestGetResponse(reqType, url, data, true)
 	return err
@@ -656,4 +677,265 @@ func Cmp(serverAddr string, path1 string, path2 string) (string, error) {
 		return string(out), nil
 	}
 	return string(out), fmt.Errorf("errCode=%v ; err=%v", errCode, err)
+}
+
+// LvmListVg list lvm vg
+func LvmListVg(serverAddr string) (string, error) {
+	logf.Log.Info("Executing LvmListVg", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/lvmlistvg"
+	encodedresult, err := sendRequestGetResponse("POST", url, nil, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to get lvm vg, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("LvmListVg succeeded", "output", out)
+	return out, err
+}
+
+// LvmListPv list lvm pv
+func LvmListPv(serverAddr string) (string, error) {
+	logf.Log.Info("Executing LvmListPv", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/lvmlistpv"
+	encodedresult, err := sendRequestGetResponse("POST", url, nil, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to get lvm pv, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("LvmListPv succeeded", "output", out)
+	return out, err
+}
+
+// LvmVersion get lvm version
+func LvmVersion(serverAddr string) (string, error) {
+	logf.Log.Info("Executing LvmVersion", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/lvmversion"
+	encodedresult, err := sendRequestGetResponse("POST", url, nil, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to get lvm version, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("LvmVersion succeeded", "output", out)
+	return out, err
+}
+
+// LvmCreatePv create lvm pv
+func LvmCreatePv(serverAddr string, pvDiskPath string) (string, error) {
+	data := Lvm{
+		Pv: pvDiskPath,
+	}
+	logf.Log.Info("Executing lvmcreatepv", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/lvmcreatepv"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to create lvm pv, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("LvmCreatePv succeeded", "output", out)
+	return out, err
+}
+
+// LvmCreateVg create lvm vg
+func LvmCreateVg(serverAddr string, pvDiskPath string, vgName string) (string, error) {
+	data := Lvm{
+		Pv: pvDiskPath,
+		Vg: vgName,
+	}
+	logf.Log.Info("Executing lvmcreatevg", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/lvmcreatevg"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to create lvm pv, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("LvmCreateVg succeeded", "output", out)
+	return out, err
+}
+
+// LvmRemovePv remove lvm pv
+func LvmRemovePv(serverAddr string, pvDiskPath string, vgName string) (string, error) {
+	data := Lvm{
+		Pv: pvDiskPath,
+	}
+	logf.Log.Info("Executing lvmremovepv", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/lvmremovepv"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to remove lvm pv, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("LvmRemovePv succeeded", "output", out)
+	return out, err
+}
+
+// LvmRemoveVg remove lvm vg
+func LvmRemoveVg(serverAddr string, pvDiskPath string, vgName string) (string, error) {
+	data := Lvm{
+		Vg: vgName,
+	}
+	logf.Log.Info("Executing lvmremovevg", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/lvmremovevg"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to remove lvm vg, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("LvmRemoveVg succeeded", "output", out)
+	return out, err
+}
+
+// LvmThinPoolAutoExtendThreshold update lvm thin pool auto extend threshold value
+func LvmThinPoolAutoExtendThreshold(serverAddr string, thinPoolAutoExtendThreshold int) (string, error) {
+	data := Lvm{
+		ThinPoolAutoExtendThreshold: thinPoolAutoExtendThreshold,
+	}
+	logf.Log.Info("Executing lvmthinpoolautoextendthreshold", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/lvmthinpoolautoextendthreshold"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to update lvm thin pool auto extend threshold, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("LvmThinPoolAutoExtendThreshold succeeded", "output", out)
+	return out, err
+}
+
+// LvmThinPoolAutoExtendPercent update lvm thin pool auto extend percent value
+func LvmThinPoolAutoExtendPercent(serverAddr string, thinPoolAutoExtendPercent int) (string, error) {
+	data := Lvm{
+		ThinPoolAutoExtendPercent: thinPoolAutoExtendPercent,
+	}
+	logf.Log.Info("Executing lvmthinpoolautoextendpercent", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/lvmthinpoolautoextendpercent"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to update lvm thin pool auto extend percent, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("LvmThinPoolAutoExtendPercent succeeded", "output", out)
+	return out, err
+}
+
+// CreateLoopDevice create loop device
+func CreateLoopDevice(serverAddr string, size int64, imageDir string) (string, error) {
+	data := LoopDevice{
+		ImgDir: imageDir,
+		Size:   size,
+	}
+	logf.Log.Info("Executing createloopdevice", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/createloopdevice"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to create loop device, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("CreateLoopDevice succeeded", "output", out)
+	return out, err
+}
+
+// DeleteLoopDevice delete loop device
+func DeleteLoopDevice(serverAddr string, dsikPath string, imageName string) (string, error) {
+	data := LoopDevice{
+		DiskPath:  dsikPath,
+		ImageName: imageName,
+	}
+	logf.Log.Info("Executing deleteloopdevice", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/deleteloopdevice"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to delete loop device, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("DeleteLoopDevice succeeded", "output", out)
+	return out, err
 }
