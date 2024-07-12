@@ -71,7 +71,7 @@ type NexusHa struct {
 	NonNexusNode     string
 }
 
-func (c *NexusHa) CreateFioDeploy(fioArgs []string, deployName string) error {
+func (c *NexusHa) CreateFioDeploy(fioArgs []string) error {
 	labelKey := "e2e-test"
 	labelValue := "maxsnap"
 	labelselector := map[string]string{
@@ -86,7 +86,7 @@ func (c *NexusHa) CreateFioDeploy(fioArgs []string, deployName string) error {
 
 	logf.Log.Info("fio", "arguments", fioArgs)
 	deployObj, err := k8stest.NewDeploymentBuilder().
-		WithName(deployName).
+		WithName(c.TestDeployName).
 		WithNamespace(common.NSDefault).
 		WithLabelsNew(labelselector).
 		WithSelectorMatchLabelsNew(labelselector).
@@ -95,7 +95,7 @@ func (c *NexusHa) CreateFioDeploy(fioArgs []string, deployName string) error {
 				WithLabels(labelselector).
 				WithContainerBuildersNew(
 					k8stest.NewContainerBuilder().
-						WithName(deployName).
+						WithName(c.TestDeployName).
 						WithImage(common.GetFioImage()).
 						WithVolumeMountsNew(volMounts).
 						WithImagePullPolicy(coreV1.PullAlways).
@@ -109,7 +109,7 @@ func (c *NexusHa) CreateFioDeploy(fioArgs []string, deployName string) error {
 		Build()
 
 	if err != nil {
-		return fmt.Errorf("failed to create deployment %s definittion object in %s namesppace", deployName, common.NSDefault)
+		return fmt.Errorf("failed to create deployment %s definittion object in %s namesppace", c.TestDeployName, common.NSDefault)
 	}
 
 	err = k8stest.CreateDeployment(deployObj)
