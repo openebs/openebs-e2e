@@ -358,7 +358,7 @@ func GetDeployment(deploymentName string, namespace string) (*appsv1.Deployment,
 		metaV1.GetOptions{},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get deployment, error: %v", err)
+		return nil, err
 	}
 	return deployment, err
 }
@@ -367,7 +367,7 @@ func GetDeployment(deploymentName string, namespace string) (*appsv1.Deployment,
 func GetDeploymentPods(deploymentName string, namespace string) (*coreV1.PodList, error) {
 	deployment, err := GetDeployment(deploymentName, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get deployment, error: %v", err)
+		return nil, err
 	}
 	// Get the pod template labels for deployment
 	labels := deployment.Spec.Template.Labels
@@ -465,4 +465,16 @@ func RestoreDeploymentReplicas(deploymentName string, namespace string, timeout_
 		return fmt.Errorf("timed out waiting for pods to be restored, podcount: %d", replicas)
 	}
 	return err
+}
+
+func VerifyDeploymentReadyReplicaCount(name, namespace string, expectedReplicas int) (bool, error) {
+	deployment, err := GetDeployment(name, namespace)
+	if err != nil {
+		return false, err
+	}
+	logf.Log.Info("Get Deployment", "Ready Replicas", deployment.Status.ReadyReplicas, "Replicas Expected", expectedReplicas)
+	if deployment.Status.ReadyReplicas == int32(expectedReplicas) {
+		return true, nil
+	}
+	return false, nil
 }
