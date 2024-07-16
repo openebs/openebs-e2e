@@ -166,7 +166,11 @@ func handleRequests() {
 	//loop device
 	router.HandleFunc("/createloopdevice", CreateLoopDevice).Methods("POST")
 	router.HandleFunc("/deleteloopdevice", DeleteLoopDevice).Methods("POST")
-
+	//ZFS
+	router.HandleFunc("/zfsversion", ZfsVersion).Methods("POST")
+	router.HandleFunc("/zfslistpool", ZfsListPool).Methods("POST")
+	router.HandleFunc("/zfscreatepool", ZfsCreatePool).Methods("POST")
+	router.HandleFunc("/zfsdestroypool", ZfsDestroyPool).Methods("POST")
 	log.Fatal(http.ListenAndServe(podIP+":"+restPort, router))
 }
 
