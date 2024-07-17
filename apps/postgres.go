@@ -9,6 +9,57 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+/*
+Before you start, ensure that you have at least one node without huge pages and Mayastor installed. You can use the
+SetupPostgresEnvironment function to prepare the environment, which will set up the necessary nodes for deploying the
+PostgreSQL application. Use a node selector to ensure PostgreSQL is installed on the prepared node.
+
+The steps involve creating a Mayastor storage class and volume, then using the Postgres builder to configure PostgreSQL
+with this storage class and volume. Additionally, you can create a PgBench job to run load tests against PostgreSQL,
+similar to how the fio pod is commonly used. If you want to run the PgBench job in the background or in parallel,
+you can use a goroutine as shown in the example below.
+
+// Step 1: Prepare the environment by setting up nodes - probably in BeforeSuite
+unlabeledNodes, err := SetupPostgresEnvironment()
+if err != nil {
+    log.Fatalf("Failed to set up environment: %v", err)
+}
+
+// Step 2: Define storage class name and volume name
+
+// Step 3: Build the PostgreSQL application configuration with PgBench
+postgresApp, err := apps.NewPostgresBuilder().
+    WithPgBench().
+    WithOwnStorageClass(scName).
+    WithPvc(volName).
+    WithPrimaryNodeSelector(unlabeledNodes[0].Name).
+    Build()
+if err != nil {
+    log.Fatalf("Failed to build PostgreSQL app: %v", err)
+}
+
+// Step 4: Initialize PgBench
+err = postgresApp.PgBench.InitializePgBench(fmt.Sprintf("%s-postgresql", postgresApp.Postgres.ReleaseName))
+if err != nil {
+    log.Fatalf("Failed to initialize PgBench: %v", err)
+}
+
+// Step 5: Run PgBench in a goroutine to perform load testing
+var wg sync.WaitGroup
+wg.Add(1)
+go func() {
+    defer wg.Done()
+    err := postgresApp.PgBench.RunPgBench(fmt.Sprintf("%s-postgresql", postgresApp.Postgres.ReleaseName))
+    if err != nil {
+        log.Fatalf("Failed to run PgBench: %v", err)
+    }
+}()
+
+// Step 6: Wait for PgBench job to complete
+wg.Wait()
+logf.Log.Info("pgBench job completed")
+*/
+
 type postgresBuilder struct {
 	architecture            Architecture
 	CloneFsIdAsVolumeIdType common.CloneFsIdAsVolumeIdType
