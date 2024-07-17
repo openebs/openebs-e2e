@@ -153,6 +153,20 @@ func handleRequests() {
 	router.HandleFunc("/stats", GetStats).Methods("POST")
 	router.HandleFunc("/cmp", Cmp).Methods("POST")
 	router.HandleFunc("/hugepagezero", ZeroingHugePages).Methods("POST")
+	//LVM
+	router.HandleFunc("/lvmversion", LvmVersion).Methods("POST")
+	router.HandleFunc("/lvmlistvg", LvmListVg).Methods("POST")
+	router.HandleFunc("/lvmlistpv", LvmListPv).Methods("POST")
+	router.HandleFunc("/lvmcreatepv", LvmCreatePv).Methods("POST")
+	router.HandleFunc("/lvmcreatevg", LvmCreateVg).Methods("POST")
+	router.HandleFunc("/lvmremovepv", LvmRemovePv).Methods("POST")
+	router.HandleFunc("/lvmremovevg", LvmRemoveVg).Methods("POST")
+	router.HandleFunc("/lvmthinpoolautoextendthreshold", LvmThinPoolAutoExtendThreshold).Methods("POST")
+	router.HandleFunc("/lvmthinpoolautoextendpercent", LvmThinPoolAutoExtendPercent).Methods("POST")
+	//loop device
+	router.HandleFunc("/createloopdevice", CreateLoopDevice).Methods("POST")
+	router.HandleFunc("/deleteloopdevice", DeleteLoopDevice).Methods("POST")
+
 	log.Fatal(http.ListenAndServe(podIP+":"+restPort, router))
 }
 
@@ -612,7 +626,7 @@ func bashLocal(command string) (string, error) {
 	outputString := strings.TrimSpace(string(output))
 	if err != nil {
 		klog.Error("failed to execute command ", command, "Error: ", err)
-		outputString = ""
+		return outputString, fmt.Errorf("run failed, cmd={%s}, error={%v}, output={%s}", cmd, err, string(outputString))
 	}
 	return outputString, err
 }

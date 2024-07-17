@@ -9,7 +9,7 @@
 # as long as we do not make breaking changes.
 set -e
 IMAGE="openebs/e2e-agent"
-TAG="v2.8.0"
+TAG="v2.9.0"
 registry=""
 tag_as_latest=""
 
