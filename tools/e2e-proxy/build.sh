@@ -8,7 +8,7 @@
 # This works for legacy test runs and also other test frameworks
 # as long as we do not make breaking changes.
 set -e
-IMAGE="mayadata/e2e-proxy"
+IMAGE="openebs/e2e-proxy"
 TAG="v1.0.0"
 registry=""
 tag_as_latest=""
@@ -33,18 +33,23 @@ done
 
 if docker build -t ${IMAGE} --build-arg GO_VERSION=1.19.3 . ; then
     if [ "${registry}" != "" ]; then
-        if [ "${tag_as_latest}" == "Y" ];  then
-            echo "tagging as latest and pushing image"
-            docker tag ${IMAGE} $registry/${IMAGE}
-            docker push $registry/${IMAGE}
-        fi
-        if [ "${TAG}" != "" ];  then
-            echo "tagging as ${TAG} and pushing image"
-            docker tag ${IMAGE} $registry/${IMAGE}:${TAG}
-            docker push $registry/${IMAGE}:${TAG}
-        else
-            echo "TAG was not defined - image not retagged and pushed"
-        fi
+        echo "image registry: ${registry}"
+        PROXY_IMAGE="${registry}/${IMAGE}"
+    else
+        echo "image registry: dockerhub"
+        PROXY_IMAGE="${IMAGE}"
+    fi
+    if [ "${tag_as_latest}" == "Y" ];  then
+        echo "tagging as latest and push image ${PROXY_IMAGE}"
+        docker tag ${IMAGE} ${PROXY_IMAGE}
+        docker push ${PROXY_IMAGE}
+    fi
+    if [ "${TAG}" != "" ];  then
+        echo "tagging as ${TAG} and push image  ${PROXY_IMAGE}"
+        docker tag ${IMAGE} ${PROXY_IMAGE}:${TAG}
+        docker push ${PROXY_IMAGE}:${TAG}
+    else
+        echo "TAG was not defined - image not retagged and pushed"
     fi
 else
     exit 1

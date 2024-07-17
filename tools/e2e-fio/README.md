@@ -76,4 +76,4 @@ For legacy compatibility where implicit start of a new option is detected
 ## building
 Run `./build.sh`
 
-This builds the image `mayadata/e2e-fio`
+This builds the image `openebs/e2e-fio`
