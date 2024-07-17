@@ -14,27 +14,31 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// PostgresApp represents a PostgreSQL application deployment configuration.
 type PostgresApp struct {
-	Namespace    string
-	Pod          coreV1.Pod
-	VolUuid      string
-	ReleaseName  string
-	ReplicaCount int
-	ScName       string
-	Standalone   bool
-	PvcName      string
-	PgBench      PgBenchApp
+	Namespace    string     // Kubernetes namespace where the PostgreSQL application is deployed.
+	Pod          coreV1.Pod // Kubernetes Pod running the PostgreSQL application.
+	VolUuid      string     // UUID of the provisioned volume for the PostgreSQL application.
+	ReleaseName  string     // Helm release name for the PostgreSQL application.
+	ReplicaCount int        // Number of replicas for the PostgreSQL StatefulSet.
+	ScName       string     // StorageClass name used for provisioning volumes.
+	Standalone   bool       // Indicates if the PostgreSQL deployment is standalone.
+	PvcName      string     // Name of the PersistentVolumeClaim.
+	PgBench      PgBenchApp // PgBench application configuration for benchmarking.
 }
 
+// PostgresInstallReady checks if the PostgreSQL application is installed and ready.
 func (psql *PostgresApp) PostgresInstallReady() error {
 	logf.Log.Info("checking postgres application to be installed")
 	ready := false
 	counter := 12
 	if psql.Standalone {
+		// List all StatefulSets with label "app.kubernetes.io/name=postgresql" in the namespace.
 		stateful, err := gTestEnv.KubeInt.AppsV1().StatefulSets(psql.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/name=postgresql"})
 		if err != nil {
 			return err
 		}
+		// Check the status of each StatefulSet to determine if all replicas are ready.
 		for _, ss := range stateful.Items {
 			ready = ss.Status.ReadyReplicas == ss.Status.Replicas &&
 				ss.Status.AvailableReplicas == ss.Status.Replicas
@@ -95,26 +99,28 @@ func (psql *PostgresApp) PostgresInstallReady() error {
 	return nil
 }
 
+// Default benchmark parameters
 const (
-	pgBenchImage               = "postgres:16"
 	defaultConcurrentDbClients = 4
 	defaultDurationSeconds     = 60
 )
 
+// PgBenchApp represents a PgBench application configuration for benchmarking PostgreSQL.
 type PgBenchApp struct {
-	BenchmarkParams PgBenchmarkParams
-	Name            string
-	Namespace       string
-	NodeSelector    string
-	Pod             *coreV1.Pod
+	BenchmarkParams PgBenchmarkParams // Parameters for benchmarking.
+	Name            string            // Name of the PgBench application.
+	Namespace       string            // Kubernetes namespace for the PgBench application.
+	NodeSelector    string            // Node selector for scheduling the PgBench Pod.
+	Pod             *coreV1.Pod       // Kubernetes Pod running the PgBench application.
 }
 
 type PgBenchmarkParams struct {
-	ConcurrentClients int
-	ThreadCount       int
-	DurationSeconds   int
+	ConcurrentClients int // Number of concurrent clients for PgBench.
+	ThreadCount       int // Number of threads for PgBench.
+	DurationSeconds   int // Duration of the benchmark in seconds.
 }
 
+// NewPgBench creates a new PgBenchApp instance with default benchmark parameters.
 func NewPgBench() *PgBenchApp {
 	return &PgBenchApp{
 		BenchmarkParams: PgBenchmarkParams{
@@ -125,6 +131,7 @@ func NewPgBench() *PgBenchApp {
 	}
 }
 
+// InitializePgBench initializes the PgBench database. Must be called before RunPgBench
 func (pgBench *PgBenchApp) InitializePgBench(host string) error {
 	jobName := fmt.Sprintf("%s-init", pgBench.Name)
 	job := &batchV1.Job{
@@ -138,7 +145,7 @@ func (pgBench *PgBenchApp) InitializePgBench(host string) error {
 					Containers: []coreV1.Container{
 						{
 							Name:  pgBench.Name,
-							Image: pgBenchImage, // Ensure this version includes pgbench
+							Image: e2e_config.GetConfig().Product.PgBenchImage, // Ensure this version includes pgbench
 							Command: []string{
 								"pgbench",
 								"-i", // Initialize the database
@@ -172,6 +179,7 @@ func (pgBench *PgBenchApp) InitializePgBench(host string) error {
 	return pgBench.waitForJobCompletion(jobName)
 }
 
+// RunPgBench runs the PgBench benchmark on the PostgreSQL database.
 func (pgBench *PgBenchApp) RunPgBench(host string) error {
 	jobName := fmt.Sprintf("%s-benchmark", pgBench.Name)
 	job := &batchV1.Job{
@@ -185,7 +193,7 @@ func (pgBench *PgBenchApp) RunPgBench(host string) error {
 					Containers: []coreV1.Container{
 						{
 							Name:  pgBench.Name,
-							Image: pgBenchImage, // Ensure this version includes pgbench
+							Image: e2e_config.GetConfig().Product.PgBenchImage, // Ensure this version includes pgbench
 							Command: []string{
 								"pgbench",
 								"-h", host,
@@ -221,6 +229,7 @@ func (pgBench *PgBenchApp) RunPgBench(host string) error {
 	return pgBench.waitForJobCompletion(jobName)
 }
 
+// waitForJobCompletion waits for the Kubernetes Job to complete.
 func (pgBench *PgBenchApp) waitForJobCompletion(jobName string) error {
 	jobsClient := gTestEnv.KubeInt.BatchV1().Jobs(pgBench.Namespace)
 	for {
@@ -248,6 +257,7 @@ func (pgBench *PgBenchApp) waitForJobCompletion(jobName string) error {
 	return nil
 }
 
+// SetupPostgresEnvironment sets up the environment for PostgreSQL by managing node labels and taints. Normally called in Before suit action. It will return a slice of nodes which are ready for postgres installation.
 func SetupPostgresEnvironment() ([]coreV1.Node, error) {
 	var unlabeledNodes []coreV1.Node
 	nonMsNs, err := ListAllNonMsnNodes()

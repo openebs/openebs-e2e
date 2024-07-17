@@ -88,6 +88,7 @@ type ProductSpec struct {
 	NatsPort                         string            `yaml:"natsPort" env-default:"4222"`
 	NvmeControllerModel              string            `yaml:"nvmeControllerModel" env-default:"Mayastor NVMe controller"`
 	PartialRebuildCpTimeout          string            `yaml:"partialRebuildCpTimeout" env-default:"600s"`
+	PgBenchImage                     string            `yaml:"pgBenchImage" env-default:"postgres:16"`
 	PodLabelKey                      string            `yaml:"podLabelKey" env-default:"app"`
 	PoolCrdName                      string            `yaml:"poolCrdName" env-default:"mayastorpools.openebs.io"`
 	PostgresDatabaseName             string            `yaml:"postgresDatabaseName" env-default:"test"`
