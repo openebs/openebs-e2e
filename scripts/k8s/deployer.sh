@@ -16,6 +16,8 @@ KUBECTL="kubectl"
 DOCKER="docker"
 HUGE_PAGES=1800
 LABEL=
+INSTALL_ZFS="false"
+INSTALL_LVM="false"
 
 help() {
   cat <<EOF
@@ -30,13 +32,15 @@ Options:
   --dry-run                         Don't do anything, just output steps.
   --hugepages     <num>             Add <num> 2MiB hugepages (Default: $HUGE_PAGES).
   --label                           Label worker nodes with the io-engine selector.
+  --install-zfs                     Install ZFS utilities.
+  --install-lvm                     Install LVM utilities.
 
 Command:
   start                             Start the k8s cluster.
   stop                              Stop the k8s cluster.
 
 Examples:
-  $(basename "$0") start --workers 2 --disk 1GiB
+  $(basename "$0") start --workers 2 --disk 1GiB --install-zfs
 EOF
 }
 
@@ -66,46 +70,49 @@ while [ "$#" -gt 0 ]; do
       COMMAND="stop"
       DO_ARGS="y"
       shift;;
+    --workers)
+      shift
+      test $# -lt 1 && die "Missing Number of Workers"
+      WORKERS=$1
+      shift;;
+    --cores)
+      shift
+      CORES=$1
+      shift;;
+    --disk)
+      shift
+      test $# -lt 1 && die "Missing Disk Size"
+      POOL_SIZE=$1
+      shift;;
+    --delay)
+      DELAY="true"
+      shift;;
+    --label)
+      LABEL="true"
+      shift;;
+    --hugepages)
+      shift
+      test $# -lt 1 && die "Missing hugepage number"
+      HUGE_PAGES=$1
+      shift;;
+    --dry-run)
+      if [ -z "$DRY_RUN" ]; then
+        DRY_RUN="--dry-run"
+        KIND="echo $KIND"
+        FALLOCATE="echo $FALLOCATE"
+        KUBECTL="echo $KUBECTL"
+        DOCKER="echo $DOCKER"
+      fi
+      shift;;
+    --install-zfs)
+      INSTALL_ZFS="true"
+      shift;;
+    --install-lvm)
+      INSTALL_LVM="true"
+      shift;;
     *)
-      [ -z "$DO_ARGS" ] && die "Must specify command before args"
-      case $1 in
-        --workers)
-          shift
-          test $# -lt 1 && die "Missing Number of Workers"
-          WORKERS=$1
-          shift;;
-        --cores)
-          shift
-          CORES=$1
-          shift;;
-        --disk)
-          shift
-          test $# -lt 1 && die "Missing Disk Size"
-          POOL_SIZE=$1
-          shift;;
-        --delay)
-          DELAY="true"
-          shift;;
-        --label)
-          LABEL="true"
-          shift;;
-        --hugepages)
-          shift
-          test $# -lt 1 && die "Missing hugepage number"
-          HUGE_PAGES=$1
-          shift;;
-        --dry-run)
-          if [ -z "$DRY_RUN" ]; then
-            DRY_RUN="--dry-run"
-            KIND="echo $KIND"
-            FALLOCATE="echo $FALLOCATE"
-            KUBECTL="echo $KUBECTL"
-            DOCKER="echo $DOCKER"
-          fi
-          shift;;
-        *)
-          shift;;
-      esac
+      die "Unknown argument $1!"
+      shift;;
   esac
 done
 
@@ -119,7 +126,16 @@ if [ "$COMMAND" = "stop" ]; then
   exit 0
 fi
 
+# Install prerequisites
 "$SCRIPT_DIR"/setup-io-prereq.sh --hugepages "$HUGE_PAGES" --nvme-tcp $DRY_RUN
+
+if [ "$INSTALL_ZFS" = "true" ]; then
+  "$SCRIPT_DIR"/setup-io-prereq.sh --install-zfs $DRY_RUN
+fi
+
+if [ "$INSTALL_LVM" = "true" ]; then
+  "$SCRIPT_DIR"/setup-io-prereq.sh --install-lvm $DRY_RUN
+fi
 
 # Create and cleanup the tmp folder
 # Note: this is static in case you want to restart the worker node

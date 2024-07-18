@@ -5,9 +5,12 @@ set -e
 HUGE_PAGES=
 HUGE_PAGES_OVERRIDE=
 NVME_TCP=
+INSTALL_ZFS=
+INSTALL_LVM=
 DRY_RUN=
 SYSCTL="sudo sysctl"
 MODPROBE="sudo modprobe"
+
 help() {
   cat <<EOF
 Usage: $(basename "$0") [COMMAND] [OPTIONS]
@@ -16,9 +19,11 @@ Options:
   -h, --help                            Display this text.
   --hugepages         <num>             Add <num> 2MiB hugepages.
   --nvme-tcp                            Load nvme_tcp kernel modules.
+  --install-zfs                         Install ZFS utilities.
+  --install-lvm                         Install LVM utilities.
 
 Examples:
-  $(basename "$0") --nvme-tcp --hugepages 2048
+  $(basename "$0") --nvme-tcp --hugepages 2048 --install-zfs
 EOF
 }
 
@@ -56,7 +61,8 @@ install_kernel_modules() {
   DISTRO="$(distro)"
   case "$DISTRO" in
     Ubuntu)
-      sudo apt-get install linux-modules-extra-$(uname -r)
+      sudo apt-get update
+      sudo apt-get install -y linux-modules-extra-$(uname -r) xfsprogs quota
       ;;
     NixOS | *)
       install_kernel_modules_nsup "$DISTRO"
@@ -64,21 +70,46 @@ install_kernel_modules() {
   esac
 }
 
-install_zfs_and_lvm() {
-  DISTRO="$(distro)"
-  case "$DISTRO" in
-    Ubuntu)
-      sudo apt-get update
-      if sudo apt-get install -y zfsutils-linux lvm2; then
-        echo "Successfully installed zfsutils-linux and lvm2"
-      else
-        die "Failed to install zfsutils-linux and lvm2"
-      fi
-      ;;
-    NixOS | *)
-      die "Installation of zfsutils-linux and lvm2 not supported for $DISTRO"
-      ;;
-  esac
+install_zfs() {
+  if ! command -v zfs &> /dev/null; then
+    DISTRO="$(distro)"
+    case "$DISTRO" in
+      Ubuntu)
+        sudo apt-get update
+        if sudo apt-get install -y zfsutils-linux; then
+          echo "Successfully installed zfsutils-linux"
+        else
+          die "Failed to install zfsutils-linux"
+        fi
+        ;;
+      NixOS | *)
+        die "Installation of zfsutils-linux not supported for $DISTRO"
+        ;;
+    esac
+  else
+    echo "ZFS utilities are already installed"
+  fi
+}
+
+install_lvm() {
+  if ! command -v lvm &> /dev/null; then
+    DISTRO="$(distro)"
+    case "$DISTRO" in
+      Ubuntu)
+        sudo apt-get update
+        if sudo apt-get install -y lvm2; then
+          echo "Successfully installed lvm2"
+        else
+          die "Failed to install lvm2"
+        fi
+        ;;
+      NixOS | *)
+        die "Installation of lvm2 not supported for $DISTRO"
+        ;;
+    esac
+  else
+    echo "LVM utilities are already installed"
+  fi
 }
 
 load_lvm_modules() {
@@ -92,31 +123,43 @@ while [ "$#" -gt 0 ]; do
     -h|--help)
       help
       exit 0
-      shift;;
+      ;;
     --hugepages)
       shift
       test $# -lt 1 && die "Missing hugepage number"
       HUGE_PAGES=$1
-      shift;;
+      shift
+      ;;
     --hugepages-override)
       shift
       test $# -lt 1 && die "Missing hugepage number"
       HUGE_PAGES_OVERRIDE="y"
       HUGE_PAGES=$1
-      shift;;
+      shift
+      ;;
     --nvme-tcp)
       NVME_TCP="y"
-      shift;;
+      shift
+      ;;
+    --install-zfs)
+      INSTALL_ZFS="y"
+      shift
+      ;;
+    --install-lvm)
+      INSTALL_LVM="y"
+      shift
+      ;;
     --dry-run)
       if [ -z "$DRY_RUN" ]; then
         DRY_RUN="--dry-run"
         SYSCTL="echo $SYSCTL"
         MODPROBE="echo $MODPROBE"
       fi
-      shift;;
+      shift
+      ;;
     *)
       die "Unknown argument $1!"
-      shift;;
+      ;;
   esac
 done
 
@@ -155,8 +198,11 @@ if [ -n "$NVME_TCP" ]; then
   fi
 fi
 
-# Install ZFS and LVM utilities
-install_zfs_and_lvm
+if [ -n "$INSTALL_ZFS" ]; then
+  install_zfs
+fi
 
-# Load LVM snapshot and thin provisioning modules
-load_lvm_modules
+if [ -n "$INSTALL_LVM" ]; then
+  install_lvm
+  load_lvm_modules
+fi
