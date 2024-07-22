@@ -92,6 +92,8 @@ type LoopDevice struct {
 	// the disk name
 	// eg: /tmp/loop9002
 	DiskPath string `json:"diskPath"`
+	// mount point if any
+	MountPoint string `json:"mountPoint"`
 }
 type Zpool struct {
 	PoolDiskPath string `json:"poolDiskPath"`
@@ -1035,4 +1037,54 @@ func ZfsDestroyPool(serverAddr string, poolName string) (string, error) {
 	}
 	logf.Log.Info("ZfsDestroyPool succeeded", "output", out)
 	return out, err
+}
+
+// CreateHostPathDisk creates hostpath disk
+func CreateHostPathDisk(serverAddr string, diskPath string, mountPoint string) error {
+	data := LoopDevice{
+		DiskPath:   diskPath,
+		MountPoint: mountPoint,
+	}
+	logf.Log.Info("Executing createhostpathdisk", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/createhostpathdisk"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return err
+	}
+	if e2eagenterrcode != ErrNone {
+		return fmt.Errorf("failed to create hostapth disk, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("CreateHostPathDisk succeeded", "output", out)
+	return err
+}
+
+// RemoveHostPathDisk removes hostapth disk
+func RemoveHostPathDisk(serverAddr string, diskPath string, mountPoint string) error {
+	data := LoopDevice{
+		DiskPath:   diskPath,
+		MountPoint: mountPoint,
+	}
+	logf.Log.Info("Executing removehostpathdisk", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/removehostpathdisk"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return err
+	}
+	if e2eagenterrcode != ErrNone {
+		return fmt.Errorf("failed to remove hostapth disk, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("RemoveHostPathDisk succeeded", "output", out)
+	return err
 }

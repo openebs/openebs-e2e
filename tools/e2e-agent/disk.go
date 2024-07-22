@@ -27,6 +27,8 @@ type LoopDevice struct {
 	// the disk name
 	// eg: /tmp/loop9002
 	DiskPath string `json:"diskPath"`
+	// mount point if any
+	MountPoint string `json:"mountPoint"`
 }
 
 func (disk *LoopDevice) createDiskImage() error {
@@ -154,4 +156,39 @@ func DeleteLoopDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	WrapResult(output, ErrNone, w)
+}
+
+func formatDisk(diskPath string) error {
+	formatDiskCommand := fmt.Sprintf("mkfs -t ext4 %s", diskPath)
+	_, err := bashLocal(formatDiskCommand)
+	return err
+}
+
+func makeDir(dirPath string) error {
+	createDirCommand := fmt.Sprintf("mkdir -p %s", dirPath)
+	_, err := bashLocal(createDirCommand)
+	return err
+}
+
+func removeDir(dirPath string) error {
+	removeDirCommand := fmt.Sprintf("rm -rf %s", dirPath)
+	_, err := bashLocal(removeDirCommand)
+	return err
+}
+
+func mountPartition(diskPath string, mountPoint string) error {
+	mountCommand := fmt.Sprintf("mount -t auto %s %s", diskPath, mountPoint)
+	_, err := bashLocal(mountCommand)
+	return err
+}
+
+func unMountPartition(mountPoint string) error {
+	unMountCommand := fmt.Sprintf("umount %s", mountPoint)
+	_, err := bashLocal(unMountCommand)
+	return err
+}
+func wipeDisk(diskPath string) error {
+	wipeDiskCommand := fmt.Sprintf("wipefs -af %s", diskPath)
+	_, err := bashLocal(wipeDiskCommand)
+	return err
 }
