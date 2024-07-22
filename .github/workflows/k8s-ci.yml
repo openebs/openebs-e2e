@@ -1,7 +1,11 @@
 name: K8s CI
+# on:
+#   pull_request:
+#     types: ['opened', 'edited', 'reopened', 'synchronize']
+# Since the on property is required, using the workflow_dispatch event, 
+# which allows you to manually trigger the workflow from the GitHub Actions interface.
 on:
-  pull_request:
-    types: ['opened', 'edited', 'reopened', 'synchronize']
+  workflow_dispatch:
 
 jobs:
   k8s-ci:
