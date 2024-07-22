@@ -93,6 +93,10 @@ type LoopDevice struct {
 	// eg: /tmp/loop9002
 	DiskPath string `json:"diskPath"`
 }
+type Zpool struct {
+	PoolDiskPath string `json:"poolDiskPath"`
+	PoolName     string `json:"poolName"`
+}
 
 func sendRequest(reqType, url string, data interface{}) error {
 	_, err := sendRequestGetResponse(reqType, url, data, true)
@@ -937,5 +941,98 @@ func DeleteLoopDevice(serverAddr string, dsikPath string, imageName string) (str
 		return out, fmt.Errorf("failed to delete loop device, errcode %d", e2eagenterrcode)
 	}
 	logf.Log.Info("DeleteLoopDevice succeeded", "output", out)
+	return out, err
+}
+
+// ZfsListPool list zfs pool
+func ZfsListPool(serverAddr string) (string, error) {
+	logf.Log.Info("Executing ZfsListPool", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/zfslistpool"
+	encodedresult, err := sendRequestGetResponse("POST", url, nil, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to list zfs pool, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("ZfsListPool succeeded", "output", out)
+	return out, err
+}
+
+// ZfsVersion get zfs version
+func ZfsVersion(serverAddr string) (string, error) {
+	logf.Log.Info("Executing ZfsVersion", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/zfsversion"
+	encodedresult, err := sendRequestGetResponse("POST", url, nil, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to get zfs version, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("ZfsVersion succeeded", "output", out)
+	return out, err
+}
+
+// ZfsCreatePool create zfs pool
+func ZfsCreatePool(serverAddr string, poolDiskPath string, poolName string) (string, error) {
+	data := Zpool{
+		PoolDiskPath: poolDiskPath,
+		PoolName:     poolName,
+	}
+	logf.Log.Info("Executing ZfsCreatePool", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/zfscreatepool"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to create zfs pool, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("ZfsCreatePool succeeded", "output", out)
+	return out, err
+}
+
+// ZfsDestroyPool destroy zfs pool
+func ZfsDestroyPool(serverAddr string, poolName string) (string, error) {
+	data := Zpool{
+		PoolName: poolName,
+	}
+	logf.Log.Info("Executing ZfsDestroyPool", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/zfsdestroypool"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to destroy zfs pool, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("ZfsDestroyPool succeeded", "output", out)
 	return out, err
 }

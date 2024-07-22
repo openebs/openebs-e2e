@@ -8,6 +8,15 @@ data:
   MAYASTOR_PORT: "10124"
   MCP_REST_PORT: "30011"
   E2E_HOST_ADDR: ""
+  ZFS: |
+    #!/bin/sh
+    if [ -x /host/sbin/zfs ]; then
+      chroot /host /sbin/zfs "$@"
+    elif [ -x /host/usr/sbin/zfs ]; then
+      chroot /host /usr/sbin/zfs "$@"
+    else
+      chroot /host zfs "$@"
+    fi
 
 ---
 kind: DaemonSet
@@ -41,7 +50,7 @@ spec:
           securityContext:
             privileged: true
             allowPrivilegeEscalation: true
-          image: openebs/e2e-agent:v2.9.0
+          image: openebs/e2e-agent:v3.0.0
           imagePullPolicy: Always
           volumeMounts:
             - name: host-root
@@ -49,6 +58,11 @@ spec:
               mountPropagation: "Bidirectional"
             - name: device-dir
               mountPath: /dev
+            - name: udev
+              mountPath: /run/udev
+            - mountPath: /sbin/zfs
+              name: chroot-zfs
+              subPath: ZFS
       volumes:
         - name: host-root
           hostPath:
@@ -58,4 +72,14 @@ spec:
           hostPath:
             path: /dev
             type: Directory
+        - name: udev
+          hostPath:
+            path: /run/udev
+            type: Directory
+        - name: chroot-zfs
+          configMap:
+            defaultMode: 0555
+            name: test-vars
+          
+
 ---
