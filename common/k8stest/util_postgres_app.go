@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/openebs/openebs-e2e/common/custom_resources"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
+	"k8s.io/client-go/kubernetes"
 	"strings"
 	"time"
 
@@ -112,6 +113,7 @@ type PgBenchApp struct {
 	Namespace       string            // Kubernetes namespace for the PgBench application.
 	NodeSelector    string            // Node selector for scheduling the PgBench Pod.
 	Pod             *coreV1.Pod       // Kubernetes Pod running the PgBench application.
+	clientset       *kubernetes.Clientset
 }
 
 type PgBenchmarkParams struct {
@@ -120,15 +122,45 @@ type PgBenchmarkParams struct {
 	DurationSeconds   int // Duration of the benchmark in seconds.
 }
 
-// NewPgBench creates a new PgBenchApp instance with default benchmark parameters.
-func NewPgBench() *PgBenchApp {
-	return &PgBenchApp{
-		BenchmarkParams: PgBenchmarkParams{
-			ConcurrentClients: defaultConcurrentDbClients,
-			ThreadCount:       defaultThreadCount,
-			DurationSeconds:   defaultDurationSeconds,
+type PgBenchAppBuilder struct {
+	app *PgBenchApp
+}
+
+// NewPgBenchAppBuilder creates a new PgBenchApp instance with default benchmark parameters.
+func NewPgBenchAppBuilder() *PgBenchAppBuilder {
+	return &PgBenchAppBuilder{
+		app: &PgBenchApp{
+			BenchmarkParams: PgBenchmarkParams{
+				ConcurrentClients: defaultConcurrentDbClients,
+				ThreadCount:       defaultThreadCount,
+				DurationSeconds:   defaultDurationSeconds,
+			},
 		},
 	}
+}
+
+func (b *PgBenchAppBuilder) WithName(name string) *PgBenchAppBuilder {
+	b.app.Name = name
+	return b
+}
+
+func (b *PgBenchAppBuilder) WithNamespace(namespace string) *PgBenchAppBuilder {
+	b.app.Namespace = namespace
+	return b
+}
+
+func (b *PgBenchAppBuilder) WithNodeSelector(nodeSelector string) *PgBenchAppBuilder {
+	b.app.NodeSelector = nodeSelector
+	return b
+}
+
+func (b *PgBenchAppBuilder) WithBenchmarkParams(params PgBenchmarkParams) *PgBenchAppBuilder {
+	b.app.BenchmarkParams = params
+	return b
+}
+
+func (b *PgBenchAppBuilder) Build() *PgBenchApp {
+	return b.app
 }
 
 // InitializePgBench initializes the PgBench database. Must be called before RunPgBench
@@ -231,11 +263,10 @@ func (pgBench *PgBenchApp) RunPgBench(host string) error {
 
 // waitForJobCompletion waits for the Kubernetes Job to complete.
 func (pgBench *PgBenchApp) waitForJobCompletion(jobName string) error {
-	jobsClient := gTestEnv.KubeInt.BatchV1().Jobs(pgBench.Namespace)
 	for {
-		job, err := jobsClient.Get(context.TODO(), jobName, metav1.GetOptions{})
+		job, err := pgBench.GetPgBenchJob(jobName)
 		if err != nil {
-			return fmt.Errorf("error getting job %s status: %v", jobName, err)
+			return err
 		}
 		if job.Status.Succeeded > 0 {
 			fmt.Printf("Job %s completed successfully!\n", jobName)
@@ -246,8 +277,26 @@ func (pgBench *PgBenchApp) waitForJobCompletion(jobName string) error {
 	}
 
 	// Clean up the Job after completion
+	err := pgBench.DeletePgBenchJob(jobName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pgBench *PgBenchApp) GetPgBenchJob(jobName string) (*batchV1.Job, error) {
+	jobsClient := gTestEnv.KubeInt.BatchV1().Jobs(pgBench.Namespace)
+	job, err := jobsClient.Get(context.TODO(), jobName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("error getting job %s status: %v", jobName, err)
+	}
+	return job, nil
+}
+
+func (pgBench *PgBenchApp) DeletePgBenchJob(jobName string) error {
+	jobsClient := gTestEnv.KubeInt.BatchV1().Jobs(pgBench.Namespace)
 	deletePropagation := metav1.DeletePropagationBackground
-	err := jobsClient.Delete(context.TODO(), jobName, metav1.DeleteOptions{
+	err := jobsClient.Delete(context.TODO(), pgBench.Name, metav1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
 	if err != nil {

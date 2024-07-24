@@ -1048,7 +1048,7 @@ func MkRestorePVC(pvcSizeMb int, pvcName string, scName string, nameSpace string
 		return string(pvc.ObjectMeta.UID), nil
 	}
 
-	return VerifyVolumeProvision(pvcName, nameSpace)
+	return VerifyMayastorVolumeProvision(pvcName, nameSpace)
 }
 
 // Wait for the PVC to bound
@@ -1157,7 +1157,7 @@ func WaitForMayastorVolumeToProvision(msvName string) (*common.MayastorVolume, e
 }
 
 // Verify volume provisioning, return mayastor volume uuid and error
-func VerifyVolumeProvision(pvcName string, namespace string) (string, error) {
+func VerifyMayastorVolumeProvision(pvcName string, namespace string) (string, error) {
 	pvc, getPvcErr := GetPVC(pvcName, namespace)
 	if getPvcErr != nil {
 		return "", fmt.Errorf("failed to get pvc: %s, namespace: %s, error: %v", pvcName, namespace, getPvcErr)
@@ -1198,6 +1198,42 @@ func VerifyVolumeProvision(pvcName string, namespace string) (string, error) {
 
 	logf.Log.Info("Created", "volume", pvcName, "uuid", msv.Spec.Uuid, "storageClass", pvc.Spec.StorageClassName, "size", pvc.Size)
 	return msv.Spec.Uuid, err
+}
+
+// VerifyVolumeProvision Verify volume provisioning, return volume uuid and error
+func VerifyVolumeProvision(pvcName string, namespace string) (string, error) {
+	pvc, getPvcErr := GetPVC(pvcName, namespace)
+	if getPvcErr != nil {
+		return "", fmt.Errorf("failed to get pvc: %s, namespace: %s, error: %v", pvcName, namespace, getPvcErr)
+	} else if pvc == nil {
+		return "", fmt.Errorf("PVC %s not found, namespace: %s", pvcName, namespace)
+	}
+
+	err := WaitPvcToBound(pvcName, namespace)
+	if err != nil {
+		return "", err
+	}
+	pvName, err := RefreshPvcToGetPvName(pvcName, namespace)
+	if err != nil {
+		return "", err
+	}
+	err = WaitForPvToProvision(pvName)
+	if err != nil {
+		return "", err
+	}
+	err = WaitPvToBound(pvName)
+	if err != nil {
+		return "", err
+	}
+	pvc, getPvcErr = GetPVC(pvcName, namespace)
+	if getPvcErr != nil {
+		return "", fmt.Errorf("failed to get pvc: %s, namespace: %s, error: %v", pvcName, namespace, getPvcErr)
+	} else if pvc == nil {
+		return "", fmt.Errorf("PVC %s not found, namespace: %s", pvcName, namespace)
+	}
+	volUuid := fmt.Sprintf("%v", pvc.UID)
+	logf.Log.Info("Created", "volume", pvcName, "uuid", volUuid, "storageClass", pvc.Spec.StorageClassName, "size", pvc.Size)
+	return volUuid, err
 }
 
 func GetPvcEvents(pvcName string, namespace string) (*coreV1.EventList, error) {

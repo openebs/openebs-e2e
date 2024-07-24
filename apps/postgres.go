@@ -166,7 +166,7 @@ func (pb *postgresBuilder) WithPvcSize(sizeGi int) *postgresBuilder {
 	return pb
 }
 
-// WithReleaseName Could specify helm release name - default = "maya-mongo"
+// WithReleaseName Could specify helm release name - default = "ms-postgres"
 func (pb *postgresBuilder) WithReleaseName(releaseName string) *postgresBuilder {
 	pb.releaseName = releaseName
 	return pb
@@ -260,11 +260,13 @@ func (pb *postgresBuilder) Build() (PostgresApp, error) {
 		return PostgresApp{}, err
 	}
 
-	pgBench := k8stest.NewPgBench()
+	pgBench := &k8stest.PgBenchApp{}
 	if pb.pgBench {
-		pgBench.Name = "pgbench"
-		pgBench.Namespace = pb.namespace
-		pgBench.NodeSelector = pb.nodeSelector
+		pgBench = k8stest.NewPgBenchAppBuilder().
+			WithName("pgbench").
+			WithNamespace(pb.namespace).
+			WithNodeSelector(pb.nodeSelector).
+			Build()
 	}
 	postgresApp := PostgresApp{
 		Postgres: pa,
