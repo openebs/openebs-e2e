@@ -35,7 +35,7 @@ func (psql *PostgresApp) PostgresInstallReady() error {
 	counter := 12
 	if psql.Standalone {
 		// List all StatefulSets with label "app.kubernetes.io/name=postgresql" in the namespace.
-		stateful, err := gTestEnv.KubeInt.AppsV1().StatefulSets(psql.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/name=postgresql"})
+		stateful, err := gTestEnv.KubeInt.AppsV1().StatefulSets(psql.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", e2e_config.GetConfig().Product.PostgresK8sLabelName, e2e_config.GetConfig().Product.PostgresK8sLabelValue)})
 		if err != nil {
 			return err
 		}

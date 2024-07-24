@@ -101,6 +101,8 @@ type ProductSpec struct {
 	PostgresHelmRepoName             string            `yaml:"postgresHelmRepoName" env-default:"bitnami"`
 	PostgresHelmRepoUrl              string            `yaml:"postgresHelmRepoUrl" env-default:"https://charts.bitnami.com/bitnami"`
 	PostgresReleaseName              string            `yaml:"postgresReleaseName" env-default:"ms-app"`
+	PostgresK8sLabelName             string            `yaml:"postgresK8sLabelName" env-default:"app.kubernetes.io/name"`
+	PostgresK8sLabelValue            string            `yaml:"postgresK8sLabelValue" env-default:"postgresql"`
 	ProductName                      string            `yaml:"productName" env-default:"mayastor"`
 	ProductNamespace                 string            `yaml:"productNamespace" env-default:"mayastor"`
 	PrometheusPodPrefix              string            `yaml:"prometheusPodPrefix" env-default:"prometheus"`
