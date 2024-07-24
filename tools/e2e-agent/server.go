@@ -171,6 +171,9 @@ func handleRequests() {
 	router.HandleFunc("/zfslistpool", ZfsListPool).Methods("POST")
 	router.HandleFunc("/zfscreatepool", ZfsCreatePool).Methods("POST")
 	router.HandleFunc("/zfsdestroypool", ZfsDestroyPool).Methods("POST")
+	//localPV
+	router.HandleFunc("/createhostpathdisk", CreateHostPathDisk).Methods("POST")
+	router.HandleFunc("/removehostpathdisk", RemoveHostPathDisk).Methods("POST")
 	log.Fatal(http.ListenAndServe(podIP+":"+restPort, router))
 }
 
