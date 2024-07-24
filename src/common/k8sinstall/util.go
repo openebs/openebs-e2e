@@ -6,12 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/controlplane"
-	"github.com/openebs/openebs-e2e/common/custom_resources"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"github.com/openebs/openebs-e2e/common/k8stest"
-	"github.com/openebs/openebs-e2e/common/locations"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -57,17 +54,17 @@ func installTheProduct() error {
 		return err
 	}
 
-	err = k8stest.KubeCtlApplyYaml("e2e-proxy.yaml", proxyPath.GetE2EProxyPath())
+	// err = k8stest.KubeCtlApplyYaml("e2e-proxy.yaml", proxyPath.GetE2EProxyPath())
+	// if err != nil {
+	// 	return err
+	// }
+
+	err = k8stest.GetNamespace("openebs")
 	if err != nil {
 		return err
 	}
 
-	err = k8stest.GetNamespace(common.NSOpenebs())
-	if err != nil {
-		return err
-	}
-
-	productName := e2e_config.GetConfig().Product.ProductName
+	// productName := e2e_config.GetConfig().Product.ProductName
 
 	// if productName == "openebspro" {
 	// 	// verify kubernetes secrets
@@ -96,31 +93,31 @@ func installTheProduct() error {
 	// 	installType = Contained
 	// }
 
-	helmRegistry := string(version["helm_registry_url"])
-	chartVersion := e2e_config.GetConfig().Product.ChartVersion
-	if _, haveChartVersion := version["chart_version"]; haveChartVersion {
-		chartVersion = string(version["chart_version"])
-	}
-	err = updateHelmChartDependency(chartDir)
-	if err != nil {
-		return err
-	}
+	// helmRegistry := string(version["helm_registry_url"])
+	// // chartVersion := e2e_config.GetConfig().Product.ChartVersion
+	// // if _, haveChartVersion := version["chart_version"]; haveChartVersion {
+	// // 	chartVersion = string(version["chart_version"])
+	// // }
+	// err = updateHelmChartDependency(chartDir)
+	// if err != nil {
+	// 	return err
+	// }
 
-	outputDir := locations.GetGeneratedHelmYamlsDir()
+	// outputDir := locations.GetGeneratedHelmYamlsDir()
 
-	// generate install yamls from helm chart
-	// generated yamls directory: /artifacts/sessions/{session-id}/charts/generated-yamls/bolt
-	err = generateHelmInstallYamls(chartDir, common.NSMayastor(), outputDir)
-	if err != nil {
-		return err
-	}
+	// // generate install yamls from helm chart
+	// // generated yamls directory: /artifacts/sessions/{session-id}/charts/generated-yamls/bolt
+	// err = generateHelmInstallYamls(chartDir, common.NSMayastor(), outputDir)
+	// if err != nil {
+	// 	return err
+	// }
 
-	// copy values.yaml file to session directory
-	// values.yaml path: /artifacts/sessions/{session-id}/charts/generated-yamls
-	err = copyHelmValuesYaml(chartDir, outputDir)
-	if err != nil {
-		return err
-	}
+	// // copy values.yaml file to session directory
+	// // values.yaml path: /artifacts/sessions/{session-id}/charts/generated-yamls
+	// err = copyHelmValuesYaml(chartDir, outputDir)
+	// if err != nil {
+	// 	return err
+	// }
 
 	cmdArgs := []string{
 		"install",
@@ -145,6 +142,13 @@ func installTheProduct() error {
 		return fmt.Errorf("failed to add helm repository. Output: %s ", out)
 	}
 
+	logf.Log.Info("About to execute: helm repo update", "openebs")
+	cmd = exec.Command("helm", "repo", "update", "openebs")
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to update helm repository. Output: %s ", out)
+	}
+
 	err = installOpenebs("openebs", cmdArgs)
 	if err != nil {
 		return err
@@ -162,62 +166,6 @@ func installTheProduct() error {
 	if !ready {
 		return fmt.Errorf("mayastor control plane installation is not ready")
 	}
-
-	// wait for mayastor node to be ready
-	nodeReady, err := k8stest.MayastorNodesReady(5, 180)
-	if err != nil {
-		return err
-	}
-	if !nodeReady {
-		return fmt.Errorf("all mayastor node are not ready")
-	}
-
-	logf.Log.Info("Checking whether product needs license", "product", productName)
-	if productName == "openebspro" {
-		if err = license.LicenseInstallIfRequired(); err != nil {
-			//			return err
-			logf.Log.Info("Ignoring license installation failure", "err", err)
-		}
-	}
-
-	err = diskPoolConfigMap()
-	if err != nil {
-		return fmt.Errorf("failed to create diskpool config map %v", err)
-	}
-	if controlplane.CreatePoolOnInstall() {
-		if !WaitForPoolCrd() {
-			return fmt.Errorf("mayastor pool CRD is undefined")
-		}
-
-		// Now create configured pools on all nodes.
-		err = k8stest.CreateConfiguredPools()
-		if err != nil {
-			return err
-		}
-
-		// Wait for pools to be online
-		const timoSecs = 240
-		const timoSleepSecs = 10
-		for ix := 0; ix < timoSecs/timoSleepSecs; ix++ {
-			time.Sleep(timoSleepSecs * time.Second)
-			err = custom_resources.CheckAllMsPoolsAreOnline()
-			if err == nil {
-				break
-			}
-		}
-		if err != nil {
-			return fmt.Errorf("one or more pools are offline %v", err)
-		}
-	}
-	if e2e_config.GetConfig().SetNexusRebuildVerifyOnInstall {
-		err = k8stest.SetNexusRebuildVerify(true)
-		if err != nil {
-			return fmt.Errorf("set nexus rebuild verify failed %v", err)
-		}
-	}
-
-	// Delete any storage classes created by the helm charts
-	k8stest.ClearStorageClasses()
 
 	// Mayastor/Bolt has been installed and is now ready for use.
 	return nil
@@ -252,4 +200,21 @@ func installOpenebs(namespace string, cmdArgs []string) error {
 		return fmt.Errorf("failed to install product using helm chart: namespace: %s  Output: %s : Error: %v", namespace, out, err)
 	}
 	return nil
+}
+
+func updateHelmChartDependency(dir string) error {
+	var out []byte
+	var err error
+	for tryCount := 0; tryCount < 3; tryCount++ {
+		time.Sleep(time.Second * time.Duration(tryCount*30))
+		cmd := exec.Command("helm", "dependency", "update")
+		cmd.Dir = dir
+		logf.Log.Info("About to execute: helm dependency update ,", "path", cmd.Dir)
+		out, err = cmd.CombinedOutput()
+		if err == nil {
+			return nil
+		}
+		logf.Log.Info(fmt.Sprintf("failed to update helm dependency: directory: %s Output: %s : Error: %v", cmd.Dir, out, err))
+	}
+	return fmt.Errorf("failed to update helm dependency: directory: %s Output: %s : Error: %v", dir, out, err)
 }
