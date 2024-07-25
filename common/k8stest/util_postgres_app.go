@@ -33,16 +33,19 @@ func (psql *PostgresApp) PostgresInstallReady() error {
 	logf.Log.Info("checking postgres application to be installed")
 	ready := false
 	counter := 12
+
 	if psql.Standalone {
 		// List all StatefulSets with label "app.kubernetes.io/name=postgresql" in the namespace.
-		stateful, err := gTestEnv.KubeInt.AppsV1().StatefulSets(psql.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", e2e_config.GetConfig().Product.PostgresK8sLabelName, e2e_config.GetConfig().Product.PostgresK8sLabelValue)})
+		statefulSets, err := gTestEnv.KubeInt.AppsV1().StatefulSets(psql.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", e2e_config.GetConfig().Product.PostgresK8sLabelName, e2e_config.GetConfig().Product.PostgresK8sLabelValue)})
 		if err != nil {
 			return err
 		}
-		// Check the status of each StatefulSet to determine if all replicas are ready.
-		for _, ss := range stateful.Items {
-			ready = ss.Status.ReadyReplicas == ss.Status.Replicas &&
-				ss.Status.AvailableReplicas == ss.Status.Replicas
+		if len(statefulSets.Items) != 1 {
+			return fmt.Errorf("there should be 1 stateful set for postgres deployment")
+		}
+
+		for _, ss := range statefulSets.Items {
+			ready = ss.Status.ReadyReplicas == ss.Status.Replicas
 			logf.Log.Info("StatefulSet",
 				"app", "Postgres",
 				"ready", ready,
@@ -51,18 +54,19 @@ func (psql *PostgresApp) PostgresInstallReady() error {
 				"readyReplicas", ss.Status.ReadyReplicas,
 				"currentReplicas", ss.Status.CurrentReplicas,
 			)
-
 		}
+
 		for !ready && counter > 0 {
 			pods, err := ListPod(psql.Namespace)
 			if err != nil {
 				return err
 			}
+
+			ready = true // Assume all pods are ready until proven otherwise
 			for _, pod := range pods.Items {
 				if strings.Contains(pod.Name, psql.ReleaseName) {
-					if pod.Status.Phase == coreV1.PodRunning {
-						ready = true
-						psql.Pod = pod
+					if pod.Status.Phase != coreV1.PodRunning {
+						ready = false
 						logf.Log.Info("Pod",
 							"app", "Postgres",
 							"ready", ready,
@@ -79,12 +83,12 @@ func (psql *PostgresApp) PostgresInstallReady() error {
 					)
 				}
 			}
+
 			if ready {
-				var pvcName = psql.PvcName
-				logf.Log.Info("Verify volume provision", "pvc name", pvcName, "namespace", psql.Namespace)
-				uuid, err := VerifyVolumeProvision(pvcName, psql.Namespace)
+				logf.Log.Info("all pods are running")
+				uuid, err := VerifyVolumeProvision(psql.PvcName, psql.Namespace)
 				if err != nil {
-					return fmt.Errorf("failed to verify volume provisioning")
+					return fmt.Errorf("failed to verify volume provisioning: %v", err)
 				}
 				psql.VolUuid = uuid
 				logf.Log.Info("postgres standalone installation is ready")
@@ -93,9 +97,10 @@ func (psql *PostgresApp) PostgresInstallReady() error {
 				logf.Log.Info("not all apps are ready yet")
 				time.Sleep(10 * time.Second)
 				counter--
-				continue
 			}
 		}
+	} else {
+		return fmt.Errorf("replicaset architection install check is not implemented")
 	}
 	return nil
 }
