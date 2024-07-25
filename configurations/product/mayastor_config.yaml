@@ -79,17 +79,17 @@ product:
     podLabelKey: "app"
     poolCrdName: "diskpools.openebs.io"
     postgresDatabaseName: "test"
-    postgresAuthPassword: "admin123"`
-    postgresAuthRootPassword: "r00tAdmin"`
-    postgresAuthUsername: "admin"`
-    postgresDatabasePort: "5432"`
-    postgresDefaultChartVersion: "15.2.5"`
-    postgresHelmRepo: "bitnami/postgresql"`
-    postgresHelmRepoName: "bitnami"`
-    postgresHelmRepoUrl: "https://charts.bitnami.com/bitnami"`
-    postgresReleaseName: "ms-app"`
-    postgresK8sLabelName: "app.kubernetes.io/name"`
-    postgresK8sLabelValue: "postgresql"`
+    postgresAuthPassword: "admin123"
+    postgresAuthRootPassword: "r00tAdmin"
+    postgresAuthUsername: "admin"
+    postgresDatabasePort: "5432"
+    postgresDefaultChartVersion: "15.5.18"
+    postgresHelmRepo: "bitnami/postgresql"
+    postgresHelmRepoName: "bitnami"
+    postgresHelmRepoUrl: "https://charts.bitnami.com/bitnami"
+    postgresReleaseName: "ms-app"
+    postgresK8sLabelName: "app.kubernetes.io/name"
+    postgresK8sLabelValue: "postgresql"
     productName: "mayastor"
     productNamespace: "mayastor"
     prometheusPodPrefix: "prometheus"

@@ -100,7 +100,7 @@ func (psql *PostgresApp) PostgresInstallReady() error {
 			}
 		}
 	} else {
-		return fmt.Errorf("replicaset architection install check is not implemented")
+		return fmt.Errorf("replicaset architecture install check is not implemented")
 	}
 	return nil
 }
