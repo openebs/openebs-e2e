@@ -31,73 +31,75 @@ type PostgresApp struct {
 // PostgresInstallReady checks if the PostgreSQL application is installed and ready.
 func (psql *PostgresApp) PostgresInstallReady() error {
 	logf.Log.Info("checking postgres application to be installed")
-	ready := false
 	counter := 12
 
 	if psql.Standalone {
 		// List all StatefulSets with label "app.kubernetes.io/name=postgresql" in the namespace.
-		statefulSets, err := gTestEnv.KubeInt.AppsV1().StatefulSets(psql.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", e2e_config.GetConfig().Product.PostgresK8sLabelName, e2e_config.GetConfig().Product.PostgresK8sLabelValue)})
-		if err != nil {
-			return err
-		}
-		if len(statefulSets.Items) != 1 {
-			return fmt.Errorf("there should be 1 stateful set for postgres deployment")
-		}
+		//statefulSets, err := gTestEnv.KubeInt.AppsV1().StatefulSets(psql.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", e2e_config.GetConfig().Product.PostgresK8sLabelName, e2e_config.GetConfig().Product.PostgresK8sLabelValue)})
+		//if err != nil {
+		//	return err
+		//}
+		//if len(statefulSets.Items) != 1 {
+		//	return fmt.Errorf("there should be 1 stateful set for postgres deployment")
+		//}
+		//
+		//for _, ss := range statefulSets.Items {
+		//	ready = ss.Status.ReadyReplicas == ss.Status.Replicas
+		//	logf.Log.Info("StatefulSet",
+		//		"app", "Postgres",
+		//		"ready", ready,
+		//		"name", ss.Name,
+		//		"availableReplicas", ss.Status.AvailableReplicas,
+		//		"readyReplicas", ss.Status.ReadyReplicas,
+		//		"currentReplicas", ss.Status.CurrentReplicas,
+		//	)
+		//}
 
-		for _, ss := range statefulSets.Items {
-			ready = ss.Status.ReadyReplicas == ss.Status.Replicas
-			logf.Log.Info("StatefulSet",
-				"app", "Postgres",
-				"ready", ready,
-				"name", ss.Name,
-				"availableReplicas", ss.Status.AvailableReplicas,
-				"readyReplicas", ss.Status.ReadyReplicas,
-				"currentReplicas", ss.Status.CurrentReplicas,
-			)
-		}
-
-		for !ready && counter > 0 {
-			pods, err := ListPod(psql.Namespace)
+		for counter > 0 {
+			statefulSets, err := gTestEnv.KubeInt.AppsV1().StatefulSets(psql.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", e2e_config.GetConfig().Product.PostgresK8sLabelName, e2e_config.GetConfig().Product.PostgresK8sLabelValue)})
 			if err != nil {
 				return err
 			}
+			if len(statefulSets.Items) != 1 {
+				return fmt.Errorf("there should be 1 StatefulSet for PostgreSQL deployment")
+			}
 
-			ready = true // Assume all pods are ready until proven otherwise
-			for _, pod := range pods.Items {
-				if strings.Contains(pod.Name, psql.ReleaseName) {
+			statefulSet := statefulSets.Items[0]
+			if statefulSet.Status.ReadyReplicas == *statefulSet.Spec.Replicas {
+				pods, err := ListPod(psql.Namespace)
+				if err != nil {
+					return err
+				}
+
+				allRunning := true
+				for _, pod := range pods.Items {
 					if pod.Status.Phase != coreV1.PodRunning {
-						ready = false
+						allRunning = false
 						logf.Log.Info("Pod",
 							"app", "Postgres",
-							"ready", ready,
+							"ready", !allRunning,
 							"name", pod.Name,
 							"status", pod.Status.Phase,
 						)
 						break
 					}
-					logf.Log.Info("Pod",
-						"app", "Postgres",
-						"ready", ready,
-						"name", pod.Name,
-						"status", pod.Status.Phase,
-					)
+				}
+
+				if allRunning {
+					logf.Log.Info("all pods are running")
+					uuid, err := VerifyVolumeProvision(psql.PvcName, psql.Namespace)
+					if err != nil {
+						return fmt.Errorf("failed to verify volume provisioning: %v", err)
+					}
+					psql.VolUuid = uuid
+					logf.Log.Info("postgres standalone installation is ready")
+					return nil
 				}
 			}
 
-			if ready {
-				logf.Log.Info("all pods are running")
-				uuid, err := VerifyVolumeProvision(psql.PvcName, psql.Namespace)
-				if err != nil {
-					return fmt.Errorf("failed to verify volume provisioning: %v", err)
-				}
-				psql.VolUuid = uuid
-				logf.Log.Info("postgres standalone installation is ready")
-				return nil
-			} else {
-				logf.Log.Info("not all apps are ready yet")
-				time.Sleep(10 * time.Second)
-				counter--
-			}
+			logf.Log.Info("not all apps are ready yet")
+			time.Sleep(10 * time.Second)
+			counter--
 		}
 	} else {
 		return fmt.Errorf("replicaset architecture install check is not implemented")
