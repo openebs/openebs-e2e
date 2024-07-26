@@ -35,26 +35,6 @@ func (psql *PostgresApp) PostgresInstallReady() error {
 
 	if psql.Standalone {
 		// List all StatefulSets with label "app.kubernetes.io/name=postgresql" in the namespace.
-		//statefulSets, err := gTestEnv.KubeInt.AppsV1().StatefulSets(psql.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", e2e_config.GetConfig().Product.PostgresK8sLabelName, e2e_config.GetConfig().Product.PostgresK8sLabelValue)})
-		//if err != nil {
-		//	return err
-		//}
-		//if len(statefulSets.Items) != 1 {
-		//	return fmt.Errorf("there should be 1 stateful set for postgres deployment")
-		//}
-		//
-		//for _, ss := range statefulSets.Items {
-		//	ready = ss.Status.ReadyReplicas == ss.Status.Replicas
-		//	logf.Log.Info("StatefulSet",
-		//		"app", "Postgres",
-		//		"ready", ready,
-		//		"name", ss.Name,
-		//		"availableReplicas", ss.Status.AvailableReplicas,
-		//		"readyReplicas", ss.Status.ReadyReplicas,
-		//		"currentReplicas", ss.Status.CurrentReplicas,
-		//	)
-		//}
-
 		for counter > 0 {
 			statefulSets, err := gTestEnv.KubeInt.AppsV1().StatefulSets(psql.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", e2e_config.GetConfig().Product.PostgresK8sLabelName, e2e_config.GetConfig().Product.PostgresK8sLabelValue)})
 			if err != nil {
