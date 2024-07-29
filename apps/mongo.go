@@ -9,17 +9,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type Architecture string
-
-const (
-	Standalone Architecture = "standalone"
-	Replicaset Architecture = "replicaset"
-)
-
-func (a Architecture) String() string {
-	return string(a)
-}
-
 type mongoBuilder struct {
 	architecture            Architecture
 	CloneFsIdAsVolumeIdType common.CloneFsIdAsVolumeIdType

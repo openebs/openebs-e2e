@@ -9,6 +9,18 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const (
+	Standalone  Architecture = "standalone"
+	Replicaset  Architecture = "replicaset"
+	Replication Architecture = "replication"
+)
+
+type Architecture string
+
+func (a Architecture) String() string {
+	return string(a)
+}
+
 func AddHelmRepository(helmRepoName, helmRepoUrl string) error {
 	cmd := exec.Command("helm", "repo", "add", helmRepoName, helmRepoUrl)
 	logf.Log.Info("executing helm add repo ", "helm repo name: ", helmRepoName, ", helm repo url: ", helmRepoUrl)

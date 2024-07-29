@@ -88,8 +88,21 @@ type ProductSpec struct {
 	NatsPort                         string            `yaml:"natsPort" env-default:"4222"`
 	NvmeControllerModel              string            `yaml:"nvmeControllerModel" env-default:"Mayastor NVMe controller"`
 	PartialRebuildCpTimeout          string            `yaml:"partialRebuildCpTimeout" env-default:"600s"`
+	PgBenchImage                     string            `yaml:"pgBenchImage" env-default:"postgres:16"`
 	PodLabelKey                      string            `yaml:"podLabelKey" env-default:"app"`
 	PoolCrdName                      string            `yaml:"poolCrdName" env-default:"mayastorpools.openebs.io"`
+	PostgresDatabaseName             string            `yaml:"postgresDatabaseName"`
+	PostgresAuthPassword             string            `yaml:"postgresAuthPassword"`
+	PostgresAuthRootPassword         string            `yaml:"postgresAuthRootPassword"`
+	PostgresAuthUsername             string            `yaml:"postgresAuthUsername"`
+	PostgresDatabasePort             int               `yaml:"postgresDatabasePort"`
+	PostgresDefaultChartVersion      string            `yaml:"postgresDefaultChartVersion"`
+	PostgresHelmRepo                 string            `yaml:"postgresHelmRepo"`
+	PostgresHelmRepoName             string            `yaml:"postgresHelmRepoName"`
+	PostgresHelmRepoUrl              string            `yaml:"postgresHelmRepoUrl"`
+	PostgresReleaseName              string            `yaml:"postgresReleaseName"`
+	PostgresK8sLabelName             string            `yaml:"postgresK8sLabelName"`
+	PostgresK8sLabelValue            string            `yaml:"postgresK8sLabelValue"`
 	ProductName                      string            `yaml:"productName" env-default:"mayastor"`
 	ProductNamespace                 string            `yaml:"productNamespace" env-default:"mayastor"`
 	PrometheusPodPrefix              string            `yaml:"prometheusPodPrefix" env-default:"prometheus"`
