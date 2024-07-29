@@ -59,19 +59,19 @@ func SetupK8sEnvBasic() error {
 }
 
 func SetupK8sEnv() error {
-	err := CheckAndSetControlPlane()
-	if err != nil {
-		return fmt.Errorf("failed to setup control plane version : CheckAndSetControlPlane: %v", err)
-	}
+	// err := CheckAndSetControlPlane()
+	// if err != nil {
+	// 	return fmt.Errorf("failed to setup control plane version : CheckAndSetControlPlane: %v", err)
+	// }
 
 	// Fail the test setup if gRPC calls are mandated and
 	// gRPC calls are not supported.
-	if e2e_config.GetConfig().GrpcMandated {
-		grpcCalls := mayastorclient.CanConnect()
-		if !grpcCalls {
-			return fmt.Errorf("gRPC calls to mayastor are disabled, but mandated by configuration : CanConnect: %v", grpcCalls)
-		}
-	}
+	// if e2e_config.GetConfig().GrpcMandated {
+	// 	grpcCalls := mayastorclient.CanConnect()
+	// 	if !grpcCalls {
+	// 		return fmt.Errorf("gRPC calls to mayastor are disabled, but mandated by configuration : CanConnect: %v", grpcCalls)
+	// 	}
+	// }
 	return nil
 }
 

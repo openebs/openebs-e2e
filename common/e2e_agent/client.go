@@ -801,7 +801,7 @@ func LvmCreateVg(serverAddr string, pvDiskPath string, vgName string) (string, e
 }
 
 // LvmRemovePv remove lvm pv
-func LvmRemovePv(serverAddr string, pvDiskPath string, vgName string) (string, error) {
+func LvmRemovePv(serverAddr string, pvDiskPath string) (string, error) {
 	data := Lvm{
 		Pv: pvDiskPath,
 	}
@@ -825,7 +825,7 @@ func LvmRemovePv(serverAddr string, pvDiskPath string, vgName string) (string, e
 }
 
 // LvmRemoveVg remove lvm vg
-func LvmRemoveVg(serverAddr string, pvDiskPath string, vgName string) (string, error) {
+func LvmRemoveVg(serverAddr string, vgName string) (string, error) {
 	data := Lvm{
 		Vg: vgName,
 	}
@@ -897,7 +897,7 @@ func LvmThinPoolAutoExtendPercent(serverAddr string, thinPoolAutoExtendPercent i
 }
 
 // CreateLoopDevice create loop device
-func CreateLoopDevice(serverAddr string, size int64, imageDir string) (string, error) {
+func CreateLoopDevice(serverAddr string, size int64, imageDir string) (LoopDevice, error) {
 	data := LoopDevice{
 		ImgDir: imageDir,
 		Size:   size,
@@ -907,18 +907,24 @@ func CreateLoopDevice(serverAddr string, size int64, imageDir string) (string, e
 	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
 	if err != nil {
 		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
-		return encodedresult, err
+		return data, err
 	}
 	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
 	if err != nil {
 		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
-		return encodedresult, err
+		return data, err
 	}
 	if e2eagenterrcode != ErrNone {
-		return out, fmt.Errorf("failed to create loop device, errcode %d", e2eagenterrcode)
+		return data, fmt.Errorf("failed to create loop device, errcode %d", e2eagenterrcode)
 	}
 	logf.Log.Info("CreateLoopDevice succeeded", "output", out)
-	return out, err
+
+	if err = json.Unmarshal([]byte(out), &data); err != nil {
+		logf.Log.Info("Failed to unmarshal loop device", "output", out)
+		return data, err
+	}
+	logf.Log.Info("loop device", "data", data)
+	return data, err
 }
 
 // DeleteLoopDevice delete loop device

@@ -5,9 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/openebs/openebs-e2e/common/e2e_agent"
 	"os/exec"
 	"strings"
+
+	"github.com/openebs/openebs-e2e/common/e2e_agent"
 
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 
@@ -408,4 +409,44 @@ func UpdateNodeTaints(nodeName string, taintKey string) error {
 
 	fmt.Println("Node taints updated successfully")
 	return nil
+}
+
+// func ListNodeWithLabels(labelKey, labelValue string) ([]NodeLocation, error) {
+// 	// List the node object
+// 	nodeList, err := gTestEnv.KubeInt.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{
+// 		LabelSelector: fmt.Sprintf("%s:%s", labelKey, labelValue),
+// 	})
+// 	if err != nil {
+// 		return nil, errors.New("failed to list nodes")
+// 	}
+// 	NodeLocs := make([]NodeLocation, 0, len(nodeList.Items))
+// 	for _, k8snode := range nodeList.Items {
+// 		var addrstr, extaddrstr, namestr string
+
+// 		for _, addr := range k8snode.Status.Addresses {
+// 			if addr.Type == coreV1.NodeInternalIP {
+// 				addrstr = addr.Address
+// 			}
+// 			if addr.Type == coreV1.NodeExternalIP {
+// 				extaddrstr = addr.Address
+// 			}
+// 			if addr.Type == coreV1.NodeHostName {
+// 				namestr = addr.Address
+// 			}
+// 		}
+// 		if namestr != "" && addrstr != "" {
+// 			NodeLocs = append(NodeLocs, NodeLocation{
+// 				NodeName:     namestr,
+// 				IPAddress:    addrstr,
+// 				ExtIPAddress: extaddrstr,
+// 			})
+// 		} else {
+// 			return nil, errors.New("node lacks expected fields")
+// 		}
+// 	}
+// 	return NodeLocs, nil
+// }
+
+func ListWorkerNode() ([]NodeLocation, error) {
+	return getNodeLocs()
 }
