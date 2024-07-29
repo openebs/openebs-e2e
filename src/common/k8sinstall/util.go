@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openebs/openebs-e2e/common/controlplane"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"github.com/openebs/openebs-e2e/common/k8stest"
 
@@ -46,78 +45,15 @@ func installTheProduct() error {
 
 	logf.Log.Info("e2e_config.GetConfig()", "CONFIG", e2eCfg)
 
-	cpVersion := controlplane.Version()
-	logf.Log.Info("Control Plane", "version", cpVersion)
-
 	_, err = k8stest.EnsureE2EAgent()
 	if err != nil {
 		return err
 	}
 
-	// err = k8stest.KubeCtlApplyYaml("e2e-proxy.yaml", proxyPath.GetE2EProxyPath())
-	// if err != nil {
-	// 	return err
-	// }
-
 	err = k8stest.GetNamespace("openebs")
 	if err != nil {
 		return err
 	}
-
-	// productName := e2e_config.GetConfig().Product.ProductName
-
-	// if productName == "openebspro" {
-	// 	// verify kubernetes secrets
-	// 	err = k8stest.GetKubernetesSecret("login", common.NSMayastor())
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	// chartDir, err := locations.GetHelmChartsDir()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // Get version.json unmarshalled data
-	// version, err := locations.ParseVersionFile()
-	// if err != nil {
-	// 	return err
-	// }
-	//bundleVersion := version["version"]
-	// installTypeMap, exists := version["install_type"]
-	// var installType string
-	// if exists {
-	// 	installType = string(installTypeMap)
-	// } else {
-	// 	installType = Contained
-	// }
-
-	// helmRegistry := string(version["helm_registry_url"])
-	// // chartVersion := e2e_config.GetConfig().Product.ChartVersion
-	// // if _, haveChartVersion := version["chart_version"]; haveChartVersion {
-	// // 	chartVersion = string(version["chart_version"])
-	// // }
-	// err = updateHelmChartDependency(chartDir)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// outputDir := locations.GetGeneratedHelmYamlsDir()
-
-	// // generate install yamls from helm chart
-	// // generated yamls directory: /artifacts/sessions/{session-id}/charts/generated-yamls/bolt
-	// err = generateHelmInstallYamls(chartDir, common.NSMayastor(), outputDir)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // copy values.yaml file to session directory
-	// // values.yaml path: /artifacts/sessions/{session-id}/charts/generated-yamls
-	// err = copyHelmValuesYaml(chartDir, outputDir)
-	// if err != nil {
-	// 	return err
-	// }
 
 	cmdArgs := []string{
 		"install",
@@ -162,11 +98,6 @@ func installTheProduct() error {
 		return fmt.Errorf("mayastor installation is not ready")
 	}
 
-	ready = k8stest.ControlPlaneReady(10, 180)
-	if !ready {
-		return fmt.Errorf("mayastor control plane installation is not ready")
-	}
-
 	// Mayastor/Bolt has been installed and is now ready for use.
 	return nil
 }
@@ -184,13 +115,6 @@ func installOpenebs(namespace string, cmdArgs []string) error {
 			fmt.Sprintf("image.pullPolicy=%s", e2eCfg.ImagePullPolicy),
 		)
 	}
-
-	// if e2eCfg.ImageTag != "" {
-	// 	cmdArgs = append(cmdArgs,
-	// 		"--set",
-	// 		fmt.Sprintf("image.tag=%s", e2eCfg.ImageTag),
-	// 	)
-	// }
 
 	cmd := exec.Command("helm", cmdArgs...)
 	logf.Log.Info("installHelmChart: About to execute: helm", "arguments", cmdArgs)
