@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/openebs/openebs-e2e/common/custom_resources"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
-	"k8s.io/client-go/kubernetes"
 	"strings"
 	"time"
 
@@ -100,7 +99,6 @@ type PgBenchApp struct {
 	Namespace       string            // Kubernetes namespace for the PgBench application.
 	NodeSelector    string            // Node selector for scheduling the PgBench Pod.
 	Pod             *coreV1.Pod       // Kubernetes Pod running the PgBench application.
-	clientset       *kubernetes.Clientset
 }
 
 type PgBenchmarkParams struct {
