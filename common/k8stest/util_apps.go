@@ -13,6 +13,7 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	storageV1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -41,10 +42,11 @@ type dfaStatus struct {
 }
 
 type FioApp struct {
-	Decor     string
-	VolSizeMb int
-	VolType   common.VolumeType
-	FsType    common.FileSystemType
+	Decor      string
+	DeployName string
+	VolSizeMb  int
+	VolType    common.VolumeType
+	FsType     common.FileSystemType
 	// FsPercent -> controls size of file allocated on FS
 	// 0 -> default (lessby N blocks)
 	// > 0 < 100 percentage of available blocks used
@@ -122,7 +124,10 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 
 	// dfa.status.suffix will have been set by dfa.CreateVolume
 	decoration := strings.ToLower(dfa.Decor) + dfa.status.suffix
-	dfa.status.podName = podPrefix + decoration
+	if dfa.DeployName == "" {
+		dfa.status.podName = podPrefix + decoration
+	}
+	
 
 	efab := common.NewE2eFioArgsBuilder().WithArgumentSet(fioArgsSet).WithZeroFill(dfa.ZeroFill)
 	if dfa.Liveness {
@@ -182,65 +187,150 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 	}
 	logf.Log.Info("e2e-fio", "arguments", strings.Join(podArgs, " "))
 
-	// fio pod container
-	container := MakeFioContainer(dfa.status.podName, podArgs)
-	//	container.ImagePullPolicy = coreV1.PullAlways
-	// volume claim details
-	volume := coreV1.Volume{
-		Name: "ms-volume",
-		VolumeSource: coreV1.VolumeSource{
-			PersistentVolumeClaim: &coreV1.PersistentVolumeClaimVolumeSource{
-				ClaimName: dfa.status.volName,
+	if dfa.DeployName == "" {
+
+		// fio pod container
+		container := MakeFioContainer(dfa.status.podName, podArgs)
+		//	container.ImagePullPolicy = coreV1.PullAlways
+		// volume claim details
+		volume := coreV1.Volume{
+			Name: "ms-volume",
+			VolumeSource: coreV1.VolumeSource{
+				PersistentVolumeClaim: &coreV1.PersistentVolumeClaimVolumeSource{
+					ClaimName: dfa.status.volName,
+				},
 			},
-		},
-	}
-	// create the fio pod
-	pod := NewPodBuilder("fio").
-		WithName(dfa.status.podName).
-		WithNamespace(common.NSDefault).
-		WithRestartPolicy(coreV1.RestartPolicyNever).
-		WithContainer(container).
-		WithVolume(volume).
-		WithVolumeDeviceOrMount(dfa.VolType)
-	//		WithHostPath("tmp", "/tmp")
+		}
+		// create the fio pod
+		pod := NewPodBuilder("fio").
+			WithName(dfa.status.podName).
+			WithNamespace(common.NSDefault).
+			WithRestartPolicy(coreV1.RestartPolicyNever).
+			WithContainer(container).
+			WithVolume(volume).
+			WithVolumeDeviceOrMount(dfa.VolType)
+		//		WithHostPath("tmp", "/tmp")
 
-	if dfa.AppNodeName != "" {
-		pod = pod.WithNodeName(dfa.AppNodeName)
-	}
-	podObj, err := pod.Build()
-	if err != nil {
-		return fmt.Errorf("generating fio pod definition %s, %v", dfa.status.podName, err)
-	}
-	if podObj == nil {
-		return fmt.Errorf("failed to generate fio pod definition")
-	}
-	_, err = CreatePod(podObj, common.NSDefault)
-	if err != nil {
-		return fmt.Errorf("creating fio pod %s, %v", dfa.status.podName, err)
-	}
-	// wait for pod to transition to running or complete whichever is first
-	var phase coreV1.PodPhase
-	var podLogSynopsis *common.E2eFioPodLogSynopsis
-	for secs := 0; secs < DefTimeoutSecs; secs++ {
-		phase, podLogSynopsis, err = CheckFioPodCompleted(dfa.status.podName, common.NSDefault)
+		if dfa.AppNodeName != "" {
+			pod = pod.WithNodeName(dfa.AppNodeName)
+		}
+		podObj, err := pod.Build()
 		if err != nil {
-			return err
+			return fmt.Errorf("generating fio pod definition %s, %v", dfa.status.podName, err)
 		}
-		switch phase {
-		case coreV1.PodSucceeded:
-			return nil
-		case coreV1.PodRunning:
-			dfa.status.msv, _ = GetMSV(dfa.status.volUuid)
-			logf.Log.Info("PodRunning", "msv", dfa.status.msv)
-			return nil
-		case coreV1.PodFailed:
-			return fmt.Errorf("pod state is %v, %s", phase, podLogSynopsis)
+		if podObj == nil {
+			return fmt.Errorf("failed to generate fio pod definition")
+		}
+		_, err = CreatePod(podObj, common.NSDefault)
+		if err != nil {
+			return fmt.Errorf("creating fio pod %s, %v", dfa.status.podName, err)
+		}
+		// wait for pod to transition to running or complete whichever is first
+		var phase coreV1.PodPhase
+		var podLogSynopsis *common.E2eFioPodLogSynopsis
+		for secs := 0; secs < DefTimeoutSecs; secs++ {
+			phase, podLogSynopsis, err = CheckFioPodCompleted(dfa.status.podName, common.NSDefault)
+			if err != nil {
+				return err
+			}
+			switch phase {
+			case coreV1.PodSucceeded:
+				return nil
+			case coreV1.PodRunning:
+				dfa.status.msv, _ = GetMSV(dfa.status.volUuid)
+				logf.Log.Info("PodRunning", "msv", dfa.status.msv)
+				return nil
+			case coreV1.PodFailed:
+				return fmt.Errorf("pod state is %v, %s", phase, podLogSynopsis)
+			}
+			time.Sleep(1 * time.Second)
 		}
 
-		time.Sleep(1 * time.Second)
+		return fmt.Errorf("pod state is %v, %s", phase, podLogSynopsis)
+		
+	} else {
+		labelKey := "e2e-test"
+		labelValue := "fio"
+		labelselector := map[string]string{
+			labelKey: labelValue,
+		}
+		deployment, err := NewDeploymentBuilder().
+			WithName(dfa.DeployName).
+            		WithNamespace(common.NSDefault).
+            		WithLabelsNew(labelselector).
+            		WithSelectorMatchLabelsNew(labelselector).
+            		WithPodTemplateSpecBuilder(
+                		NewPodtemplatespecBuilder().
+                    		WithLabels(labelselector).
+                    		WithContainerBuildersNew(
+                        		NewContainerBuilder().
+                            		WithName(dfa.DeployName).
+                            		WithImage(common.GetFioImage()).
+                            		WithVolumeDeviceOrMount("ms-volume", dfa.VolType).
+                            		WithImagePullPolicy(coreV1.PullAlways).
+                            		WithArgumentsNew(podArgs)).
+                    		WithVolumeBuilders(
+                        		NewVolumeBuilder().
+                            		WithName("ms-volume").
+                            		WithPVCSource(dfa.status.volName),
+                    		),
+            		).Build()
+		if err != nil {
+            return fmt.Errorf("failed to create deployment %s definition object in %s namesppace", dfa.DeployName, common.NSDefault)
+        	}
+		
+		if dfa.AppNodeName != "" {
+			deployment.Spec.Template.Spec.NodeName = dfa.AppNodeName
+		}
+
+		// Create the deployment
+		err = CreateDeployment(deployment)
+		if err != nil {
+			return fmt.Errorf("creating fio deployment %s, %v", dfa.DeployName, err)
+		}
+		var running bool
+		// Wait for pods to be running
+		for i := 0; i < DefTimeoutSecs; i++ {
+			running, err = VerifyDeploymentReadyReplicaCount(dfa.DeployName, common.NSDefault, 1)
+			if err != nil {
+				return err
+			}
+			time.Sleep(1 * time.Second)
+		}
+		if running {
+			dfa.status.msv, err = GetMSV(dfa.status.volUuid)
+			if err != nil {
+				return err
+			}
+			logf.Log.Info("DeploymentRunning", "msv", dfa.status.msv)
+			pods, err := GetDeploymentPods(dfa.DeployName, common.NSDefault)
+			if err != nil {
+				return err
+			}
+			dfa.status.podName = pods.Items[0].Name
+			// wait for pod to transition to running or complete whichever is first
+			var phase coreV1.PodPhase
+			var podLogSynopsis *common.E2eFioPodLogSynopsis
+			for secs := 0; secs < DefTimeoutSecs; secs++ {
+				phase, podLogSynopsis, err = CheckFioPodCompleted(dfa.status.podName, common.NSDefault)
+				if err != nil {
+					return err
+				}
+				switch phase {
+				case coreV1.PodSucceeded:
+					return nil
+				case coreV1.PodRunning:
+					dfa.status.msv, _ = GetMSV(dfa.status.volUuid)
+					logf.Log.Info("PodRunning", "msv", dfa.status.msv)
+					return nil
+				case coreV1.PodFailed:
+					return fmt.Errorf("pod state is %v, %s", phase, podLogSynopsis)
+				}
+				time.Sleep(1 * time.Second)
+			}
+		}
+		return fmt.Errorf("deployment did not reach running state in time")
 	}
-
-	return fmt.Errorf("pod state is %v, %s", phase, podLogSynopsis)
 }
 
 func (dfa *FioApp) CreateVolume() error {
@@ -396,7 +486,7 @@ func (dfa *FioApp) Cleanup() error {
 	podName := dfa.GetPodName()
 
 	// If the pod name is "", we never deployed a pod.
-	if podName != "" {
+	if podName != "" && dfa.DeployName == "" {
 		// Dump fio pod logs only if pod phase is completed otherwise log collection til pod is completed
 		podPhase, _, err := CheckFioPodCompleted(dfa.GetPodName(), common.NSDefault)
 		if err != nil {
@@ -418,6 +508,27 @@ func (dfa *FioApp) Cleanup() error {
 			if err != nil {
 				return fmt.Errorf("verify replicas before deleting PVC failed: %v", err)
 			}
+		}
+	} else {
+		err := DeleteDeployment(dfa.DeployName, common.NSDefault)
+		if err != nil {
+			return fmt.Errorf("failed to delete fio deployment %s, err: %v", dfa.DeployName, err)
+		}
+		const sleepTime = 3
+		var pods *coreV1.PodList
+		var podsDeleted bool
+		podsDeleted = false
+		for ix := 0; ix < (DefTimeoutSecs+sleepTime-1)/sleepTime; ix++ {
+			pods, err = GetDeploymentPods(dfa.DeployName, common.NSDefault)
+			logf.Log.Info("GetDeploymentPods", "error", err, "pods", pods)
+			if err != nil && k8serrors.IsNotFound(err) {
+				podsDeleted = true
+				break
+			}
+			time.Sleep(sleepTime * time.Second)
+		}
+		if !podsDeleted {
+			return fmt.Errorf("failed to delete fio deployment pods %s, err: %v", dfa.DeployName, err)
 		}
 	}
 	// Only delete PVC and storage class if they were created by this instance
@@ -652,7 +763,11 @@ func (dfa *FioApp) GetScName() string {
 }
 
 func (dfa *FioApp) GetPodName() string {
-	return dfa.status.podName
+	if dfa.DeployName == "" {
+		return dfa.status.podName
+	}
+	pods, _ := GetDeploymentPods(dfa.DeployName, common.NSDefault)
+	return pods.Items[0].Name
 }
 
 func (dfa *FioApp) GetVolName() string {

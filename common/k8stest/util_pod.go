@@ -327,7 +327,7 @@ func ListPodsWithLabel(namespace string, labels map[string]string) (*v1.PodList,
 		LabelSelector: metaV1.FormatLabelSelector(&metaV1.LabelSelector{MatchLabels: labels}),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pods with given label, error: %v", err)
+		return nil, err
 	}
 	return pods, err
 }
