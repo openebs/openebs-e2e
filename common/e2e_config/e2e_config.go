@@ -95,7 +95,7 @@ type ProductSpec struct {
 	PostgresAuthPassword             string            `yaml:"postgresAuthPassword"`
 	PostgresAuthRootPassword         string            `yaml:"postgresAuthRootPassword"`
 	PostgresAuthUsername             string            `yaml:"postgresAuthUsername"`
-	PostgresDatabasePort             int               `yaml:"postgresDatabasePort"`
+	PostgresDatabasePort             string            `yaml:"postgresDatabasePort"`
 	PostgresDefaultChartVersion      string            `yaml:"postgresDefaultChartVersion"`
 	PostgresHelmRepo                 string            `yaml:"postgresHelmRepo"`
 	PostgresHelmRepoName             string            `yaml:"postgresHelmRepoName"`
