@@ -5,11 +5,13 @@ set -e
 HUGE_PAGES=
 HUGE_PAGES_OVERRIDE=
 NVME_TCP=
-INSTALL_ZFS=
-INSTALL_LVM=
+SETUP_ZFS=
+SETUP_LVM=
+SETUP_MAYASTOR=
 DRY_RUN=
 SYSCTL="sudo sysctl"
 MODPROBE="sudo modprobe"
+UPDATED=0
 
 help() {
   cat <<EOF
@@ -18,12 +20,12 @@ Usage: $(basename "$0") [COMMAND] [OPTIONS]
 Options:
   -h, --help                            Display this text.
   --hugepages         <num>             Add <num> 2MiB hugepages.
-  --nvme-tcp                            Load nvme_tcp kernel modules.
-  --install-zfs                         Install ZFS utilities.
-  --install-lvm                         Install LVM utilities.
+  --zfs                                 Install ZFS utilities.
+  --lvm                                 Install LVM utilities and load required modules.
+  --mayastor                            Setup pre-requisites, install and load required modules.
 
 Examples:
-  $(basename "$0") --nvme-tcp --hugepages 2048 --install-zfs
+  $(basename "$0") --mayastor --hugepages 2048 --zfs
 EOF
 }
 
@@ -57,11 +59,18 @@ install_kernel_modules_nsup() {
   die "Installing kernel modules not supported for $1"
 }
 
+update_apt() {
+  if [ "$UPDATED" -eq 0 ]; then
+    sudo apt-get update
+    UPDATED=1
+  fi
+}
+
 install_kernel_modules() {
   DISTRO="$(distro)"
   case "$DISTRO" in
     Ubuntu)
-      sudo apt-get update
+      update_apt
       sudo apt-get install -y linux-modules-extra-$(uname -r) xfsprogs quota
       ;;
     NixOS | *)
@@ -75,7 +84,7 @@ install_zfs() {
     DISTRO="$(distro)"
     case "$DISTRO" in
       Ubuntu)
-        sudo apt-get update
+        update_apt
         if sudo apt-get install -y zfsutils-linux; then
           echo "Successfully installed zfsutils-linux"
         else
@@ -96,7 +105,7 @@ install_lvm() {
     DISTRO="$(distro)"
     case "$DISTRO" in
       Ubuntu)
-        sudo apt-get update
+        update_apt
         if sudo apt-get install -y lvm2; then
           echo "Successfully installed lvm2"
         else
@@ -118,6 +127,28 @@ load_lvm_modules() {
   sudo modprobe dm-thin-pool
 }
 
+mayastor() {
+if [ -n "$NVME_TCP" ]; then
+  if ! lsmod | grep "nvme_tcp" >/dev/null; then
+    if ! modprobe nvme_tcp >/dev/null; then
+      install_kernel_modules
+      if ! modprobe nvme_tcp; then
+        die "Failed to load nvme_tcp kernel module!"
+      fi
+    fi
+    echo "Installed nvme_tcp kernel module"
+  else
+    echo "nvme_tcp kernel module already installed"
+  fi
+
+  if [ "$(nvme_ana_check)" != "Y" ]; then
+    echo_stderr "NVMe multipath support is NOT enabled!"
+  else
+    echo "NVMe multipath support IS enabled"
+  fi
+fi
+}
+
 while [ "$#" -gt 0 ]; do
   case $1 in
     -h|--help)
@@ -125,28 +156,30 @@ while [ "$#" -gt 0 ]; do
       exit 0
       ;;
     --hugepages)
+      SETUP_MAYASTOR="y"
       shift
       test $# -lt 1 && die "Missing hugepage number"
       HUGE_PAGES=$1
       shift
       ;;
     --hugepages-override)
+      SETUP_MAYASTOR="y"
       shift
       test $# -lt 1 && die "Missing hugepage number"
       HUGE_PAGES_OVERRIDE="y"
       HUGE_PAGES=$1
       shift
       ;;
-    --nvme-tcp)
+    --mayastor)
       NVME_TCP="y"
       shift
       ;;
-    --install-zfs)
-      INSTALL_ZFS="y"
+    --zfs)
+      SETUP_ZFS="y"
       shift
       ;;
-    --install-lvm)
-      INSTALL_LVM="y"
+    --lvm)
+      SETUP_LVM="y"
       shift
       ;;
     --dry-run)
@@ -178,31 +211,15 @@ if [ -n "$HUGE_PAGES" ]; then
   fi
 fi
 
-if [ -n "$NVME_TCP" ]; then
-  if ! lsmod | grep "nvme_tcp" >/dev/null; then
-    if ! modprobe_nvme_tcp >/dev/null; then
-      install_kernel_modules
-      if ! modprobe_nvme_tcp; then
-        die "Failed to load nvme_tcp kernel module!"
-      fi
-    fi
-    echo "Installed nvme_tcp kernel module"
-  else
-    echo "nvme-tcp kernel module already installed"
-  fi
-
-  if [ "$(nvme_ana_check)" != "Y" ]; then
-    echo_stderr "NVMe multipath support is NOT enabled!"
-  else
-    echo "NVMe multipath support IS enabled"
-  fi
+if [ -n "$SETUP_MAYASTOR"]; then
+   mayastor
 fi
 
-if [ -n "$INSTALL_ZFS" ]; then
+if [ -n "$SETUP_ZFS" ]; then
   install_zfs
 fi
 
-if [ -n "$INSTALL_LVM" ]; then
+if [ -n "$SETUP_LVM" ]; then
   install_lvm
   load_lvm_modules
 fi

@@ -15,9 +15,9 @@ FALLOCATE="fallocate"
 KUBECTL="kubectl"
 DOCKER="docker"
 HUGE_PAGES=1800
-LABEL=
-INSTALL_ZFS="false"
-INSTALL_LVM="false"
+SETUP_ZFS="false"
+SETUP_LVM="false"
+SETUP_MAYASTOR="false"
 
 help() {
   cat <<EOF
@@ -31,9 +31,9 @@ Options:
   --disk          <size>            Add disk of this size to each worker node.
   --dry-run                         Don't do anything, just output steps.
   --hugepages     <num>             Add <num> 2MiB hugepages (Default: $HUGE_PAGES).
-  --label                           Label worker nodes with the io-engine selector.
-  --install-zfs                     Install ZFS utilities.
-  --install-lvm                     Install LVM utilities.
+  --zfs                             Install ZFS utilities.
+  --lvm                             Install LVM utilities and load required modules.
+  --mayastor                        Setup pre-requisites, install and load required modules.
 
 Command:
   start                             Start the k8s cluster.
@@ -87,10 +87,11 @@ while [ "$#" -gt 0 ]; do
     --delay)
       DELAY="true"
       shift;;
-    --label)
-      LABEL="true"
+    --mayastor)
+      SETUP_MAYASTOR="true"
       shift;;
     --hugepages)
+      SETUP_MAYASTOR="true"
       shift
       test $# -lt 1 && die "Missing hugepage number"
       HUGE_PAGES=$1
@@ -104,11 +105,11 @@ while [ "$#" -gt 0 ]; do
         DOCKER="echo $DOCKER"
       fi
       shift;;
-    --install-zfs)
-      INSTALL_ZFS="true"
+    --zfs)
+      SETUP_ZFS="true"
       shift;;
-    --install-lvm)
-      INSTALL_LVM="true"
+    --lvm)
+      SETUP_LVM="true"
       shift;;
     *)
       die "Unknown argument $1!"
@@ -127,14 +128,15 @@ if [ "$COMMAND" = "stop" ]; then
 fi
 
 # Install prerequisites
-"$SCRIPT_DIR"/setup-io-prereq.sh --hugepages "$HUGE_PAGES" --nvme-tcp $DRY_RUN
+if ["$SETUP_MAYASTOR" = "true" ]; then
+  "$SCRIPT_DIR"/setup-io-prereq.sh --hugepages "$HUGE_PAGES" --mayastor $DRY_RUN
 
-if [ "$INSTALL_ZFS" = "true" ]; then
-  "$SCRIPT_DIR"/setup-io-prereq.sh --install-zfs $DRY_RUN
+if [ "$SETUP_ZFS" = "true" ]; then
+  "$SCRIPT_DIR"/setup-io-prereq.sh --zfs $DRY_RUN
 fi
 
-if [ "$INSTALL_LVM" = "true" ]; then
-  "$SCRIPT_DIR"/setup-io-prereq.sh --install-lvm $DRY_RUN
+if [ "$SETUP_LVM" = "true" ]; then
+  "$SCRIPT_DIR"/setup-io-prereq.sh --lvm $DRY_RUN
 fi
 
 # Create and cleanup the tmp folder
@@ -174,7 +176,7 @@ for node_index in $(seq 1 $WORKERS); do
       containerPath: /var/local/mayastor
       propagation: HostToContainer
 EOF
-  if [ -n "$LABEL" ]; then
+  if [ -n "$SETUP_MAYASTOR" ]; then
     cat <<EOF >> "$TMP_KIND_CONFIG"
   labels:
     openebs.io/engine: mayastor
