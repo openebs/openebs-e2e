@@ -3,6 +3,7 @@ package k8stest
 import (
 	"context"
 	"fmt"
+	"github.com/openebs/openebs-e2e/apps"
 	"github.com/openebs/openebs-e2e/common/custom_resources"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"strings"
@@ -25,6 +26,27 @@ type PostgresApp struct {
 	Standalone   bool       // Indicates if the PostgreSQL deployment is standalone.
 	PvcName      string     // Name of the PersistentVolumeClaim.
 	PgBench      PgBenchApp // PgBench application configuration for benchmarking.
+	HelmVersion  string
+	HelmValues   map[string]interface{}
+}
+
+func (psql *PostgresApp) Install() error {
+	err := apps.AddHelmRepository(e2e_config.GetConfig().Product.PostgresHelmRepoName, e2e_config.GetConfig().Product.PostgresHelmRepoUrl)
+	if err != nil {
+		return err
+	}
+
+	err = apps.InstallHelmChart(e2e_config.GetConfig().Product.PostgresHelmRepo, psql.HelmVersion, psql.Namespace, psql.ReleaseName, psql.HelmValues)
+	if err != nil {
+		return err
+	}
+
+	err = psql.PostgresInstallReady()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // PostgresInstallReady checks if the PostgreSQL application is installed and ready.
