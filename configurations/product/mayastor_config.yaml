@@ -82,7 +82,7 @@ product:
     postgresAuthPassword: "admin123"
     postgresAuthRootPassword: "r00tAdmin"
     postgresAuthUsername: "admin"
-    postgresDatabasePort: "5432"
+    postgresDatabasePort: 5432
     postgresDefaultChartVersion: "15.5.18"
     postgresHelmRepo: "bitnami/postgresql"
     postgresHelmRepoName: "bitnami"
