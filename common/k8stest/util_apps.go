@@ -509,7 +509,7 @@ func (dfa *FioApp) Cleanup() error {
 				return fmt.Errorf("verify replicas before deleting PVC failed: %v", err)
 			}
 		}
-	} else {
+	} else if dfa.DeployName != "" {
 		err := DeleteDeployment(dfa.DeployName, common.NSDefault)
 		if err != nil {
 			return fmt.Errorf("failed to delete fio deployment %s, err: %v", dfa.DeployName, err)
