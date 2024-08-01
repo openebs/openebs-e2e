@@ -218,7 +218,7 @@ func (pb *postgresBuilder) WithPgBench() *postgresBuilder {
 	return pb
 }
 
-func (pb *postgresBuilder) Build() (PostgresApp, error) {
+func (pb *postgresBuilder) Create() (PostgresApp, error) {
 	var latest Chart
 	var err error
 
@@ -259,11 +259,37 @@ func (pb *postgresBuilder) Build() (PostgresApp, error) {
 			ScName:       pb.values["global.storageClass"].(string),
 			Standalone:   pb.values["architecture"].(string) == Standalone.String(),
 			PvcName:      pb.pvcName,
-			HelmVersion:  pb.helmVersion,
-			HelmValues:   pb.values,
 		},
 		PgBench: *pgBench,
 	}
 
 	return postgresApp, nil
+}
+
+func (pb *postgresBuilder) Install() error {
+	err := AddHelmRepository(e2e_config.GetConfig().Product.PostgresHelmRepoName, e2e_config.GetConfig().Product.PostgresHelmRepoUrl)
+	if err != nil {
+		return err
+	}
+
+	err = InstallHelmChart(e2e_config.GetConfig().Product.PostgresHelmRepo, pb.helmVersion, pb.namespace, pb.releaseName, pb.values)
+	if err != nil {
+		return err
+	}
+
+	pa := k8stest.PostgresApp{
+		Namespace:    pb.namespace,
+		ReleaseName:  pb.releaseName,
+		ReplicaCount: pb.values["replicaCount"].(int),
+		ScName:       pb.values["global.storageClass"].(string),
+		Standalone:   pb.values["architecture"].(string) == Standalone.String(),
+		PvcName:      pb.pvcName,
+	}
+
+	err = pa.PostgresInstallReady()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
