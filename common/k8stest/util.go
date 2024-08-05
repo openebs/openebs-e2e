@@ -498,6 +498,36 @@ func MayastorReady(sleepTime int, duration int) (bool, error) {
 	return ready, err
 }
 
+// OpenEBSReady checks if the product installation is ready
+func OpenEBSReady(sleepTime int, duration int) (bool, error) {
+	logf.Log.Info("OpenEBSReady", "sleepTime", sleepTime, "duration", duration)
+	var ready bool
+	var err error
+	count := (duration + sleepTime - 1) / sleepTime
+	ready, err = readyCheck("openebs", true)
+	// variable to throttle verbosity
+	verboseTick := int(math.Max(1, 10/float64(sleepTime)))
+	for ix := 1; ix <= count && !ready; ix++ {
+		time.Sleep(time.Duration(sleepTime) * time.Second)
+		ready, err = readyCheck("openebs", ix%verboseTick == 0)
+	}
+	if !ready {
+		_, _ = readyCheck("openebs", true)
+	}
+	logf.Log.Info("OpenEBSReady", "ready", ready, "error", err)
+	if !ready {
+		return ready, err
+	}
+	var podReady bool
+	// check for all pods to be running
+	for ix := 1; ix <= 30 && !podReady; ix++ {
+		time.Sleep(time.Duration(sleepTime) * time.Second)
+		podReady, err = PodReadyCheck("openebs")
+	}
+	logf.Log.Info("OpenEBSPodsReady", "podReady", podReady, "error", err)
+	return ready, err
+}
+
 func getClusterMayastorNodeIPAddrs() ([]string, error) {
 	var nodeAddrs []string
 	nodes, err := GetIOEngineNodes()
