@@ -235,21 +235,23 @@ func (pb *postgresBuilder) Create() (*postgresBuilder, error) {
 	if pb.scName == "" {
 		scName, err := CreatePostgresStorageClass(pb)
 		if err != nil {
-			return postgresBuilder{}, err
+			pbEmpty := postgresBuilder{}
+			return &pbEmpty, err
 		}
 		pb.values["global.storageClass"] = scName
 		pb.scName = scName
 		logf.Log.Info("StorageClass has been created", "storageClassName", scName)
 	}
 
-	pgBench := &k8stest.PgBenchApp{}
-	if pb.pgBench {
+		if pb.pgBench {
 		pgBench = k8stest.NewPgBenchAppBuilder().
 			WithName("pgbench").
 			WithNamespace(pb.namespace).
 			WithNodeSelector(pb.nodeSelector).
 			Build()
 	}
+
+	// pgBench := &k8stest.PgBenchApp{}
 
 	//postgresApp := PostgresApp{
 	//	Postgres: k8stest.PostgresApp{
