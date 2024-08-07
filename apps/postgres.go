@@ -264,7 +264,7 @@ func (pb *postgresBuilder) Create() (PostgresApp, error) {
 			PvcName:      pb.pvcName,
 		},
 		PgBench: *pgBench,
-		builder: pb,
+		builder: *pb,
 	}
 
 	return postgresApp, nil
