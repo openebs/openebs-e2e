@@ -134,6 +134,7 @@ const (
 	Lvm      OpenEbsEngine = iota
 	Hostpath OpenEbsEngine = iota
 	Zfs      OpenEbsEngine = iota
+	Mayastor OpenEbsEngine = iota
 )
 
 func (Engine OpenEbsEngine) String() string {
@@ -144,6 +145,8 @@ func (Engine OpenEbsEngine) String() string {
 		return "hostpath"
 	case Zfs:
 		return "zfs"
+	case Mayastor:
+		return "mayastor"
 	default:
 		return ""
 	}

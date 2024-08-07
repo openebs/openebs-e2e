@@ -37,10 +37,11 @@ func ListLvmNode(namespace string) ([]string, error) {
 			readyCount,
 		)
 	}
-	lvmNode := make([]string, readyCount)
+	lvmNode := make([]string, 0, readyCount)
 	for _, item := range listLvmDaemonSetPodList.Items {
 		lvmNode = append(lvmNode, item.Spec.NodeName)
 	}
+	logf.Log.Info("LVM", "nodes", lvmNode)
 	return lvmNode, err
 }
 

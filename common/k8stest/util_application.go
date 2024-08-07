@@ -260,7 +260,7 @@ func (dfa *FioApplication) CreateVolume() error {
 	} else {
 		decoration += "-bindimm"
 	}
-	dfa.status.suffix = decoration
+	dfa.status.suffix = decoration + dfa.OpenEbsEngine.String()
 	decoration = strings.ToLower(dfa.Decor) + decoration
 	dfa.status.pvcName = decoration
 	dfa.status.scName = decoration
@@ -269,10 +269,13 @@ func (dfa *FioApplication) CreateVolume() error {
 	if err != nil {
 		return fmt.Errorf("failed to create sc %s, %v", dfa.status.scName, err)
 	}
+	var localEngine bool
+	if dfa.OpenEbsEngine != common.Mayastor {
+		localEngine = true
+	}
 
 	// Create the volume
-
-	err = MkLocalPVC(dfa.VolSizeMb, dfa.status.pvcName, dfa.status.scName, dfa.VolType, common.NSDefault)
+	_, err = MakePVC(dfa.VolSizeMb, dfa.status.pvcName, dfa.status.scName, dfa.VolType, common.NSDefault, localEngine)
 
 	if err != nil {
 		return fmt.Errorf("failed to create pvc %s, %v", dfa.status.pvcName, err)
@@ -409,9 +412,13 @@ func (dfa *FioApplication) Cleanup() error {
 		}
 
 	}
+	var localEngine bool
+	if dfa.OpenEbsEngine != common.Mayastor {
+		localEngine = true
+	}
 	// Only delete PVC and storage class if they were created by this instance
 	if dfa.status.createdPVC {
-		err = RmLocalPVC(dfa.status.pvcName, dfa.status.scName, common.NSDefault)
+		err = RemovePVC(dfa.status.pvcName, dfa.status.scName, common.NSDefault, localEngine)
 		if err == nil {
 			err = RmStorageClass(dfa.status.scName)
 		}
