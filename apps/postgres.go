@@ -266,7 +266,7 @@ func (pb *postgresBuilder) Create() (PostgresApp, error) {
 	return postgresApp, nil
 }
 
-func (pb *postgresBuilder) Install() error {
+func (pa *postgresApp) Install() error {
 	err := AddHelmRepository(e2e_config.GetConfig().Product.PostgresHelmRepoName, e2e_config.GetConfig().Product.PostgresHelmRepoUrl)
 	if err != nil {
 		return err
