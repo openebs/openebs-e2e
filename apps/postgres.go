@@ -218,7 +218,7 @@ func (pb *postgresBuilder) WithPgBench() *postgresBuilder {
 	return pb
 }
 
-func (pb *postgresBuilder) Create() (PostgresApp, error) {
+func (pb *postgresBuilder) Create() (*postgresBuilder, error) {
 	var latest Chart
 	var err error
 
@@ -235,7 +235,7 @@ func (pb *postgresBuilder) Create() (PostgresApp, error) {
 	if pb.scName == "" {
 		scName, err := CreatePostgresStorageClass(pb)
 		if err != nil {
-			return PostgresApp{}, err
+			return postgresBuilder{}, err
 		}
 		pb.values["global.storageClass"] = scName
 		pb.scName = scName
@@ -251,22 +251,22 @@ func (pb *postgresBuilder) Create() (PostgresApp, error) {
 			Build()
 	}
 
-	postgresApp := PostgresApp{
-		Postgres: k8stest.PostgresApp{
-			Namespace:    pb.namespace,
-			ReleaseName:  pb.releaseName,
-			ReplicaCount: pb.values["replicaCount"].(int),
-			ScName:       pb.values["global.storageClass"].(string),
-			Standalone:   pb.values["architecture"].(string) == Standalone.String(),
-			PvcName:      pb.pvcName,
-		},
-		PgBench: *pgBench,
-	}
+	//postgresApp := PostgresApp{
+	//	Postgres: k8stest.PostgresApp{
+	//		Namespace:    pb.namespace,
+	//		ReleaseName:  pb.releaseName,
+	//		ReplicaCount: pb.values["replicaCount"].(int),
+	//		ScName:       pb.values["global.storageClass"].(string),
+	//		Standalone:   pb.values["architecture"].(string) == Standalone.String(),
+	//		PvcName:      pb.pvcName,
+	//	},
+	//	PgBench: *pgBench,
+	//}
 
-	return postgresApp, nil
+	return pb, nil
 }
 
-func (pa *postgresApp) Install() error {
+func (pb *postgresBuilder) Install() error {
 	err := AddHelmRepository(e2e_config.GetConfig().Product.PostgresHelmRepoName, e2e_config.GetConfig().Product.PostgresHelmRepoUrl)
 	if err != nil {
 		return err
