@@ -236,8 +236,7 @@ func (pb *postgresBuilder) Create() (PostgresApp, error) {
 	if pb.scName == "" {
 		scName, err := CreatePostgresStorageClass(pb)
 		if err != nil {
-			pbEmpty := postgresBuilder{}
-			return &pbEmpty, err
+			return PostgresApp{}, err
 		}
 		pb.values["global.storageClass"] = scName
 		pb.scName = scName
@@ -265,7 +264,7 @@ func (pb *postgresBuilder) Create() (PostgresApp, error) {
 			PvcName:      pb.pvcName,
 		},
 		PgBench: *pgBench,
-		Builder: pb,
+		builder: pb,
 	}
 
 	return postgresApp, nil
@@ -282,16 +281,16 @@ func (pa *PostgresApp) Install() error {
 		return err
 	}
 
-	pa := k8stest.PostgresApp{
-		Namespace:    pa.builder.namespace,
-		ReleaseName:  pa.builder.releaseName,
-		ReplicaCount: pa.builder.values["replicaCount"].(int),
-		ScName:       pa.builder.values["global.storageClass"].(string),
-		Standalone:   pa.builder.values["architecture"].(string) == Standalone.String(),
-		PvcName:      pa.builder.pvcName,
-	}
+	//pa := k8stest.PostgresApp{
+	//	Namespace:    pa.builder.namespace,
+	//	ReleaseName:  pa.builder.releaseName,
+	//	ReplicaCount: pa.builder.values["replicaCount"].(int),
+	//	ScName:       pa.builder.values["global.storageClass"].(string),
+	//	Standalone:   pa.builder.values["architecture"].(string) == Standalone.String(),
+	//	PvcName:      pa.builder.pvcName,
+	//}
 
-	err = pa.PostgresInstallReady()
+	err = pa.Postgres.PostgresInstallReady()
 	if err != nil {
 		return err
 	}
