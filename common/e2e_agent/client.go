@@ -660,6 +660,7 @@ func UnwrapResult(res string) (string, E2eAgentErrcode, error) {
 	var response E2eAgentError
 	var err error
 	if err = json.Unmarshal([]byte(res), &response); err != nil {
+		logf.Log.Info("Failed to Unmarshal response", "Response string", res)
 		return "", -1, err
 	}
 	return response.Output, response.Errorcode, err

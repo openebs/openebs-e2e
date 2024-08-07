@@ -70,6 +70,7 @@ func CreateHostPathDisk(w http.ResponseWriter, r *http.Request) {
 		WrapResult(msg, ErrGeneral, w)
 		return
 	}
+	WrapResult(msg, ErrNone, w)
 }
 
 // RemoveHostPathDisk removes hostpath disk
@@ -125,4 +126,5 @@ func RemoveHostPathDisk(w http.ResponseWriter, r *http.Request) {
 		WrapResult(msg, ErrGeneral, w)
 		return
 	}
+	WrapResult(msg, ErrNone, w)
 }
