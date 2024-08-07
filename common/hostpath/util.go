@@ -8,18 +8,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// func ConfigureLoopDeviceOnZfsNodes(size int64, imageDir string) (map[string]e2e_agent.LoopDevice, error) {
-// 	workerNodes, err := k8stest.ListWorkerNode()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	var nodes []string
-// 	for _, node := range workerNodes {
-// 		nodes = append(nodes, node.NodeName)
-// 	}
-// 	return k8stest.ConfigureLoopDeviceOnNodes(nodes, size, imageDir)
-// }
-
 type HostPathDeviceNodeConfig struct {
 	NodeDeviceMap map[string]e2e_agent.LoopDevice
 }

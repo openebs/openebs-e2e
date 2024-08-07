@@ -15,11 +15,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// var (
-// 	DefTimeoutSecs                         = 90 // in seconds
-// 	DefVerifyReplicaWaitHealthyVolTimeSecs = 120
-// )
-
 type FioApplicationStatus struct {
 	suffix         string
 	fioTargets     []string
