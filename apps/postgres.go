@@ -80,6 +80,7 @@ type postgresBuilder struct {
 type PostgresApp struct {
 	Postgres k8stest.PostgresApp
 	PgBench  k8stest.PgBenchApp
+	builder  postgresBuilder
 }
 
 type Limits struct {
@@ -218,7 +219,7 @@ func (pb *postgresBuilder) WithPgBench() *postgresBuilder {
 	return pb
 }
 
-func (pb *postgresBuilder) Create() (*postgresBuilder, error) {
+func (pb *postgresBuilder) Create() (PostgresApp, error) {
 	var latest Chart
 	var err error
 
@@ -243,7 +244,8 @@ func (pb *postgresBuilder) Create() (*postgresBuilder, error) {
 		logf.Log.Info("StorageClass has been created", "storageClassName", scName)
 	}
 
-		if pb.pgBench {
+	pgBench := &k8stest.PgBenchApp{}
+	if pb.pgBench {
 		pgBench = k8stest.NewPgBenchAppBuilder().
 			WithName("pgbench").
 			WithNamespace(pb.namespace).
@@ -251,41 +253,42 @@ func (pb *postgresBuilder) Create() (*postgresBuilder, error) {
 			Build()
 	}
 
-	// pgBench := &k8stest.PgBenchApp{}
+	
 
-	//postgresApp := PostgresApp{
-	//	Postgres: k8stest.PostgresApp{
-	//		Namespace:    pb.namespace,
-	//		ReleaseName:  pb.releaseName,
-	//		ReplicaCount: pb.values["replicaCount"].(int),
-	//		ScName:       pb.values["global.storageClass"].(string),
-	//		Standalone:   pb.values["architecture"].(string) == Standalone.String(),
-	//		PvcName:      pb.pvcName,
-	//	},
-	//	PgBench: *pgBench,
-	//}
+	postgresApp := PostgresApp{
+		Postgres: k8stest.PostgresApp{
+			Namespace:    pb.namespace,
+			ReleaseName:  pb.releaseName,
+			ReplicaCount: pb.values["replicaCount"].(int),
+			ScName:       pb.values["global.storageClass"].(string),
+			Standalone:   pb.values["architecture"].(string) == Standalone.String(),
+			PvcName:      pb.pvcName,
+		},
+		PgBench: *pgBench,
+		Builder: pb
+	}
 
-	return pb, nil
+	return postgresApp, nil
 }
 
-func (pb *postgresBuilder) Install() error {
+func (pa *PostgresApp) Install() error {
 	err := AddHelmRepository(e2e_config.GetConfig().Product.PostgresHelmRepoName, e2e_config.GetConfig().Product.PostgresHelmRepoUrl)
 	if err != nil {
 		return err
 	}
 
-	err = InstallHelmChart(e2e_config.GetConfig().Product.PostgresHelmRepo, pb.helmVersion, pb.namespace, pb.releaseName, pb.values)
+	err = InstallHelmChart(e2e_config.GetConfig().Product.PostgresHelmRepo, pa.builder.helmVersion, pa.builder.namespace, pa.builder.releaseName, pa.builder.values)
 	if err != nil {
 		return err
 	}
 
 	pa := k8stest.PostgresApp{
-		Namespace:    pb.namespace,
-		ReleaseName:  pb.releaseName,
-		ReplicaCount: pb.values["replicaCount"].(int),
-		ScName:       pb.values["global.storageClass"].(string),
-		Standalone:   pb.values["architecture"].(string) == Standalone.String(),
-		PvcName:      pb.pvcName,
+		Namespace:    pa.builder.namespace,
+		ReleaseName:  pa.builder.releaseName,
+		ReplicaCount: pa.builder.values["replicaCount"].(int),
+		ScName:       pa.builder.values["global.storageClass"].(string),
+		Standalone:   pa.builder.values["architecture"].(string) == Standalone.String(),
+		PvcName:      pa.builder.pvcName,
 	}
 
 	err = pa.PostgresInstallReady()
