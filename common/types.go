@@ -128,6 +128,66 @@ func (CloneFsId AllowVolumeExpansion) String() string {
 	}
 }
 
+type OpenEbsEngine int
+
+const (
+	Lvm      OpenEbsEngine = iota
+	Hostpath OpenEbsEngine = iota
+	Zfs      OpenEbsEngine = iota
+	Mayastor OpenEbsEngine = iota
+)
+
+func (Engine OpenEbsEngine) String() string {
+	switch Engine {
+	case Lvm:
+		return "lvm"
+	case Hostpath:
+		return "hostpath"
+	case Zfs:
+		return "zfs"
+	case Mayastor:
+		return "mayastor"
+	default:
+		return ""
+	}
+}
+
+type YesNoVal int
+
+const (
+	Yes YesNoVal = iota
+	No  YesNoVal = iota
+)
+
+func (Val YesNoVal) String() string {
+	switch Val {
+	case Yes:
+		return "yes"
+	case No:
+		return "no"
+	default:
+		return ""
+	}
+}
+
+type OnOffVal int
+
+const (
+	On  OnOffVal = iota
+	Off OnOffVal = iota
+)
+
+func (Val OnOffVal) String() string {
+	switch On {
+	case On:
+		return "on"
+	case Off:
+		return "off"
+	default:
+		return ""
+	}
+}
+
 const MsvStatusStateOnline = "Online"
 
 type MayastorVolume struct {
