@@ -1,0 +1,416 @@
+# test profiles composed of other test profiles
+macro-profiles:
+  regression:
+    - MQ-2743
+  # historical regression test list
+  regression_old:
+    - staging
+    - stable
+    - failing
+    - metrics
+    - supportability
+    - cordon
+  # aliases
+  license:
+    - MQ-2924
+  HA:
+    - MQ-3499
+  self-ci:
+    - selfci
+testplans:
+  - MQ-2743
+  - MQ-2924
+  - MQ-3499
+  - MQ-3552
+  - MQ-3553
+  - unscheduled
+  - selfci
+testprofiles:
+  # set of tests that do not pass regularly
+  staging:
+    - ms_pod_disruption
+    - MQ-1498-primitive_device_retirement
+    - stale_msp_after_node_power_failure
+    - ER1-177-Communication-Disruption
+    - MQ-3150-reclaim_policy_retain
+    - concurrent_maximum_vols_io
+    - ER1-203-iSCSI_sc_validation
+    - primitive_max_volumes_in_pool
+    - single_msn_shutdown
+    - node_shutdown
+    - MQ-1783-fsx_ext4_stress
+    - node_failure
+    - MQ-2307-etcd_inaccessibility
+    - maximum_vols_io
+    - primitive_volumes
+  # set of tests that fail for known bug
+  failing:
+  # minimal functional test install + uninstall implied
+  smoke-test:
+    - ER1-170-CI_smoke_test
+  # minimal test install + uninstall implied
+  minimal:
+    - resource_check
+  # basic volume and CSI testing
+  basic:
+    - basic_volume_io
+    - csi
+  # system test CI, tests run for e2e bors merge
+  # 09/11/2022 temporarily removed from self-ci until ha work is completed
+  # then re-evaluate and re-instate or add replacement test
+  # - ms_pod_restart
+  prev-self-ci:
+    - basic_volume_io
+    - csi
+    - dynamic_provisioning
+    - expand_msp_disk
+    - ms_pool_delete
+    - pvc_waitforfirstconsumer
+    - pvc_readwriteonce
+    - validate_integrity_test
+    - volume_filesystem
+  stable:
+    # list of tests that are known to pass
+    - B2-493
+    - basic_volume_io
+    - control_plane_rescheduling
+    - cordon_nexus_placement
+    - cordon_node_multiple_labels_cordon
+    - cordon_node_multiple_labels_uncordon
+    - cordon_node_resource_deletion
+    - cordon_node_restart
+    - cordon_node_unschedulable_replicas
+    - cordon_node_with_existing_label
+    - cordon_uncordon_node
+    - cordon_uncordon_node_with_resource
+    - csi_metric_creation_check
+    - csi_metric_expected_value_check
+    - csi,resource_check
+    - csi_volume_metrics_csi_node_service_down
+    - csi_volume_metrics_delete_data
+    - csi_volume_metrics_delete_volume
+    - csi_volume_metrics_raw_blocks
+    - csi_volume_metrics_write_data
+    - disk_pool_metrics_create_delete_volume
+    - disk_pool_metrics_delete_pool
+    - disk_pool_metrics_deschedule_bolt
+    - disk_pool_metrics_generation
+    - disk_pool_metrics_invalid_device
+    - disk_pool_metrics_multiple_volume
+    - disk_pool_metrics_offline_device
+    - disk_pool_metrics_restart_node
+    - drain_cancel_invalid_label
+    - drain_cancel_valid_label
+    - drain_cordoned_node
+    - drain_existing_draining_node_different_label
+    - drain_existing_draining_node_same_label
+    - draining_already_drained_node_with_different_label
+    - draining_already_drained_node_with_same_label
+    - drain_nexus_placement
+    - drain_uncordoned_node
+    - dynamic_provisioning
+    - ER1-165-supportability_sys_dump_loki_uninstalled
+    - ER1-165-supportability_system_dump
+    - ER1-203-iSCSI_sc_validation
+    - ER1-60-supportability_plugin_basics
+    - expand_msp_disk
+    - io_soak
+    - maximum_vols_io_disktest
+    - mayastorpool_schema
+    - MQ-1498-primitive_device_retirement
+    - MQ-1783-fsx_ext4_stress
+    - MQ-2307-etcd_inaccessibility
+    - MQ-2330-ms_pod_disruption_rm_vol
+    - MQ-2632-pvc_create_delete
+    - MQ-2644-invalid_volume_sizes
+    - MQ-3150-reclaim_policy_retain
+    - MQ-3386-pv_gc_reclaim_policy_delete
+    - MQ-3387-pv_delete_still_bound_to_pvc
+    - MQ-3402-pv_delete_when_gc_not_running
+    - MQ-3457-ha_nexus_failover_due_to_node_offline
+    - MQ-3463-ha_failover_nexus_with_degraded_replica
+    - MQ-3466-ha_nexus_application_node_restart
+    - MQ-3469-ha_nexus_failover_due_to_network_failure
+    - MQ-3479-ha_nexus_inability_to_failover_nexus_new_node
+    - MQ-3480-ha_nexus_multiple_failover
+    - MQ-3489-ha_nexus_failover_rebuild_inprogress
+    - MQ-3491-ha_nexus_failover_target_path_failure
+    - MQ-3500-ha_nexus_failover_when_api_rest_unavailable
+    - MQ-3501-ha_nexus_failover_when_agent_core_unavailable
+    - ms_pod_disruption_no_io
+    - ms_pool_delete
+    - msv_rebuild
+    - multiple_vols_pod_io
+    - nexus_location
+    - node_failure
+    - node_shutdown
+    - pool_modify
+    - primitive_data_integrity
+    - primitive_fault_injection
+    - primitive_fuzz_msv
+    - primitive_max_volumes_in_pool
+    - primitive_msp_deletion
+    - primitive_msp_state
+    - primitive_msp_stress
+    - primitive_replicas
+    - primitive_volumes
+    - pvc_delete
+    - pvc_readwriteonce
+    - pvc_stress_fio
+    - pvc_waitforfirstconsumer
+    - remote_provisioning
+    - single_msn_shutdown
+    - synchronous_replication
+    - volume_filesystem
+  license_old:
+    # license tests
+    - ER1_248_license_absent
+    - ER1_248_license_absent_no_agent
+    - ER1_249_license_expiration
+    - ER1_249_license_expiration_no_agent
+    - ER1_250_license_removal
+    - ER1_251_license_fuzz
+    - ER1_270_license_valid
+    - ER1_270_license_valid_no_agent
+    - ER1_271_license_install_expired
+    - ER1_271_license_install_expired_over_valid
+    - ER1_272_license_install_shorter_over_valid
+  metrics:
+    # disk pool metrics tests
+    - disk_pool_metrics_generation
+    - disk_pool_metrics_create_delete_volume
+    - disk_pool_metrics_delete_pool
+    - disk_pool_metrics_deschedule_bolt
+    - disk_pool_metrics_invalid_device
+    - disk_pool_metrics_multiple_volume
+    - disk_pool_metrics_offline_device
+    - disk_pool_metrics_restart_node
+    - disk_pool_metrics_shutdown_node
+  supportability:
+    - ER1-165-supportability_system_dump
+    - ER1-165-supportability_sys_dump_loki_uninstalled
+    - ER1-60-supportability_plugin_basics
+  io-intensive:
+    - basic_volume_io
+    - concurrent_maximum_vols_io
+    - io_soak
+    - multiple_vols_pod_io
+    - pvc_stress_fio
+    - pvc_readwriteonce
+  cordon:
+    # node cordon uncordon tests
+    - cordon_node_resource_deletion
+    - cordon_node_restart
+    - cordon_uncordon_node
+    - cordon_uncordon_node_with_resource
+    - cordon_node_with_existing_label
+    - cordon_node_unschedulable_replicas
+  reading-lab:
+    - MQ-1498-primitive_device_retirement
+      #    - node_failure
+      #    - cordon_node_restart
+    - disk_pool_metrics_shutdown_node
+    - node_shutdown
+    - primitive_data_integrity
+    - disktest_smoke_test
+      #   - maximum_vols_io
+      #   - concurrent_maximum_vols_io
+    - io_soak
+metadata:
+  # to augment 3rd party testcase runs we mandate that tests are run in
+  # the sequence 1) 3rd party test 2) resource_check
+  groupings:
+    - csi:
+      - resource_check
+  no_license:
+    - ER1_248_license_absent
+    - ER1_248_license_absent_no_agent
+    - ER1_249_license_expiration
+    - ER1_249_license_expiration_no_agent
+    - ER1_250_license_removal
+    - ER1_251_license_fuzz
+    - ER1_270_license_valid
+    - ER1_270_license_valid_no_agent
+    - ER1_271_license_install_expired
+    - ER1_271_license_install_expired_over_valid
+    - ER1_272_license_install_shorter_over_valid
+  no_loki:
+    - ER1-165-supportability_sys_dump_loki_uninstalled
+  # This section is used to determine whether to override
+  # the version of the product installed, and which version.
+  install_tag_override:
+    # list of tests for which the tag used for install is overridden
+    tests:
+      - upgrade
+      - upgrade_randwrite
+      - upgrade_with_unsupported_path
+      - upgrade_with_dataplane_manual_restart
+      - upgrade_with_single_replica_volume_present
+      - upgrade_with_replica_rebuiling_inprogress
+      - upgrade_when_node_goes_offline
+      - upgrade_when_control_plane_failure_occur
+      - upgrade_when_previous_attempt_failed
+      - upgrade_when_previous_attempt_failed_randwrite
+      - upgrade_with_cordoned_node
+      - mongodb_standalone_upgrade
+      - upgrade_from_single_replica_snapshot_version
+      - upgrade_from_single_replica_snapshot_version_multi_replica_snapshot
+  # exclude these test lists from regression testing
+  exclude_from_regression:
+    license:
+      reason: "bolt license tests run separately for regression"
+    smoke-test:
+      reason: "smoke test is part of other CI"
+    disktest_smoke_test:
+      reason: "test to validate testing concept"
+    MQ-2219-rc-reconciliation:
+      reason: "Bug: MQ-3042"
+    validate_integrity_test:
+      reason: "test to validate testing concept"
+    ms_pod_disruption_rm_msv:
+      reason: "invalid test?"
+    MQ-1775-xfstests:
+      reason: "tests xfs installation rather than block device"
+  # recorded test durations - used for scehduling to reduce
+  # elapsed time during regression test runs
+  recorded_durations:
+    B2-493: 351
+    ER1-165-supportability_system_dump: 81
+    ER1-177-Communication-Disruption: 1456
+    ER1-203-iSCSI_sc_validation: 6
+    ER1-60-supportability_plugin_basics: 5
+    MQ-1783-fsx_ext4_stress: 275
+    MQ-2307-etcd_inaccessibility: 494
+    MQ-2330-ms_pod_disruption_rm_vol: 117
+    MQ-2632-pvc_create_delete: 692
+    MQ-2644-invalid_volume_sizes: 81
+    MQ-3150-reclaim_policy_retain: 12
+    MQ-3386-pv_gc_reclaim_policy_delete: 12
+    MQ-3387-pv_delete_still_bound_to_pvc: 2
+    MQ-3402-pv_delete_when_gc_not_running: 54
+    MQ-3457-ha_nexus_failover_due_to_node_offline: 387
+    MQ-3462-ha_nexus_failover_due_cluster_agent_restart: 413
+    MQ-3463-ha_failover_nexus_with_degraded_replica: 488
+    MQ-3466-ha_nexus_application_node_restart: 433
+    MQ-3469-ha_nexus_failover_due_to_network_failure: 254
+    MQ-3479-ha_nexus_inability_to_failover_nexus_new_node: 360
+    MQ-3480-ha_nexus_multiple_failover: 475
+    MQ-3489-ha_nexus_failover_rebuild_inprogress: 556
+    MQ-3491-ha_nexus_failover_target_path_failure: 390
+    MQ-3500-ha_nexus_failover_when_api_rest_unavailable: 386
+    MQ-3501-ha_nexus_failover_when_agent_core_unavailable: 347
+    basic_volume_io: 1821
+    concurrent_maximum_vols_io: 2054
+    control_plane_rescheduling: 97
+    cordon_nexus_placement: 508
+    cordon_node_multiple_labels_cordon: 504
+    cordon_node_multiple_labels_uncordon: 271
+    cordon_node_resource_deletion: 10
+    cordon_node_restart: 530
+    cordon_node_unschedulable_replicas: 220
+    cordon_node_with_existing_label: 1418
+    cordon_uncordon_node: 4133
+    cordon_uncordon_node_with_resource: 1112
+    csi: 311
+    csi_metric_creation_check: 295
+    csi_metric_expected_value_check: 297
+    csi_volume_metrics_csi_node_service_down: 481
+    csi_volume_metrics_delete_data: 483
+    csi_volume_metrics_delete_volume: 403
+    csi_volume_metrics_raw_blocks: 424
+    csi_volume_metrics_write_data: 383
+    disk_pool_committed_metrics_verification: 1323
+    disk_pool_metrics_create_delete_volume: 251
+    disk_pool_metrics_delete_pool: 220
+    disk_pool_metrics_deschedule_bolt: 265
+    disk_pool_metrics_generation: 200
+    disk_pool_metrics_invalid_device: 198
+    disk_pool_metrics_multiple_volume: 247
+    disk_pool_metrics_offline_device: 196
+    disk_pool_metrics_restart_node: 458
+    disk_pool_metrics_shutdown_node: 393
+    diskpool_io_stats_counter_correctness_with_replica_counters: 441
+    diskpool_io_stats_counter_values_after_ioengine_restart: 331
+    diskpool_io_stats_counter_values_validation: 363
+    drain_cancel_invalid_label: 167
+    drain_cordoned_node: 273
+    drain_existing_draining_node_different_label: 161
+    drain_existing_draining_node_same_label: 242
+    drain_multiple_nodes_and_volumes: 1101
+    drain_nexus_placement: 540
+    drain_node_with_insufficient_capacity: 340
+    drain_node_with_insufficient_nexus_capacity: 330
+    drain_restarting_node: 402
+    drain_uncordoned_node: 348
+    dynamic_provisioning: 50
+    events_ha_switchover: 92
+    events_nexus: 207
+    events_nexus_child: 43
+    events_no_nats: 73
+    events_nvmepath: 99
+    events_pool: 15
+    events_replica: 3
+    events_self_ci: 6
+    events_subscription_timing: 114
+    events_volume: 4
+    expand_msp_disk: 128
+    filesystem_consistent_snapshot_creation_when_fsfreeze_failed: 833
+    install: 263
+    io_soak: 3769
+    largevols: 4223
+    maximum_vols_io: 1538
+    maximum_vols_io_disktest: 1424
+    mayastorpool_schema: 50
+    mongodb_standalone_full_rebuild_history: 530
+    ms_pod_disruption_no_io: 1022
+    ms_pod_restart: 147
+    ms_pool_delete: 77
+    msv_rebuild: 201
+    multi_rep_app_single_rep_vol_insufficient_pools: 225
+    multiple_vols_pod_io: 529
+    nexus_location: 210
+    node_failure: 6087
+    node_shutdown: 842
+    offline_volume_expansion_unpublished_xfs_volume: 685
+    online_volume_expansion_snapshot_before_expansion: 878
+    partial_rebuild_faulted_child_with_timeout: 1776
+    pool_modify: 133
+    pool_operator_pool_deletion: 372
+    primitive_data_integrity: 165
+    primitive_device_retirement_detach_nexus: 1210
+    primitive_fault_injection: 602
+    primitive_fuzz_msv: 3146
+    primitive_max_volumes_in_pool: 918
+    primitive_msp_deletion: 2891
+    primitive_msp_state: 6155
+    primitive_msp_stress: 932
+    primitive_replicas: 132
+    primitive_volumes: 1062
+    pvc_delete: 181
+    pvc_readwriteonce: 373
+    pvc_stress_fio: 883
+    pvc_waitforfirstconsumer: 51
+    remote_provisioning: 377
+    replica_io_stats_counter_values_validation: 347
+    restore_different_filesystem_from_snapshot: 712
+    single_msn_shutdown: 1507
+    snapshot_dsp_delete_hosting_snapshot: 174
+    stale_msp_after_node_power_failure: 216
+    stats_module: 1026
+    synchronous_replication: 347
+    thin_prov_oos_does_not_affect_thick_volumes: 343
+    uninstall: 63
+    upgrade: 1164
+    upgrade_randwrite: 1292
+    upgrade_when_control_plane_failure_occur: 770
+    upgrade_when_node_goes_offline: 1190
+    upgrade_when_previous_attempt_failed: 1358
+    upgrade_when_previous_attempt_failed_randwrite: 1337
+    upgrade_with_cordoned_node: 1267
+    upgrade_with_dataplane_manual_restart: 1214
+    upgrade_with_replica_rebuiling_inprogress: 1592
+    upgrade_with_single_replica_volume_present: 1025
+    upgrade_with_unsupported_path: 32
+    volume_filesystem: 6
+    volume_io_stats_counter_correctness_with_replica_counters: 354
+    volume_io_stats_counter_values_validation: 359

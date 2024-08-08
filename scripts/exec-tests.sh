@@ -371,7 +371,7 @@ else
     sessiondir="$ARTIFACTSDIR/sessions/$session"
     logsdir="$logsdir/$session"
     reportsdir="$reportsdir/$session"
-    coveragedir="$coveragedir/$session"
+    # coveragedir="$coveragedir/$session"
 fi
 
 
