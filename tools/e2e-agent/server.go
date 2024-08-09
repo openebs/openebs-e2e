@@ -985,7 +985,7 @@ func ZeroingHugePages(w http.ResponseWriter, r *http.Request) {
 	params := make([]string, 2)
 	cmdStr := "bash"
 	params[0] = "-c"
-	params[1] = "echo 0 | sudo tee /proc/sys/vm/nr_hugepages"
+	params[1] = "echo 0 | tee /proc/sys/vm/nr_hugepages"
 
 	klog.Info("executing command ", params[1])
 	cmd := exec.Command(cmdStr, params...)
