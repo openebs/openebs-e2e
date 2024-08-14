@@ -52,13 +52,13 @@ type FioApplication struct {
 	SaveFioPodLog           bool
 	PostOpSleep             uint
 	AllowVolumeExpansion    common.AllowVolumeExpansion
-	LvmScOptions            LvmScOptions
-	ZfsScOptions            ZfsScOptions
-	HostPathScOptions       HostPathScOptions
+	Lvm                     LvmOptions
+	Zfs                     ZfsOptions
+	HostPath                HostPathOptions
 	status                  FioApplicationStatus
 }
 
-type LvmScOptions struct {
+type LvmOptions struct {
 	AllowedTopologies []v1.TopologySelectorTerm
 	Shared            common.YesNoVal
 	VgPattern         string
@@ -67,7 +67,7 @@ type LvmScOptions struct {
 	ThinProvision     common.YesNoVal
 }
 
-type ZfsScOptions struct {
+type ZfsOptions struct {
 	AllowedTopologies []v1.TopologySelectorTerm
 	RecordSize        string
 	Compression       string
@@ -78,7 +78,7 @@ type ZfsScOptions struct {
 	Shared            common.YesNoVal
 }
 
-type HostPathScOptions struct {
+type HostPathOptions struct {
 	Annotations map[string]string
 }
 
@@ -324,49 +324,49 @@ func (dfa *FioApplication) CreateSc() error {
 	}
 
 	if dfa.OpenEbsEngine == common.Lvm {
-		if dfa.LvmScOptions.Shared.String() != "" {
-			scBuilder = scBuilder.WithLvmShared(dfa.LvmScOptions.Shared.String())
+		if dfa.Lvm.Shared.String() != "" {
+			scBuilder = scBuilder.WithLvmShared(dfa.Lvm.Shared.String())
 		}
-		if dfa.LvmScOptions.Storage != "" {
-			scBuilder = scBuilder.WithLvmStorage(dfa.LvmScOptions.Storage)
+		if dfa.Lvm.Storage != "" {
+			scBuilder = scBuilder.WithLvmStorage(dfa.Lvm.Storage)
 		}
-		if dfa.LvmScOptions.ThinProvision.String() != "" {
-			scBuilder = scBuilder.WithLvmThinVol(dfa.LvmScOptions.ThinProvision.String())
+		if dfa.Lvm.ThinProvision.String() != "" {
+			scBuilder = scBuilder.WithLvmThinVol(dfa.Lvm.ThinProvision.String())
 		}
-		if dfa.LvmScOptions.VgPattern != "" {
-			scBuilder = scBuilder.WithLvmVgPattern(dfa.LvmScOptions.VgPattern)
+		if dfa.Lvm.VgPattern != "" {
+			scBuilder = scBuilder.WithLvmVgPattern(dfa.Lvm.VgPattern)
 		}
-		if dfa.LvmScOptions.VolGroup != "" {
-			scBuilder = scBuilder.WithLvmVolGroup(dfa.LvmScOptions.VolGroup)
+		if dfa.Lvm.VolGroup != "" {
+			scBuilder = scBuilder.WithLvmVolGroup(dfa.Lvm.VolGroup)
 		}
-		if dfa.LvmScOptions.AllowedTopologies != nil {
-			scBuilder = scBuilder.WithAllowedTopologies(dfa.LvmScOptions.AllowedTopologies)
+		if dfa.Lvm.AllowedTopologies != nil {
+			scBuilder = scBuilder.WithAllowedTopologies(dfa.Lvm.AllowedTopologies)
 		}
 	} else if dfa.OpenEbsEngine == common.Zfs {
-		if dfa.ZfsScOptions.Shared.String() != "" {
-			scBuilder = scBuilder.WithZfsShared(dfa.ZfsScOptions.Shared.String())
+		if dfa.Zfs.Shared.String() != "" {
+			scBuilder = scBuilder.WithZfsShared(dfa.Zfs.Shared.String())
 		}
-		if dfa.ZfsScOptions.RecordSize != "" {
-			scBuilder = scBuilder.WithZfsRecordSize(dfa.ZfsScOptions.RecordSize)
+		if dfa.Zfs.RecordSize != "" {
+			scBuilder = scBuilder.WithZfsRecordSize(dfa.Zfs.RecordSize)
 		}
-		if dfa.ZfsScOptions.ThinProvision.String() != "" {
-			scBuilder = scBuilder.WithZfsThinVol(dfa.ZfsScOptions.ThinProvision.String())
+		if dfa.Zfs.ThinProvision.String() != "" {
+			scBuilder = scBuilder.WithZfsThinVol(dfa.Zfs.ThinProvision.String())
 		}
-		if dfa.ZfsScOptions.Compression != "" {
-			scBuilder = scBuilder.WithZfsCompression(dfa.ZfsScOptions.Compression)
+		if dfa.Zfs.Compression != "" {
+			scBuilder = scBuilder.WithZfsCompression(dfa.Zfs.Compression)
 		}
-		if dfa.ZfsScOptions.DedUp.String() != "" {
-			scBuilder = scBuilder.WithZfsDedUp(dfa.ZfsScOptions.DedUp.String())
+		if dfa.Zfs.DedUp.String() != "" {
+			scBuilder = scBuilder.WithZfsDedUp(dfa.Zfs.DedUp.String())
 		}
-		if dfa.ZfsScOptions.AllowedTopologies != nil {
-			scBuilder = scBuilder.WithAllowedTopologies(dfa.ZfsScOptions.AllowedTopologies)
+		if dfa.Zfs.AllowedTopologies != nil {
+			scBuilder = scBuilder.WithAllowedTopologies(dfa.Zfs.AllowedTopologies)
 		}
-		if dfa.ZfsScOptions.PoolName != "" {
-			scBuilder = scBuilder.WithZfsPoolName(dfa.ZfsScOptions.PoolName)
+		if dfa.Zfs.PoolName != "" {
+			scBuilder = scBuilder.WithZfsPoolName(dfa.Zfs.PoolName)
 		}
 	} else if dfa.OpenEbsEngine == common.Hostpath {
-		if dfa.HostPathScOptions.Annotations != nil {
-			scBuilder = scBuilder.WithAnnotations(dfa.HostPathScOptions.Annotations)
+		if dfa.HostPath.Annotations != nil {
+			scBuilder = scBuilder.WithAnnotations(dfa.HostPath.Annotations)
 		}
 	}
 
