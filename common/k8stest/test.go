@@ -59,17 +59,19 @@ func SetupK8sEnvBasic() error {
 }
 
 func SetupK8sEnv() error {
-	err := CheckAndSetControlPlane()
-	if err != nil {
-		return fmt.Errorf("failed to setup control plane version : CheckAndSetControlPlane: %v", err)
-	}
+	if e2e_config.GetConfig().ReplicatedEngine {
+		err := CheckAndSetControlPlane()
+		if err != nil {
+			return fmt.Errorf("failed to setup control plane version : CheckAndSetControlPlane: %v", err)
+		}
 
-	// Fail the test setup if gRPC calls are mandated and
-	// gRPC calls are not supported.
-	if e2e_config.GetConfig().GrpcMandated {
-		grpcCalls := mayastorclient.CanConnect()
-		if !grpcCalls {
-			return fmt.Errorf("gRPC calls to mayastor are disabled, but mandated by configuration : CanConnect: %v", grpcCalls)
+		// Fail the test setup if gRPC calls are mandated and
+		// gRPC calls are not supported.
+		if e2e_config.GetConfig().GrpcMandated {
+			grpcCalls := mayastorclient.CanConnect()
+			if !grpcCalls {
+				return fmt.Errorf("gRPC calls to mayastor are disabled, but mandated by configuration : CanConnect: %v", grpcCalls)
+			}
 		}
 	}
 	return nil
@@ -281,6 +283,30 @@ func ResourceCheck(waitForPools bool) error {
 		}
 	} else {
 		logf.Log.Info("WARNING: gRPC calls to mayastor are not enabled, all checks cannot be run")
+	}
+	return errs.GetError()
+}
+
+func ResourceK8sCheck() error {
+	var errs = common.ErrorAccumulator{}
+
+	pods, err := CheckForTestPods()
+	errs.Accumulate(err)
+	if pods {
+		errs.Accumulate(fmt.Errorf("found Pods"))
+	}
+
+	pvcs, err := CheckForPVCs()
+	errs.Accumulate(err)
+	if pvcs {
+		errs.Accumulate(fmt.Errorf("found PersistentVolumeClaims"))
+	}
+
+	pvs, err := CheckForPVs()
+	errs.Accumulate(err)
+
+	if pvs {
+		errs.Accumulate(fmt.Errorf("found PersistentVolumes"))
 	}
 
 	return errs.GetError()

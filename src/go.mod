@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/onsi/ginkgo/v2 v2.20.0
 	github.com/onsi/gomega v1.34.1
+	github.com/openebs/openebs-e2e/apps v0.0.0
 	github.com/openebs/openebs-e2e/common v0.0.0
 	sigs.k8s.io/controller-runtime v0.16.3
 )
@@ -72,3 +73,5 @@ require (
 )
 
 replace github.com/openebs/openebs-e2e/common v0.0.0 => ../common
+
+replace github.com/openebs/openebs-e2e/apps v0.0.0 => ../apps

@@ -112,6 +112,34 @@ func BeforeEachCheck() error {
 	return resourceCheckError
 }
 
+func BeforeEachK8sCheck() error {
+
+	testDesc := ginkgo.CurrentSpecReport()
+	common.SetTestCaseLogsPath(testDesc.FullText())
+
+	log.Log.Info("BeforeEachCheck",
+		"FailQuick", e2e_config.GetConfig().FailQuick,
+		"Restart", e2e_config.GetConfig().BeforeEachCheckAndRestart,
+		"resourceCheckError", resourceCheckError,
+	)
+
+	if e2e_config.GetConfig().FailQuick && resourceCheckError != nil {
+		return fmt.Errorf("FailQuick: prior ResourceCheck failed")
+	}
+
+	if e2e_config.GetConfig().FailQuick && haveFailedTestCases {
+		return fmt.Errorf("FailQuick: a prior testcase has failed")
+	}
+
+	if e2e_config.GetConfig().BeforeEachCheckAndRestart {
+		if resourceCheckError == nil {
+			// no previous failure, check resources
+			resourceCheckError = k8stest.ResourceK8sCheck()
+		}
+	}
+	return resourceCheckError
+}
+
 // GenerateSupportBundleIfTestFailed Support function to generate a support bundle if the testcase has failed
 // This function exists for tests which are disruptive and need more control when performing
 // checks after a test case has completed
@@ -179,4 +207,8 @@ func AfterEachCheck() error {
 	// suppress generation of another support bundle since we've just generated
 	// the more useful support bundle.
 	return afterEachCheckResources(canGenSupportBundle)
+}
+
+func AfterEachK8sCheck() error {
+	return k8stest.ResourceK8sCheck()
 }

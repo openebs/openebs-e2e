@@ -55,6 +55,7 @@ type ProductSpec struct {
 	HaNodeAgentDs                     string            `yaml:"haNodeAgentDs" env-default:"mayastor-agent-ha-node"`
 	HaNodeAgentPodPrefix              string            `yaml:"haNodeAgentPodPrefix" env-default:"mayastor-agent-ha-node"`
 	HelmReleaseName                   string            `yaml:"helmReleaseName" env-default:"mayastor"`
+	OpenEBSHelmReleaseName            string            `yaml:"openEBSHelmReleaseName"`
 	IOEnginePodLabelValue             string            `yaml:"ioEnginePodLabelValue" env-default:"io-engine"`
 	IOEnginePodName                   string            `yaml:"ioEnginePodName"`
 	JaegersCrdName                    string            `yaml:"jaegersCrdName" env-default:"jaegers.jaegertracing.io"`
@@ -81,6 +82,9 @@ type ProductSpec struct {
 	MongoAuthUsername                 string            `yaml:"mongoAuthUsername" env-default:"admin"`
 	MongoDatabasePort                 int               `yaml:"mongoDatabasePort" env-default:"27017"`
 	MongoDefaultChartVersion          string            `yaml:"mongoDefaultChartVersion" env-default:"14.5.0"`
+	OpenEBSHelmRepo                   string            `yaml:"openEBSHelmRepo"`
+	OpenEBSHelmRepoName               string            `yaml:"openEBSHelmRepoName"`
+	OpenEBSHelmRepoUrl                string            `yaml:"openEBSHelmRepoUrl"`
 	MongoHelmRepo                     string            `yaml:"mongoHelmRepo" env-default:"bitnami/mongodb"`
 	MongoHelmRepoName                 string            `yaml:"mongoHelmRepoName" env-default:"bitnami"`
 	MongoHelmRepoUrl                  string            `yaml:"mongoHelmRepoUrl" env-default:"https://charts.bitnami.com/bitnami"`
@@ -105,6 +109,7 @@ type ProductSpec struct {
 	PostgresK8sLabelValue             string            `yaml:"postgresK8sLabelValue"`
 	ProductName                       string            `yaml:"productName" env-default:"mayastor"`
 	ProductNamespace                  string            `yaml:"productNamespace" env-default:"mayastor"`
+	OpenEBSProductNamespace           string            `yaml:"openEBSProductNamespace"`
 	PrometheusPodPrefix               string            `yaml:"prometheusPodPrefix" env-default:"prometheus"`
 	PrometheusPort                    int               `yaml:"prometheusPort" env-default:"30090"`
 	PromtailDaemonsetName             string            `yaml:"promtailDaemonsetName" env-default:"mayastor-promtail"`
@@ -171,6 +176,7 @@ type E2EConfig struct {
 	KubectlPluginDir  string `yaml:"kubectlPluginDir" env:"e2e_kubectl_plugin_dir"`
 	MaasOauthApiToken string `yaml:"maasOauthApiToken" env:"e2e_maas_api_token"`
 	MaasEndpoint      string `yaml:"maasEndpoint" env:"e2e_maas_endpoint"`
+	ReplicatedEngine  bool   `yaml:"replicatedEngine" env:"replicatedEngine"`
 
 	// Operational parameters
 	Cores int `yaml:"cores,omitempty"`

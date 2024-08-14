@@ -14,6 +14,11 @@ func NSMayastor() string {
 	return e2e_config.GetConfig().Product.ProductNamespace
 }
 
+// NSMayastor return the name of the namespace in which Mayastor is installed
+func NSOpenEBS() string {
+	return e2e_config.GetConfig().Product.OpenEBSProductNamespace
+}
+
 // default fio arguments for E2E fio runs
 var fioArgs = []string{
 	"--name=benchtest",
