@@ -467,6 +467,20 @@ func (b *PodtemplatespecBuilder) WithVolumeBuildersNew(
 	return b
 }
 
+// WithRestartPolicy sets the RestartPolicy field of PodTemplateSpec
+func (b *PodtemplatespecBuilder) WithRestartPolicy(restartPolicy corev1.RestartPolicy) *PodtemplatespecBuilder {
+	if restartPolicy == "" {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build podtemplatespec object: missing restart policy"),
+		)
+		return b
+	}
+	b.podtemplatespec.Object.Spec.RestartPolicy = restartPolicy
+	return b
+}
+
+
 // Build returns a padTemplateSpec instance
 func (b *PodtemplatespecBuilder) Build() (*PodTemplateSpec, error) {
 	err := b.validate()
