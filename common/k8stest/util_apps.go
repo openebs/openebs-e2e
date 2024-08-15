@@ -262,6 +262,7 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
             		WithPodTemplateSpecBuilder(
                 		NewPodtemplatespecBuilder().
                     		WithLabels(labelselector).
+				WithRestartPolicy(coreV1.RestartPolicyNever)
                     		WithContainerBuildersNew(
                         		NewContainerBuilder().
                             		WithName(dfa.DeployName).
