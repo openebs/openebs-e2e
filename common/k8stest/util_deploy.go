@@ -221,6 +221,21 @@ func (b *DeploymentBuilder) WithPodTemplateSpecBuilder(
 	return b
 }
 
+// WithRestartPolicy sets the restart policy of the deployment's PodTemplateSpec.
+func (b *DeploymentBuilder) WithRestartPolicy(policy coreV1.RestartPolicy) *DeploymentBuilder {
+	if policy != coreV1.RestartPolicyAlways && policy != coreV1.RestartPolicyOnFailure && policy != coreV1.RestartPolicyNever {
+		b.errors = append(
+			b.errors,
+			errors.New("failed to build deployment object: invalid restart policy"),
+		)
+		return b
+	}
+
+	b.deployment.object.Spec.Template.Spec.RestartPolicy = policy
+	return b
+}
+
+
 type deploymentBuildOption func(*Deployment)
 
 // NewForAPIObject returns a new instance of builder
