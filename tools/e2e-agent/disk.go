@@ -132,8 +132,9 @@ func DeleteLoopDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var output string
 	detachLoopCommand := "losetup -d " + device.DiskPath
-	_, err := bashLocal(detachLoopCommand)
+	output, err := bashLocal(detachLoopCommand)
 	if err != nil {
 		msg = fmt.Sprintf("cannot detach loop device. Error %s", err.Error())
 		klog.Error(msg)
@@ -145,14 +146,6 @@ func DeleteLoopDevice(w http.ResponseWriter, r *http.Request) {
 		msg = fmt.Sprintf("could not delete backing disk image. Error : %s", err.Error())
 		klog.Error(msg)
 		WrapResult(msg, ErrGeneral, w)
-		return
-	}
-	deleteLoopDeviceCommand := "rm " + device.DiskPath
-	output, err := bashLocal(deleteLoopDeviceCommand)
-	if err != nil {
-		msg = fmt.Sprintf("could not delete loop device. Error : %s", err.Error())
-		klog.Error(msg)
-		WrapResult(msg, ErrExecFailed, w)
 		return
 	}
 	WrapResult(output, ErrNone, w)

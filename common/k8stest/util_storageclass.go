@@ -45,6 +45,12 @@ func NewScBuilder() *ScBuilder {
 	return scObject
 }
 
+// NewStorageClassBuilder returns new instance of ScBuilder
+func NewStorageClassBuilder() *ScBuilder {
+	obj := ScBuilder{sc: &StorageClass{object: &storagev1.StorageClass{}}}
+	return &obj
+}
+
 // WithName sets the Name field of storageclass with provided argument.
 func (b *ScBuilder) WithName(name string) *ScBuilder {
 	if len(name) == 0 {
@@ -348,4 +354,114 @@ func CreateSc(obj *storagev1.StorageClass) error {
 	ScApi := gTestEnv.KubeInt.StorageV1().StorageClasses
 	_, createErr := ScApi().Create(context.TODO(), obj, metaV1.CreateOptions{})
 	return createErr
+}
+
+// LVM
+// WithLvmShared sets the shared parameter of storageclass with provided argument.
+func (b *ScBuilder) WithLvmShared(value string) *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScLvmShared)] = value
+	return b
+}
+
+// WithLvmVgPattern sets the vgPattern parameter of storageclass with provided argument.
+func (b *ScBuilder) WithLvmVgPattern(value string) *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScLvmVgPattern)] = value
+	return b
+}
+
+// WithLvmVolGroup sets the volGroup parameter of storageclass with provided argument.
+func (b *ScBuilder) WithLvmVolGroup(value string) *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScLvmVgVolGroup)] = value
+	return b
+}
+
+// WithLvmThinVol sets the thinProvision parameter of storageclass to yes or no
+func (b *ScBuilder) WithLvmThinVol(val string) *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScLvmThinProvision)] = val
+	return b
+}
+
+// WithLvmStorage sets the storage parameter of storageclass to given argument.
+func (b *ScBuilder) WithLvmStorage(value string) *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScLvmStorage)] = value
+	return b
+}
+
+// WithLvmAllowedTopologies sets the allowedTopologies of storageclass to given argument.
+func (b *ScBuilder) WithAllowedTopologies(value []v1.TopologySelectorTerm) *ScBuilder {
+	if len(value) == 0 {
+		return b
+	}
+	b.sc.object.AllowedTopologies = value
+	return b
+}
+
+// ZFS
+// WithZfsShared sets the shared parameter of storageclass with provided argument.
+func (b *ScBuilder) WithZfsShared(value string) *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScZfsShared)] = value
+	return b
+}
+
+// WithZfsRecordSize sets the recordsize parameter of storageclass with provided argument.
+func (b *ScBuilder) WithZfsRecordSize(value string) *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScZfsRecordSize)] = value
+	return b
+}
+
+// WithZfsCompression sets the compression parameter of storageclass with provided argument.
+func (b *ScBuilder) WithZfsCompression(value string) *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScZfsCompression)] = value
+	return b
+}
+
+// WithZfsThinVol sets the thinProvision parameter of storageclass to yes or no
+func (b *ScBuilder) WithZfsThinVol(val string) *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScZfsThinProvision)] = val
+	return b
+}
+
+// WithZfsDeDUp sets the dedup parameter of storageclass to given argument.
+func (b *ScBuilder) WithZfsDeDUp(value string) *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScZfsDeDup)] = value
+	return b
+}
+
+// WithZfsPoolName sets the poolname parameter of storageclass to given argument.
+func (b *ScBuilder) WithZfsPoolName(value string) *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScZfsPoolName)] = value
+	return b
 }

@@ -5,9 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/openebs/openebs-e2e/common/e2e_agent"
 	"os/exec"
 	"strings"
+
+	"github.com/openebs/openebs-e2e/common/e2e_agent"
 
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 
@@ -408,4 +409,8 @@ func UpdateNodeTaints(nodeName string, taintKey string) error {
 
 	fmt.Println("Node taints updated successfully")
 	return nil
+}
+
+func ListWorkerNode() ([]NodeLocation, error) {
+	return getNodeLocs()
 }

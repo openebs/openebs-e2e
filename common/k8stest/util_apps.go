@@ -12,8 +12,8 @@ import (
 
 	coreV1 "k8s.io/api/core/v1"
 	storageV1 "k8s.io/api/storage/v1"
-	"k8s.io/apimachinery/pkg/util/uuid"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/uuid"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -127,7 +127,6 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 	if dfa.DeployName == "" {
 		dfa.status.podName = podPrefix + decoration
 	}
-	
 
 	efab := common.NewE2eFioArgsBuilder().WithArgumentSet(fioArgsSet).WithZeroFill(dfa.ZeroFill)
 	if dfa.Liveness {
@@ -247,7 +246,7 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 		}
 
 		return fmt.Errorf("pod state is %v, %s", phase, podLogSynopsis)
-		
+
 	} else {
 		labelKey := "e2e-test"
 		labelValue := "fio"
@@ -256,29 +255,29 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 		}
 		deployment, err := NewDeploymentBuilder().
 			WithName(dfa.DeployName).
-            		WithNamespace(common.NSDefault).
-            		WithLabelsNew(labelselector).
-            		WithSelectorMatchLabelsNew(labelselector).
-            		WithPodTemplateSpecBuilder(
-                		NewPodtemplatespecBuilder().
-                    		WithLabels(labelselector).
-                    		WithContainerBuildersNew(
-                        		NewContainerBuilder().
-                            		WithName(dfa.DeployName).
-                            		WithImage(common.GetFioImage()).
-                            		WithVolumeDeviceOrMount("ms-volume", dfa.VolType).
-                            		WithImagePullPolicy(coreV1.PullAlways).
-                            		WithArgumentsNew(podArgs)).
-                    		WithVolumeBuilders(
-                        		NewVolumeBuilder().
-                            		WithName("ms-volume").
-                            		WithPVCSource(dfa.status.volName),
-                    		),
-            		).Build()
+			WithNamespace(common.NSDefault).
+			WithLabelsNew(labelselector).
+			WithSelectorMatchLabelsNew(labelselector).
+			WithPodTemplateSpecBuilder(
+				NewPodtemplatespecBuilder().
+					WithLabels(labelselector).
+					WithContainerBuildersNew(
+						NewContainerBuilder().
+							WithName(dfa.DeployName).
+							WithImage(common.GetFioImage()).
+							WithVolumeDeviceOrMount("ms-volume", dfa.VolType).
+							WithImagePullPolicy(coreV1.PullAlways).
+							WithArgumentsNew(podArgs)).
+					WithVolumeBuilders(
+						NewVolumeBuilder().
+							WithName("ms-volume").
+							WithPVCSource(dfa.status.volName),
+					),
+			).Build()
 		if err != nil {
-            return fmt.Errorf("failed to create deployment %s definition object in %s namesppace", dfa.DeployName, common.NSDefault)
-        	}
-		
+			return fmt.Errorf("failed to create deployment %s definition object in %s namesppace", dfa.DeployName, common.NSDefault)
+		}
+
 		if dfa.AppNodeName != "" {
 			deployment.Spec.Template.Spec.NodeName = dfa.AppNodeName
 		}
