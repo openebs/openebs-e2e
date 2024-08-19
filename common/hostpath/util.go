@@ -12,8 +12,8 @@ type HostPathDeviceNodeConfig struct {
 	NodeDeviceMap map[string]e2e_agent.LoopDevice
 }
 
-func (hostPathConfig *HostPathDeviceNodeConfig) RemoveConfiguredHostPathDevice() error {
-	logf.Log.Info("Deleting  Hostptah device on nodes")
+func (hostPathConfig *HostPathDeviceNodeConfig) RemoveConfiguredHostPathDevices() error {
+	logf.Log.Info("Deleting  Hostpath device on nodes")
 	for node, device := range hostPathConfig.NodeDeviceMap {
 		logf.Log.Info("Deleting hostpath mount point", "node", node, "mount point", device.MountPoint)
 		if hostPathConfig.NodeDeviceMap[node].MountPoint == "" {
@@ -34,7 +34,7 @@ func (hostPathConfig *HostPathDeviceNodeConfig) RemoveConfiguredHostPathDevice()
 	return k8stest.RemoveConfiguredLoopDeviceOnNodes(hostPathConfig.NodeDeviceMap)
 }
 
-func (hostPathConfig *HostPathDeviceNodeConfig) ConfigureHostPathNodesDevice() error {
+func (hostPathConfig *HostPathDeviceNodeConfig) ConfigureHostPathDevices() error {
 	var err error
 	nodeMountPoints := make(map[string]string)
 	for node, device := range hostPathConfig.NodeDeviceMap {
@@ -74,10 +74,4 @@ func (hostPathConfig *HostPathDeviceNodeConfig) ConfigureHostPathNodesDevice() e
 		}
 	}
 	return nil
-}
-
-type HostPathScOptions struct {
-	Provisioner       string
-	VolumeBindingMode string
-	Annotations       map[string]string
 }

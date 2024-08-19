@@ -45,20 +45,20 @@ const ScCloneFsIdAsVolumeId = "cloneFsIdAsVolumeId"
 const ScMaxSnapshots = "maxSnapshots"
 
 // LVM
-const LvmShared = "shared"
-const LvmVgPattern = "vgpattern"
-const LvmVgVolGroup = "volgroup"
-const LvmThinProvision = "thinProvision"
-const LvmStorage = "storage"
+const ScLvmShared = "shared"
+const ScLvmVgPattern = "vgpattern"
+const ScLvmVgVolGroup = "volgroup"
+const ScLvmThinProvision = "thinProvision"
+const ScLvmStorage = "storage"
 
 // ZFS
-const ZfsShared = "shared"
-const ZfsRecordSize = "recordsize"
-const ZfsCompression = "compression"
-const ZfsThinProvision = "thinprovision"
-const ZfsDedUp = "dedup"
-const ZfsPoolName = "poolname"
-const ZfsVolBlockSize = "volblocksize"
+const ScZfsShared = "shared"
+const ScZfsRecordSize = "recordsize"
+const ScZfsCompression = "compression"
+const ScZfsThinProvision = "thinProvision"
+const ScZfsDeDup = "dedup"
+const ScZfsPoolName = "poolname"
+const ScZfsVolBlockSize = "volblocksize"
 
 //  These variables match the settings used in fsx pod definition
 

@@ -43,14 +43,6 @@ func ListZfsNode(namespace string) ([]string, error) {
 	return zfsNode, err
 }
 
-// func ConfigureLoopDeviceOnZfsNodes(namespace string, size int64, imageDir string) (map[string]e2e_agent.LoopDevice, error) {
-// 	zfsNodes, err := ListZfsNode(namespace)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return k8stest.ConfigureLoopDeviceOnNodes(zfsNodes, size, imageDir)
-// }
-
 type ZfsNodesDevicePoolConfig struct {
 	PoolName      string
 	NodeDeviceMap map[string]e2e_agent.LoopDevice

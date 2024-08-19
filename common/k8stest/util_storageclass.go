@@ -362,7 +362,7 @@ func (b *ScBuilder) WithLvmShared(value string) *ScBuilder {
 	if b.sc.object.Parameters == nil {
 		b.sc.object.Parameters = map[string]string{}
 	}
-	b.sc.object.Parameters[string(common.LvmShared)] = value
+	b.sc.object.Parameters[string(common.ScLvmShared)] = value
 	return b
 }
 
@@ -371,7 +371,7 @@ func (b *ScBuilder) WithLvmVgPattern(value string) *ScBuilder {
 	if b.sc.object.Parameters == nil {
 		b.sc.object.Parameters = map[string]string{}
 	}
-	b.sc.object.Parameters[string(common.LvmVgPattern)] = value
+	b.sc.object.Parameters[string(common.ScLvmVgPattern)] = value
 	return b
 }
 
@@ -380,7 +380,7 @@ func (b *ScBuilder) WithLvmVolGroup(value string) *ScBuilder {
 	if b.sc.object.Parameters == nil {
 		b.sc.object.Parameters = map[string]string{}
 	}
-	b.sc.object.Parameters[string(common.LvmVgVolGroup)] = value
+	b.sc.object.Parameters[string(common.ScLvmVgVolGroup)] = value
 	return b
 }
 
@@ -389,7 +389,7 @@ func (b *ScBuilder) WithLvmThinVol(val string) *ScBuilder {
 	if b.sc.object.Parameters == nil {
 		b.sc.object.Parameters = map[string]string{}
 	}
-	b.sc.object.Parameters[string(common.LvmThinProvision)] = val
+	b.sc.object.Parameters[string(common.ScLvmThinProvision)] = val
 	return b
 }
 
@@ -398,7 +398,7 @@ func (b *ScBuilder) WithLvmStorage(value string) *ScBuilder {
 	if b.sc.object.Parameters == nil {
 		b.sc.object.Parameters = map[string]string{}
 	}
-	b.sc.object.Parameters[string(common.LvmStorage)] = value
+	b.sc.object.Parameters[string(common.ScLvmStorage)] = value
 	return b
 }
 
@@ -411,13 +411,13 @@ func (b *ScBuilder) WithAllowedTopologies(value []v1.TopologySelectorTerm) *ScBu
 	return b
 }
 
-// ZFs
+// ZFS
 // WithZfsShared sets the shared parameter of storageclass with provided argument.
 func (b *ScBuilder) WithZfsShared(value string) *ScBuilder {
 	if b.sc.object.Parameters == nil {
 		b.sc.object.Parameters = map[string]string{}
 	}
-	b.sc.object.Parameters[string(common.ZfsShared)] = value
+	b.sc.object.Parameters[string(common.ScZfsShared)] = value
 	return b
 }
 
@@ -426,7 +426,7 @@ func (b *ScBuilder) WithZfsRecordSize(value string) *ScBuilder {
 	if b.sc.object.Parameters == nil {
 		b.sc.object.Parameters = map[string]string{}
 	}
-	b.sc.object.Parameters[string(common.ZfsRecordSize)] = value
+	b.sc.object.Parameters[string(common.ScZfsRecordSize)] = value
 	return b
 }
 
@@ -435,7 +435,7 @@ func (b *ScBuilder) WithZfsCompression(value string) *ScBuilder {
 	if b.sc.object.Parameters == nil {
 		b.sc.object.Parameters = map[string]string{}
 	}
-	b.sc.object.Parameters[string(common.ZfsCompression)] = value
+	b.sc.object.Parameters[string(common.ScZfsCompression)] = value
 	return b
 }
 
@@ -444,16 +444,16 @@ func (b *ScBuilder) WithZfsThinVol(val string) *ScBuilder {
 	if b.sc.object.Parameters == nil {
 		b.sc.object.Parameters = map[string]string{}
 	}
-	b.sc.object.Parameters[string(common.ZfsThinProvision)] = val
+	b.sc.object.Parameters[string(common.ScZfsThinProvision)] = val
 	return b
 }
 
-// WithZfsDedUp sets the dedup parameter of storageclass to given argument.
-func (b *ScBuilder) WithZfsDedUp(value string) *ScBuilder {
+// WithZfsDeDUp sets the dedup parameter of storageclass to given argument.
+func (b *ScBuilder) WithZfsDeDUp(value string) *ScBuilder {
 	if b.sc.object.Parameters == nil {
 		b.sc.object.Parameters = map[string]string{}
 	}
-	b.sc.object.Parameters[string(common.ZfsDedUp)] = value
+	b.sc.object.Parameters[string(common.ScZfsDeDup)] = value
 	return b
 }
 
@@ -462,6 +462,6 @@ func (b *ScBuilder) WithZfsPoolName(value string) *ScBuilder {
 	if b.sc.object.Parameters == nil {
 		b.sc.object.Parameters = map[string]string{}
 	}
-	b.sc.object.Parameters[string(common.ZfsPoolName)] = value
+	b.sc.object.Parameters[string(common.ScZfsPoolName)] = value
 	return b
 }

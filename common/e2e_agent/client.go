@@ -929,9 +929,9 @@ func CreateLoopDevice(serverAddr string, size int64, imageDir string) (LoopDevic
 }
 
 // DeleteLoopDevice delete loop device
-func DeleteLoopDevice(serverAddr string, dsikPath string, imageName string) (string, error) {
+func DeleteLoopDevice(serverAddr string, diskPath string, imageName string) (string, error) {
 	data := LoopDevice{
-		DiskPath:  dsikPath,
+		DiskPath:  diskPath,
 		ImageName: imageName,
 	}
 	logf.Log.Info("Executing deleteloopdevice", "addr", serverAddr, "data", data)

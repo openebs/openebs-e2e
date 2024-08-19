@@ -356,7 +356,7 @@ func (dfa *FioApplication) CreateSc() error {
 			scBuilder = scBuilder.WithZfsCompression(dfa.Zfs.Compression)
 		}
 		if dfa.Zfs.DedUp.String() != "" {
-			scBuilder = scBuilder.WithZfsDedUp(dfa.Zfs.DedUp.String())
+			scBuilder = scBuilder.WithZfsDeDUp(dfa.Zfs.DedUp.String())
 		}
 		if dfa.Zfs.AllowedTopologies != nil {
 			scBuilder = scBuilder.WithAllowedTopologies(dfa.Zfs.AllowedTopologies)
