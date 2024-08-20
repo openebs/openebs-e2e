@@ -5,6 +5,7 @@ GOSRCDIRAPPS=$(realpath "$SCRIPTDIR/../apps")
 GOSRCDIRCOMMON=$(realpath "$SCRIPTDIR/../common")
 GOSRCDIRE2EAGENT=$(realpath "$SCRIPTDIR/../tools/e2e-agent")
 GOSRCDIRE2EPROXY=$(realpath "$SCRIPTDIR/../tools/e2e-proxy")
+GOSRCDIRSRC=$(realpath "$SCRIPTDIR/../src")
 exitv=0
 
 reformat=1
@@ -44,6 +45,10 @@ if golangci-lint > /dev/null 2>&1 ; then
         exitv=1
     fi
     cd "$GOSRCDIRE2EPROXY" || exit 1
+    if ! golangci-lint run -v --allow-parallel-runners ; then
+        exitv=1
+    fi
+    cd "$GOSRCDIRSRC" || exit 1
     if ! golangci-lint run -v --allow-parallel-runners ; then
         exitv=1
     fi
