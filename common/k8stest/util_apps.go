@@ -80,6 +80,7 @@ type FioApp struct {
 	MaxSnapshots                        int
 	PoolHasTopologyKey                  string
 	PoolAffinityTopologyLabel           map[string]string
+	MountReadOnly                       bool
 	status                              dfaStatus
 }
 
@@ -212,6 +213,9 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 
 		if dfa.AppNodeName != "" {
 			pod = pod.WithNodeName(dfa.AppNodeName)
+		}
+		if dfa.MountReadOnly {
+			pod = pod.WithMountReadOnly(true)
 		}
 		podObj, err := pod.Build()
 		if err != nil {
