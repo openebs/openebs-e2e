@@ -1236,7 +1236,7 @@ func MakePVC(volSizeMb int, volName string, scName string, volType common.Volume
 		return "", fmt.Errorf("failed to get storageclass: %s, error: %v", scName, getScErr)
 	}
 	if *sc.VolumeBindingMode == storagev1.VolumeBindingWaitForFirstConsumer {
-		return "", nil
+		return string(pvc.ObjectMeta.UID), nil
 	}
 
 	// Wait for the PVC to be bound.
