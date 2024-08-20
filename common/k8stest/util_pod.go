@@ -39,8 +39,9 @@ type Pod struct {
 
 // PodBuilder is the builder object for Pod
 type PodBuilder struct {
-	pod  *Pod
-	errs []error
+	pod            *Pod
+	errs           []error
+	readOnlyVolume bool
 }
 
 // NewPodBuilder returns new instance of Builder
@@ -50,6 +51,12 @@ func NewPodBuilder(appLabelValue string) *PodBuilder {
 			Labels: map[string]string{"app": appLabelValue},
 		},
 	}}}
+}
+
+// registerErrorMessage helper function to register errors,
+// the Build method will fail if any error message have been registered.
+func (b *PodBuilder) registerErrorMessage(errMsg string) {
+	b.errs = append(b.errs, errors.New(errMsg))
 }
 
 // WithTolerationsForTaints sets the Spec.Tolerations with provided taints.
@@ -79,10 +86,7 @@ func (b *PodBuilder) WithTolerationsForTaints(taints ...corev1.Taint) *PodBuilde
 // WithName sets the Name field of Pod with provided value.
 func (b *PodBuilder) WithName(name string) *PodBuilder {
 	if len(name) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build Pod object: missing Pod name"),
-		)
+		b.registerErrorMessage("failed to build Pod object: missing Pod name")
 		return b
 	}
 	b.pod.object.Name = name
@@ -92,10 +96,7 @@ func (b *PodBuilder) WithName(name string) *PodBuilder {
 // WithNamespace sets the Namespace field of Pod with provided value.
 func (b *PodBuilder) WithNamespace(namespace string) *PodBuilder {
 	if len(namespace) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build Pod object: missing namespace"),
-		)
+		b.registerErrorMessage("failed to build Pod object: missing namespace")
 		return b
 	}
 	b.pod.object.Namespace = namespace
@@ -105,10 +106,7 @@ func (b *PodBuilder) WithNamespace(namespace string) *PodBuilder {
 // WithNamespace sets the Namespace field of Pod with provided value.
 func (b *PodBuilder) WithLabels(labels map[string]string) *PodBuilder {
 	if len(labels) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build Pod object: missing labels"),
-		)
+		b.registerErrorMessage("failed to build Pod object: missing labels")
 		return b
 	}
 	if b.pod.object.Labels != nil {
@@ -132,10 +130,7 @@ func (b *PodBuilder) WithRestartPolicy(
 // WithNodeName sets the NodeName field of Pod with provided value.
 func (b *PodBuilder) WithNodeName(nodeName string) *PodBuilder {
 	if len(nodeName) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build Pod object: missing Pod node name"),
-		)
+		b.registerErrorMessage("failed to build Pod object: missing Pod node name")
 		return b
 	}
 	b.pod.object.Spec.NodeName = nodeName
@@ -146,10 +141,7 @@ func (b *PodBuilder) WithNodeName(nodeName string) *PodBuilder {
 // This function replaces (resets) the NodeSelector to use only hostname selector
 func (b *PodBuilder) WithNodeSelectorHostnameNew(hostname string) *PodBuilder {
 	if len(hostname) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build Pod object: missing Pod hostname"),
-		)
+		b.registerErrorMessage("failed to build Pod object: missing Pod hostname")
 		return b
 	}
 
@@ -163,10 +155,7 @@ func (b *PodBuilder) WithNodeSelectorHostnameNew(hostname string) *PodBuilder {
 // WithContainers sets the Containers field in Pod with provided arguments
 func (b *PodBuilder) WithContainers(containers []corev1.Container) *PodBuilder {
 	if len(containers) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build Pod object: missing containers"),
-		)
+		b.registerErrorMessage("failed to build Pod object: missing containers")
 		return b
 	}
 	b.pod.object.Spec.Containers = containers
@@ -181,10 +170,7 @@ func (b *PodBuilder) WithContainer(container corev1.Container) *PodBuilder {
 // WithVolumes sets the Volumes field in Pod with provided arguments
 func (b *PodBuilder) WithVolumes(volumes []corev1.Volume) *PodBuilder {
 	if len(volumes) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build Pod object: missing volumes"),
-		)
+		b.registerErrorMessage("failed to build Pod object: missing volumes")
 		return b
 	}
 	if b.pod.object.Spec.Volumes == nil {
@@ -200,14 +186,18 @@ func (b *PodBuilder) WithVolume(volume corev1.Volume) *PodBuilder {
 	return b.WithVolumes([]corev1.Volume{volume})
 }
 
+// WithMountReadOnly - mount filesystem volumes as read only
+// fails at Build  if volume is raw block
+func (b *PodBuilder) WithMountReadOnly(rdOnly bool) *PodBuilder {
+	b.readOnlyVolume = rdOnly
+	return b
+}
+
 // WithServiceAccountName sets the ServiceAccountName of Pod spec with
 // the provided value
 func (b *PodBuilder) WithServiceAccountName(serviceAccountName string) *PodBuilder {
 	if len(serviceAccountName) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build Pod object: missing Pod service account name"),
-		)
+		b.registerErrorMessage("failed to build Pod object: missing Pod service account name")
 		return b
 	}
 	b.pod.object.Spec.ServiceAccountName = serviceAccountName
@@ -217,10 +207,7 @@ func (b *PodBuilder) WithServiceAccountName(serviceAccountName string) *PodBuild
 // WithVolumeMounts sets the Volumes field in Pod with provided arguments
 func (b *PodBuilder) WithVolumeMounts(volMounts []corev1.VolumeMount) *PodBuilder {
 	if len(volMounts) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build Pod object: missing VolumeMount"),
-		)
+		b.registerErrorMessage("failed to build Pod object: missing VolumeMount")
 		return b
 	}
 	if b.pod.object.Spec.Containers[0].VolumeMounts == nil {
@@ -239,10 +226,7 @@ func (b *PodBuilder) WithVolumeMount(volMount corev1.VolumeMount) *PodBuilder {
 // WithVolumeDevices sets the Volumes field in Pod with provided arguments
 func (b *PodBuilder) WithVolumeDevices(volDevices []corev1.VolumeDevice) *PodBuilder {
 	if len(volDevices) == 0 {
-		b.errs = append(
-			b.errs,
-			errors.New("failed to build Pod object: missing VolumeDevices"),
-		)
+		b.registerErrorMessage("failed to build Pod object: missing VolumeDevices")
 		return b
 	}
 	b.pod.object.Spec.Containers[0].VolumeDevices = volDevices
@@ -297,6 +281,18 @@ func (b *PodBuilder) Build() (*corev1.Pod, error) {
 	if e2e_config.GetConfig().Platform.HostNetworkingRequired {
 		b.pod.object.Spec.HostNetwork = true
 	}
+
+	// readonly volume can only be enforced for filesystem volumes
+	if b.readOnlyVolume {
+		if b.pod.object.Spec.Containers[0].VolumeDevices != nil || len(b.pod.object.Spec.Containers[0].VolumeDevices) != 0 {
+			b.registerErrorMessage("read only volume is incompatible with raw block volumes")
+		}
+		// for now turn on readonly for all filesystem volumes
+		for ix := range b.pod.object.Spec.Containers[0].VolumeMounts {
+			b.pod.object.Spec.Containers[0].VolumeMounts[ix].ReadOnly = true
+		}
+	}
+
 	if len(b.errs) > 0 {
 		return nil, errors.Errorf("%+v", b.errs)
 	}
