@@ -444,6 +444,7 @@ func MonitorE2EFioPod(podName string, nameSpace string) (*common.E2eFioPodOutput
 		ScanFioPodLogs(pod, synopsis)
 		podOut.Completed = true
 	}(&podOut.Synopsis, *pod)
+	podOut.PodName = podName
 	return &podOut, podOut.Synopsis.Err
 }
 

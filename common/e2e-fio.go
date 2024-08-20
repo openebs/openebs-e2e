@@ -188,6 +188,7 @@ func (s *E2eFioPodLogSynopsis) String() string {
 type E2eFioPodOutputMonitor struct {
 	Completed bool
 	Synopsis  E2eFioPodLogSynopsis
+	PodName   string
 }
 
 type E2eFioArgsBuilder struct {
