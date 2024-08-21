@@ -565,6 +565,50 @@ func DumpPodLog(podName string, nameSpace string) {
 	}
 }
 
+func GetPodLog(podName string, nameSpace string) ([]string, error) {
+	var logfile []string
+	podApi := gTestEnv.KubeInt.CoreV1().Pods
+	pod, err := podApi(nameSpace).Get(context.TODO(), podName, metaV1.GetOptions{})
+	if err != nil {
+		return logfile, err
+	}
+	for _, container := range pod.Spec.Containers {
+		opts := v1.PodLogOptions{}
+		opts.Follow = true
+		opts.Container = container.Name
+		podLogs, err := gTestEnv.KubeInt.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &opts).Stream(context.TODO())
+		if err != nil {
+			continue
+		}
+		ts := time.Now()
+		chnl := make(chan bool)
+		go func(chn chan bool) {
+			reader := bufio.NewScanner(podLogs)
+			for reader.Scan() {
+				line := reader.Text()
+				chn <- true
+				logfile = append(logfile, line)
+			}
+			chn <- false
+		}(chnl)
+		wait := true
+		for wait {
+			select {
+			case msg := <-chnl:
+				wait = msg
+				ts = time.Now()
+			case <-time.After(10 * time.Second):
+				if time.Since(ts) > 10 {
+					wait = false
+					logf.Log.Info("DumpPodLog: timeout: incomplete", "logfile", logfile, "error", err)
+				}
+			}
+		}
+		_ = podLogs.Close()
+	}
+	return logfile, err
+}
+
 // GetPodHostIp retrieve the IP address  of the node hosting a pod
 func GetPodHostIp(podName string, nameSpace string) (string, error) {
 	podApi := gTestEnv.KubeInt.CoreV1().Pods
