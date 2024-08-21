@@ -39,6 +39,7 @@ type dfaStatus struct {
 	msv            *common.MayastorVolume
 	sessionId      string
 	monitor        *common.E2eFioPodOutputMonitor
+	deploymentName string
 }
 
 type FioApp struct {
@@ -293,7 +294,7 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 		}
 		var running bool
 		// Wait for pods to be running
-		for i := 0; i < DefTimeoutSecs; i++ {
+		for i := 0; i < DefTimeoutSecs && !running; i++ {
 			running, err = VerifyDeploymentReadyReplicaCount(dfa.DeployName, common.NSDefault, 1)
 			if err != nil {
 				return err
@@ -302,6 +303,7 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 		}
 		if running {
 			dfa.status.msv, err = GetMSV(dfa.status.volUuid)
+			dfa.status.deploymentName = dfa.DeployName
 			if err != nil {
 				return err
 			}
@@ -334,6 +336,48 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 		}
 		return fmt.Errorf("deployment did not reach running state in time")
 	}
+}
+
+// RefreshDeploymentFioPodName update the name of the pod from the k8s deployment object
+func (dfa *FioApp) RefreshDeploymentFioPodName() error {
+	var err error
+
+	if dfa.status.deploymentName == "" {
+		return fmt.Errorf("fioApp is not a deployment")
+	}
+
+	dfa.status.msv, err = GetMSV(dfa.status.volUuid)
+	if err != nil {
+		return err
+	}
+	logf.Log.Info("RefreshDeploymentFioPodName", "msv", dfa.status.msv, " deploy", dfa.DeployName)
+
+	pods, err := GetDeploymentPods(dfa.DeployName, common.NSDefault)
+	if err != nil {
+		return err
+	}
+	dfa.status.podName = pods.Items[0].Name
+	return err
+}
+
+// WaitDeploymentRunning  wait for the number of running pod replicas to match 1
+func (dfa *FioApp) WaitDeploymentRunning() (bool, error) {
+	var running bool
+	var err error
+
+	if dfa.status.deploymentName == "" {
+		return false, fmt.Errorf("fioApp is not a deployment")
+	}
+
+	// Wait for pods to be running
+	for i := 0; i < DefTimeoutSecs && !running; i++ {
+		running, err = VerifyDeploymentReadyReplicaCount(dfa.DeployName, common.NSDefault, 1)
+		if err != nil {
+			return running, err
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return running, nil
 }
 
 func (dfa *FioApp) CreateVolume() error {
@@ -835,7 +879,11 @@ func (dfa *FioApp) RefreshVolumeState() error {
 // to populate fields in E2eFioPodOutputMonitor
 func (dfa *FioApp) MonitorPod() (*common.E2eFioPodOutputMonitor, error) {
 	var err error
-	if dfa.status.monitor == nil {
+	if dfa.status.monitor == nil || dfa.status.monitor.PodName != dfa.GetPodName() {
+		// record change of pod being monitored - this can occur for FioApps which are deployments.
+		if dfa.status.monitor != nil {
+			logf.Log.Info("FioApp:MonitorPod switching pods", "from", dfa.status.monitor.PodName, "to", dfa.GetPodName())
+		}
 		dfa.status.monitor, err = MonitorE2EFioPod(dfa.GetPodName(), common.NSDefault)
 		if err != nil {
 			dfa.status.monitor = nil
@@ -850,6 +898,7 @@ func (dfa *FioApp) WaitFioComplete(timeoutSecs int, pollTimeSecs int) (int, erro
 		return 0, err
 	}
 
+	logf.Log.Info("WaitFioComplete", "timeout seconds", timeoutSecs, "poll interval seconds", pollTimeSecs)
 	timeout := time.Duration(int(time.Second) * timeoutSecs)
 	sleeptime := time.Duration(int(time.Second) * pollTimeSecs)
 	for endTime := time.Now().Add(timeout); time.Now().Before(endTime); time.Sleep(sleeptime) {
