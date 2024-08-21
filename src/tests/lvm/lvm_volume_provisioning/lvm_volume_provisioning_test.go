@@ -1,4 +1,4 @@
-package volume_provisioning
+package lvm_volume_provisioning
 
 import (
 	"testing"
@@ -97,10 +97,10 @@ var _ = Describe("volume_provisioning", func() {
 		volumeProvisioningTest("lvm-xfs", common.Lvm, common.VolFileSystem, common.XfsFsType, true)
 	})
 	It("lvm btrfs: should verify a volume can be created, used and deleted", func() {
-		volumeProvisioningTest("lvm-xfs", common.Lvm, common.VolFileSystem, common.BtrfsFsType, true)
+		volumeProvisioningTest("lvm-btrfs", common.Lvm, common.VolFileSystem, common.BtrfsFsType, true)
 	})
 	It("lvm block: should verify a volume can be created, used and deleted", func() {
-		volumeProvisioningTest("lvm-xfs", common.Lvm, common.VolRawBlock, common.NoneFsType, true)
+		volumeProvisioningTest("lvm-rb", common.Lvm, common.VolRawBlock, common.NoneFsType, true)
 	})
 
 	// immediate binding
@@ -111,10 +111,10 @@ var _ = Describe("volume_provisioning", func() {
 		volumeProvisioningTest("lvm-xfs", common.Lvm, common.VolFileSystem, common.XfsFsType, false)
 	})
 	It("lvm btrfs immediate binding: should verify a volume can be created, used and deleted", func() {
-		volumeProvisioningTest("lvm-xfs", common.Lvm, common.VolFileSystem, common.BtrfsFsType, false)
+		volumeProvisioningTest("lvm-btrfs", common.Lvm, common.VolFileSystem, common.BtrfsFsType, false)
 	})
 	It("lvm block immediate binding: should verify a volume can be created, used and deleted", func() {
-		volumeProvisioningTest("lvm-xfs", common.Lvm, common.VolRawBlock, common.NoneFsType, false)
+		volumeProvisioningTest("lvm-rb", common.Lvm, common.VolRawBlock, common.NoneFsType, false)
 	})
 })
 
