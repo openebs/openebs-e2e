@@ -133,6 +133,7 @@ type ProductSpec struct {
 	LvmEngineProvisioner              string            `yaml:"lvmEngineProvisioner"`
 	HostPathEngineProvisioner         string            `yaml:"hostPathEngineProvisioner"`
 	LvmEngineControllerDeploymentName string            `yaml:"lvmEngineControllerDeploymentName"`
+	ProductOpenEBSNamespace           string            `yaml:"productOpenEBSNamespace"`
 	LvmEngineLeaseName                string            `yaml:"lvmEngineLeaseName"`
 }
 

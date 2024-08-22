@@ -7,8 +7,8 @@ import (
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"github.com/openebs/openebs-e2e/common/e2e_ginkgo"
-	"github.com/openebs/openebs-e2e/common/k8sinstall"
 	"github.com/openebs/openebs-e2e/common/lvm"
+	"github.com/openebs/openebs-e2e/common/mayastor/restore"
 
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/k8stest"
@@ -60,7 +60,7 @@ func controllerHaTest(decor string, engine common.OpenEbsEngine, volType common.
 		ImgDir: "/tmp",
 	}
 
-	workerNodes, err := lvm.ListLvmNode(common.NSOpenEBS())
+	workerNodes, err := lvm.ListLvmNode(common.NsOpenEBS())
 	Expect(err).ToNot(HaveOccurred(), "failed to list worker node")
 
 	nodeConfig = lvm.LvmNodesDevicePvVgConfig{
@@ -83,18 +83,17 @@ func controllerHaTest(decor string, engine common.OpenEbsEngine, volType common.
 	}
 
 	// list nodes without NoSchedule taint
-	nodesWithoutTaint, err = k8stest.ListNodesWithoutNoScheduleTaint()
+	nodesWithoutTaint, err = k8stest.ListNodeWithoutNoScheduleTaint()
 	Expect(err).ToNot(HaveOccurred(), "failed to list nodes without NoSchedule taint")
 	logf.Log.Info("nodes without NoSchedule taint", "nodes", nodesWithoutTaint)
 
 	// get the no of replicas in lvm-controller deployment
 	// Scale down the lvm-controller deployment
 	// Check that lvm-controller pods has been terminated successfully
-	logf.Log.Info("Scale down and get the no of replicas in lvm-controller deployment")
+	logf.Log.Info("Get the no of replicas in lvm-controller deployment")
 	lvmControllerName := e2e_config.LvmEngineControllerDeploymentName
-	lvmControllerOrgReplica, err = k8sinstall.ScaleLvmControllerViaHelm(0)
+	lvmControllerOrgReplica, err = k8stest.ZeroDeploymentReplicas(lvmControllerName, common.NsOpenEBS(), 60)
 	Expect(err).To(BeNil(), "failed to scale down deployment %s, error: %v", lvmControllerName, err)
-	Expect(lvmControllerOrgReplica).ShouldNot(BeZero(), "lvm controller replica count should not be zero")
 	logf.Log.Info("Lvm controller deployment", "name", lvmControllerName, "original replica", lvmControllerOrgReplica)
 
 	// create sc and pvc
@@ -108,7 +107,7 @@ func controllerHaTest(decor string, engine common.OpenEbsEngine, volType common.
 	Expect(pvcPhase).Should(Equal(coreV1.ClaimPending), "pvc phase is not pending")
 
 	// verify pvc pre condition failed events
-	isEventPresent, err := k8stest.WaitForPvcNormalEvent(app.GetPvcName(), common.NSDefault, volumeProvisionErrorMsg)
+	isEventPresent, err := restore.WaitForPvcWarningEvent(app.GetPvcName(), common.NSDefault, restore.PreConditionFailedErrorSubstring)
 	Expect(err).To(BeNil())
 	Expect(isEventPresent).To(BeTrue())
 
@@ -122,26 +121,20 @@ func controllerHaTest(decor string, engine common.OpenEbsEngine, volType common.
 	Expect(pvcPhase).Should(Equal(coreV1.ClaimPending), "pvc phase is not pending")
 
 	// verify pvc pre condition failed events
-	isEventPresent, err = k8stest.WaitForPvcNormalEvent(app.GetPvcName(), common.NSDefault, volumeProvisionErrorMsg)
+	isEventPresent, err = restore.WaitForPvcWarningEvent(app.GetPvcName(), common.NSDefault, restore.PreConditionFailedErrorSubstring)
 	Expect(err).To(BeNil())
 	Expect(isEventPresent).To(BeTrue())
 
 	// Scale up the lvm-controller deployment replica to initial replica + 1
-	err = k8stest.RestoreDeploymentReplicas(lvmControllerName, common.NSOpenEBS(), 120, lvmControllerOrgReplica+1)
+	err = k8stest.RestoreDeploymentReplicas(lvmControllerName, common.NsOpenEBS(), 120, lvmControllerOrgReplica+1)
 	Expect(err).To(BeNil(), "failed to scale  deployment %s, error: %v", lvmControllerName, err)
-
-	// get the no of replicas in lvm-controller deployment
-	// Scale up the lvm-controller deployment
-	logf.Log.Info("Scale up lvm-controller deployment")
-	_, err = k8sinstall.ScaleLvmControllerViaHelm(lvmControllerOrgReplica + 1)
-	Expect(err).To(BeNil(), "failed to scale deployment %s, error: %v", lvmControllerName, err)
 
 	//verify pvc and pv to be bound
 	volUuid, err := k8stest.VerifyVolumeProvision(app.GetPvcName(), common.NSDefault)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(volUuid).ToNot(BeEmpty())
 
-	// verify volume state
+	// use created PVC which is deployed as part of restore app
 	err = app.RefreshVolumeState()
 	Expect(err).ToNot(HaveOccurred())
 
@@ -151,8 +144,8 @@ func controllerHaTest(decor string, engine common.OpenEbsEngine, volType common.
 	Expect(err).To(BeNil(), "failed to deploy app")
 
 	// Get the name of the controller pod replica which is active as master at present
-	lease, err := k8stest.GetLease(e2e_config.LvmEngineLeaseName, common.NSOpenEBS())
-	Expect(err).To(BeNil(), "failed to get lease %s in %s namespace", e2e_config.LvmEngineLeaseName, common.NSOpenEBS())
+	lease, err := k8stest.GetLease(e2e_config.LvmEngineLeaseName, "kube-system")
+	Expect(err).To(BeNil(), "failed to get lease %s in kube-system namespace", e2e_config.LvmEngineLeaseName)
 	Expect(lease).ToNot(BeNil(), "no lease found")
 
 	// get lvm controller master pod i.e spec.holderIdentity from lease
@@ -160,21 +153,21 @@ func controllerHaTest(decor string, engine common.OpenEbsEngine, volType common.
 	Expect(initialHolderIdentity).ToNot(BeNil(), "no lease HolderIdentity found")
 	logf.Log.Info("Lvm controller", "Initial HolderIdentity", initialHolderIdentity)
 
-	// taint all nodes so that after deleting lvm controller pod which holds lease, new pod should not get scheduled
+	// taint all nodes so that after deleting one of the lvm controller pods, now pod should not scheduled
 	for _, node := range nodesWithoutTaint {
 		err = k8stest.AddNoScheduleTaintOnNode(node)
 		Expect(err).To(BeNil(), "failed to taint node %s", node)
 	}
 
 	// delete lvm controller pod which is holding lease
-	err = k8stest.DeletePod(*initialHolderIdentity, common.NSOpenEBS())
-	Expect(err).ToNot(HaveOccurred(), "failed to delete pod %s", *initialHolderIdentity)
+	err = k8stest.DeletePod(*initialHolderIdentity, common.NsOpenEBS())
+	Expect(err).ToNot(HaveOccurred(), "fio to delete pod %s", *initialHolderIdentity)
 
 	// wait for lease to switch to different pod
 	Eventually(func() bool {
-		lease, err := k8stest.GetLease(e2e_config.LvmEngineLeaseName, common.NSOpenEBS())
+		lease, err := k8stest.GetLease(e2e_config.LvmEngineLeaseName, "kube-system")
 		if err != nil {
-			logf.Log.Info("failed to get lease", "lease name", e2e_config.LvmEngineLeaseName, "namespace", common.NSOpenEBS(), "error", err)
+			logf.Log.Info("failed to get lease in kube-system namespace", "lease name", e2e_config.LvmEngineLeaseName, "error", err)
 			return false
 		}
 		if *lease.Spec.HolderIdentity == "" {
@@ -186,7 +179,7 @@ func controllerHaTest(decor string, engine common.OpenEbsEngine, volType common.
 
 		return false
 	},
-		defLeaseSwitchTime,
+		defFioCompletionTime,
 		"5s",
 	).Should(BeTrue())
 	Expect(err).To(BeNil(), "failed to get lease")
@@ -207,12 +200,9 @@ func controllerHaTest(decor string, engine common.OpenEbsEngine, volType common.
 	}
 	nodesWithoutTaint = []string{}
 
-	ready, err := k8stest.OpenEBSReady(10, 540)
-	Expect(err).To(BeNil(), "failed to verify openebs pods running state")
-	Expect(ready).To(BeTrue(), "some of the openebs pods are not running")
 }
 
-func TestLvmControllerHaTest(t *testing.T) {
+func TestLvmVolumeProvisioningTest(t *testing.T) {
 	// Initialise test and set class and file names for reports
 	e2e_ginkgo.InitTesting(t, "lvm_ha_controller", "lvm_ha_controller")
 }
@@ -221,13 +211,13 @@ var _ = Describe("lvm_ha_controller", func() {
 
 	BeforeEach(func() {
 		// Check ready to run
-		err := e2e_ginkgo.BeforeEachK8sCheck()
+		err := e2e_ginkgo.BeforeEachCheck()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		// Check resource leakage.
-		err := e2e_ginkgo.AfterEachK8sCheck()
+		err := e2e_ginkgo.AfterEachCheck()
 		Expect(err).ToNot(HaveOccurred())
 		if len(nodesWithoutTaint) != 0 {
 			// remove taints form nodes
@@ -235,14 +225,10 @@ var _ = Describe("lvm_ha_controller", func() {
 				err = k8stest.RemoveNoScheduleTaintFromNode(node)
 				Expect(err).To(BeNil(), "failed to taint node %s", node)
 			}
-			ready, err := k8stest.OpenEBSReady(10, 540)
-			Expect(err).To(BeNil(), "failed to verify openebs pods running state")
-			Expect(ready).To(BeTrue(), "some of the openebs pods are not running")
 		}
 
-		// Scale up the lvm-controller deployment replica to initial replica
-		logf.Log.Info("Scale up lvm-controller deployment")
-		_, err = k8sinstall.ScaleLvmControllerViaHelm(lvmControllerOrgReplica)
+		// Scale up the lvm-controller deployment replica to initial replica + 1
+		err = k8stest.RestoreDeploymentReplicas(e2e_config.GetConfig().Product.LvmEngineControllerDeploymentName, common.NsOpenEBS(), 120, lvmControllerOrgReplica+1)
 		Expect(err).To(BeNil(), "failed to scale  deployment %s, error: %v", e2e_config.GetConfig().Product.LvmEngineControllerDeploymentName, err)
 	})
 

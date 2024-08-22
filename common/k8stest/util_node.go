@@ -417,8 +417,8 @@ func ListWorkerNode() ([]NodeLocation, error) {
 	return getNodeLocs()
 }
 
-// ListNodesWithoutNoScheduleTaint returns list of nodes which does not have NoSchedule taint
-func ListNodesWithoutNoScheduleTaint() ([]string, error) {
+// ListNodeWithoutNoScheduleTaint returns list of nodes which does not have NoSchedule taint
+func ListNodeWithoutNoScheduleTaint() ([]string, error) {
 	nodeList, err := gTestEnv.KubeInt.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
 	if err != nil {
 		return nil, errors.New("failed to list nodes")
