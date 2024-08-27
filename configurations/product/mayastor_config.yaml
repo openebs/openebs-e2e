@@ -124,3 +124,8 @@ product:
     zfsEngineProvisioner: "zfs.csi.openebs.io"
     lvmEngineProvisioner: "local.csi.openebs.io"
     hostPathEngineProvisioner: "openebs.io/local"
+    openEBSHelmReleaseName: "openebs"
+    openEBSHelmRepoName: "openebs"
+    openEBSHelmRepo: "openebs/openebs"
+    openEBSHelmRepoUrl: "https://openebs.github.io/openebs"
+    openEBSProductNamespace: "openebs"

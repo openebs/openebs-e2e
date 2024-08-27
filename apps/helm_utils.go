@@ -21,6 +21,17 @@ func (a Architecture) String() string {
 	return string(a)
 }
 
+func RemoveHelmRepository(helmRepoName, helmRepoUrl string) error {
+	cmd := exec.Command("helm", "repo", "remove", helmRepoName, helmRepoUrl)
+	logf.Log.Info("executing helm remove repo ", "helm repo name: ", helmRepoName, ", helm repo url: ", helmRepoUrl)
+	// Execute the command.
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to remove helm repo with url %s: %v\n%s", helmRepoUrl, err, output)
+	}
+	return nil
+}
+
 func AddHelmRepository(helmRepoName, helmRepoUrl string) error {
 	cmd := exec.Command("helm", "repo", "add", helmRepoName, helmRepoUrl)
 	logf.Log.Info("executing helm add repo ", "helm repo name: ", helmRepoName, ", helm repo url: ", helmRepoUrl)
@@ -28,6 +39,17 @@ func AddHelmRepository(helmRepoName, helmRepoUrl string) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to add helm repo with url %s: %v\n%s", helmRepoUrl, err, output)
+	}
+	return nil
+}
+
+func UpdateHelmRepository(helmRepoName string) error {
+	cmd := exec.Command("helm", "repo", "update", helmRepoName)
+	logf.Log.Info("executing helm update repo ", "helm repo name: ", helmRepoName)
+	// Execute the command.
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to update helm repo")
 	}
 	return nil
 }
