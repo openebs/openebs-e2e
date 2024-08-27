@@ -130,3 +130,5 @@ product:
     openEBSProductNamespace: "openebs"
     lvmEngineControllerDeploymentName: "openebs-lvm-localpv-controller"
     lvmEngineLeaseName: "snapshot-controller-leader"
+    lvmEnginePluginContainerName: "openebs-lvm-plugin"
+    lvmEnginePluginDriverName: "local.csi.openebs.io"
