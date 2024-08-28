@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/openebs/openebs-e2e/apps"
 	"github.com/openebs/openebs-e2e/common"
@@ -51,7 +52,7 @@ func installTheProduct() error {
 		e2eCfg.Product.OpenEBSHelmReleaseName,
 		"-n",
 		common.NSOpenEBS(),
-		e2eCfg.Product.OpenEBSHelmRepo,
+		e2eCfg.Product.OpenEBSHelmChartName,
 	}
 
 	// Remove the existing Helm repository before adding it back again.
@@ -115,4 +116,53 @@ func installOpenebs(namespace string, cmdArgs []string) error {
 		return fmt.Errorf("failed to install product using helm chart: namespace: %s  Output: %s : Error: %v", namespace, out, err)
 	}
 	return nil
+}
+
+// ScaleLvmControllerViaHelm return original replica count of lvm controller deployment before any scale operation
+func ScaleLvmControllerViaHelm(expected_replica int32) (int32, error) {
+	e2eCfg := e2e_config.GetConfig()
+	orig_replicas, err := k8stest.GetDeploymentSpecReplicas(e2eCfg.Product.LvmEngineControllerDeploymentName, common.NSOpenEBS())
+	if err != nil {
+		return orig_replicas, fmt.Errorf("failed to get deployment replicas, error: %v", err)
+	}
+
+	values := map[string]interface{}{
+		"engines.replicated.mayastor.enabled": e2eCfg.ReplicatedEngine,
+		"lvm-localpv.lvmController.replicas":  expected_replica,
+	}
+
+	err = apps.UpgradeHelmChart(e2eCfg.Product.OpenEBSHelmChartName,
+		common.NSOpenEBS(),
+		e2eCfg.Product.OpenEBSHelmReleaseName,
+		values,
+	)
+	if err != nil {
+		return orig_replicas, err
+	}
+
+	ready, err := k8stest.OpenEBSReady(10, 540)
+	if err != nil {
+		return orig_replicas, err
+	}
+	if !ready {
+		return orig_replicas, fmt.Errorf("all pods not ready, openebs ready check failed")
+	}
+
+	var replicas int32
+	timeout_seconds := 120
+	endTime := time.Now().Add(time.Duration(timeout_seconds) * time.Second)
+	for ; time.Now().Before(endTime); time.Sleep(time.Second * 2) {
+		replicas, err = k8stest.GetDeploymentStatusReplicas(e2eCfg.Product.LvmEngineControllerDeploymentName, common.NSOpenEBS())
+		if err != nil {
+			return orig_replicas, fmt.Errorf("failed to get status replicas, error: %v", err)
+		}
+		if replicas == expected_replica {
+			break
+		}
+	}
+	if replicas != expected_replica {
+		return orig_replicas, fmt.Errorf("timed out waiting for pods to be restored, podcount: %d", replicas)
+	}
+
+	return orig_replicas, nil
 }

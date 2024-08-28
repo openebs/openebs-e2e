@@ -12,9 +12,11 @@ import (
 
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 
+	coordinationV1 "k8s.io/api/coordination/v1"
 	coreV1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -413,4 +415,35 @@ func UpdateNodeTaints(nodeName string, taintKey string) error {
 
 func ListWorkerNode() ([]NodeLocation, error) {
 	return getNodeLocs()
+}
+
+// ListNodesWithoutNoScheduleTaint returns list of nodes which does not have NoSchedule taint
+func ListNodesWithoutNoScheduleTaint() ([]string, error) {
+	nodeList, err := gTestEnv.KubeInt.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
+	if err != nil {
+		return nil, errors.New("failed to list nodes")
+	}
+	nodes := make([]string, 0, len(nodeList.Items))
+	for _, k8snode := range nodeList.Items {
+		var isTaintNoScheduleExist bool
+		for _, taint := range k8snode.Spec.Taints {
+			if taint.Value == "NoSchedule" {
+				isTaintNoScheduleExist = true
+				break
+			}
+		}
+		if !isTaintNoScheduleExist {
+			nodes = append(nodes, k8snode.Name)
+		}
+	}
+	return nodes, nil
+}
+
+// GetLease return requested lease
+func GetLease(name, ns string) (*coordinationV1.Lease, error) {
+	lease, err := gTestEnv.KubeInt.CoordinationV1().Leases(ns).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, errors.New("failed to get lease")
+	}
+	return lease, nil
 }

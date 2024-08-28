@@ -143,7 +143,7 @@ func GetPvStatusPhase(volname string) (phase coreV1.PersistentVolumePhase, err e
 
 // Deprecated:MkPVC is deprecated. Make use of MakePVC function
 func MkPVC(volSizeMb int, volName string, scName string, volType common.VolumeType, nameSpace string) (string, error) {
-	return MakePVC(volSizeMb, volName, scName, volType, nameSpace, false)
+	return MakePVC(volSizeMb, volName, scName, volType, nameSpace, false, false)
 }
 
 func VerifyMayastorPvcIsUsable(pvc *coreV1.PersistentVolumeClaim) error {
@@ -1182,11 +1182,9 @@ func GetPvCapacity(pvName string) (*resource.Quantity, error) {
 //  1. The PVC status transitions to bound,
 //  2. The associated PV is created and its status transitions bound
 //  3. The associated maaystor volume is created and has a State "healthy" if engine is mayastor
-func MakePVC(volSizeMb int, volName string, scName string, volType common.VolumeType, nameSpace string, local bool) (string, error) {
-	const timoSleepSecs = 1
+func MakePVC(volSizeMb int, volName string, scName string, volType common.VolumeType, nameSpace string, local bool, skipVolumeVerification bool) (string, error) {
 	volSizeMbStr := fmt.Sprintf("%dMi", volSizeMb)
 	logf.Log.Info("Creating", "volume", volName, "storageClass", scName, "volume type", volType, "size", volSizeMbStr)
-	var err error
 
 	t0 := time.Now()
 	// PVC create options
@@ -1239,40 +1237,21 @@ func MakePVC(volSizeMb int, volName string, scName string, volType common.Volume
 		return string(pvc.ObjectMeta.UID), nil
 	}
 
-	// Wait for the PVC to be bound.
-	for ix := 0; ix < defTimeoutSecs/timoSleepSecs; ix++ {
-		var pvcPhase coreV1.PersistentVolumeClaimPhase
-		pvcPhase, err = GetPvcStatusPhase(volName, nameSpace)
-		if err == nil && pvcPhase == coreV1.ClaimBound {
-			break
-		}
-		time.Sleep(timoSleepSecs * time.Second)
-	}
-	if err != nil {
-		return "", fmt.Errorf("failed to get pvc status, pvc: %s, namespace:  %s, error: %v", volName, nameSpace, err)
-	}
-
-	// Refresh the PVC contents, so that we can get the PV name.
-	for ix := 0; ix < defTimeoutSecs/timoSleepSecs && pvc.Spec.VolumeName == ""; ix++ {
-		pvc, getPvcErr = PVCApi(nameSpace).Get(context.TODO(), volName, metaV1.GetOptions{})
-		if getPvcErr != nil {
-			return "", fmt.Errorf("failed to get pvc: %s, namespace: %s, error: %v", volName, nameSpace, getPvcErr)
-		} else if pvc == nil {
-			return "", fmt.Errorf("PVC %s not found, namespace: %s", volName, nameSpace)
-		}
-		if pvc.Spec.VolumeName != "" {
-			break
-		}
-		time.Sleep(timoSleepSecs * time.Second)
-	}
-
-	if !local {
-		err = VerifyMayastorPvcIsUsable(pvc)
+	if !skipVolumeVerification {
+		// verify volume provision
+		uuid, err := VerifyVolumeProvision(volName, nameSpace)
 		if err != nil {
 			return string(pvc.ObjectMeta.UID), err
 		}
+		if !local {
+			uuid, err = VerifyMayastorVolumeProvision(volName, nameSpace)
+			if err != nil {
+				return string(pvc.ObjectMeta.UID), err
+			}
+		}
+		logf.Log.Info("Created", "volume", volName, "uuid", pvc.ObjectMeta.UID, "storageClass", scName, "volume type", volType, "size", volSizeMbStr, "elapsed time", time.Since(t0))
+		return uuid, nil
 	}
-
 	logf.Log.Info("Created", "volume", volName, "uuid", pvc.ObjectMeta.UID, "storageClass", scName, "volume type", volType, "size", volSizeMbStr, "elapsed time", time.Since(t0))
 	return string(pvc.ObjectMeta.UID), nil
 }
@@ -1357,4 +1336,36 @@ func RemovePVC(volName string, scName string, nameSpace string, local bool) erro
 		}
 	}
 	return nil
+}
+
+func IsNormalPvcEventPresent(pvcName string, namespace string, errorSubstring string) (bool, error) {
+	events, err := GetPvcEvents(pvcName, namespace)
+	if err != nil {
+		return false, fmt.Errorf("failed to get pvc events in namespace %s, error: %v", namespace, err)
+	}
+	for _, event := range events.Items {
+		logf.Log.Info("Found PVC event", "message", event.Message)
+		if event.Type == "Normal" && strings.Contains(event.Message, errorSubstring) {
+			return true, err
+		}
+	}
+	return false, err
+}
+
+// Wait for the PVC normal event
+// return true if pvc normal event found else return false , it return error in case of error
+func WaitForPvcNormalEvent(pvcName string, namespace string, errorSubstring string) (bool, error) {
+	const timeSleepSecs = 2
+	var hasWarning bool
+	var err error
+	// Wait for the PVC event
+	logf.Log.Info("Check Pvc event", "Event substring", errorSubstring)
+	for ix := 0; ix < DefTimeoutSecs/timeSleepSecs; ix++ {
+		hasWarning, err = IsNormalPvcEventPresent(pvcName, namespace, errorSubstring)
+		if err == nil && hasWarning {
+			break
+		}
+		time.Sleep(timeSleepSecs * time.Second)
+	}
+	return hasWarning, err
 }

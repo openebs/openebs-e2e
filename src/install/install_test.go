@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/openebs/openebs-e2e/common/e2e_ginkgo"
-	"github.com/openebs/openebs-e2e/src/common/k8sinstall"
+	"github.com/openebs/openebs-e2e/common/k8sinstall"
 
 	"github.com/openebs/openebs-e2e/common/k8stest"
 

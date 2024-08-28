@@ -80,13 +80,13 @@ var _ = Describe("volume_provisioning", func() {
 
 	BeforeEach(func() {
 		// Check ready to run
-		err := e2e_ginkgo.BeforeEachCheck()
+		err := e2e_ginkgo.BeforeEachK8sCheck()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		// Check resource leakage.
-		err := e2e_ginkgo.AfterEachCheck()
+		err := e2e_ginkgo.AfterEachK8sCheck()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
