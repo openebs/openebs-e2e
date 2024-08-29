@@ -82,7 +82,7 @@ type ProductSpec struct {
 	MongoAuthUsername                 string            `yaml:"mongoAuthUsername" env-default:"admin"`
 	MongoDatabasePort                 int               `yaml:"mongoDatabasePort" env-default:"27017"`
 	MongoDefaultChartVersion          string            `yaml:"mongoDefaultChartVersion" env-default:"14.5.0"`
-	OpenEBSHelmRepo                   string            `yaml:"openEBSHelmRepo"`
+	OpenEBSHelmChartName              string            `yaml:"openEBSHelmChartName"`
 	OpenEBSHelmRepoName               string            `yaml:"openEBSHelmRepoName"`
 	OpenEBSHelmRepoUrl                string            `yaml:"openEBSHelmRepoUrl"`
 	MongoHelmRepo                     string            `yaml:"mongoHelmRepo" env-default:"bitnami/mongodb"`
@@ -132,6 +132,8 @@ type ProductSpec struct {
 	ZfsEngineProvisioner              string            `yaml:"zfsEngineProvisioner"`
 	LvmEngineProvisioner              string            `yaml:"lvmEngineProvisioner"`
 	HostPathEngineProvisioner         string            `yaml:"hostPathEngineProvisioner"`
+	LvmEngineControllerDeploymentName string            `yaml:"lvmEngineControllerDeploymentName"`
+	LvmEngineLeaseName                string            `yaml:"lvmEngineLeaseName"`
 }
 
 // E2EConfig is an application configuration structure

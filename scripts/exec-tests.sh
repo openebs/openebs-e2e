@@ -23,7 +23,7 @@ EXITV_FAILED_CLUSTER_OK=255
 
 # Global state variables
 #  test configuration state variables
-session="$(date +%Y%m%d-%H%M%S-)$(uuidgen -r)"
+session="$(date +%Y%m%d-%H%M%S)"
 
 #  script state variables
 tests=""

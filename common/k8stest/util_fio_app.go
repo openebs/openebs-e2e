@@ -36,26 +36,27 @@ type FioApplication struct {
 	// FsPercent -> controls size of file allocated on FS
 	// 0 -> default (lessby N blocks)
 	// > 0 < 100 percentage of available blocks used
-	FsPercent               uint
-	Runtime                 uint
-	Loops                   int
-	AddFioArgs              []string
-	StatusInterval          int
-	OutputFormat            string
-	AppNodeName             string
-	VolWaitForFirstConsumer bool
-	ScMountOptions          []string
-	ScReclaimPolicy         v1.PersistentVolumeReclaimPolicy
-	Liveness                bool
-	BlockSize               uint
-	FioDebug                string
-	SaveFioPodLog           bool
-	PostOpSleep             uint
-	AllowVolumeExpansion    common.AllowVolumeExpansion
-	Lvm                     LvmOptions
-	Zfs                     ZfsOptions
-	HostPath                HostPathOptions
-	status                  FioApplicationStatus
+	FsPercent                      uint
+	Runtime                        uint
+	Loops                          int
+	AddFioArgs                     []string
+	StatusInterval                 int
+	OutputFormat                   string
+	AppNodeName                    string
+	VolWaitForFirstConsumer        bool
+	ScMountOptions                 []string
+	ScReclaimPolicy                v1.PersistentVolumeReclaimPolicy
+	Liveness                       bool
+	BlockSize                      uint
+	FioDebug                       string
+	SaveFioPodLog                  bool
+	PostOpSleep                    uint
+	AllowVolumeExpansion           common.AllowVolumeExpansion
+	Lvm                            LvmOptions
+	Zfs                            ZfsOptions
+	HostPath                       HostPathOptions
+	status                         FioApplicationStatus
+	SkipPvcVerificationAfterCreate bool
 }
 
 type LvmOptions struct {
@@ -275,7 +276,7 @@ func (dfa *FioApplication) CreateVolume() error {
 	}
 
 	// Create the volume
-	_, err = MakePVC(dfa.VolSizeMb, dfa.status.pvcName, dfa.status.scName, dfa.VolType, common.NSDefault, localEngine)
+	_, err = MakePVC(dfa.VolSizeMb, dfa.status.pvcName, dfa.status.scName, dfa.VolType, common.NSDefault, localEngine, dfa.SkipPvcVerificationAfterCreate)
 
 	if err != nil {
 		return fmt.Errorf("failed to create pvc %s, %v", dfa.status.pvcName, err)
