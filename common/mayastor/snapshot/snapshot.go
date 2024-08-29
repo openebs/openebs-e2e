@@ -32,7 +32,7 @@ func CreateVolumeSnapshot(snapshotClassName string, snapshotName string, pvc str
 	//  and create if not present
 	vsc, err := k8stest.GetSnapshotClass(snapshotClassName)
 	if (err != nil && k8serrors.IsNotFound(err)) || vsc == nil {
-		err = k8stest.CreateSnapshotClass(snapshotClassName)
+		err = k8stest.CreateSnapshotClass(snapshotClassName, e2e_config.GetConfig().Product.CsiProvisioner)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to create snapshot class %s, error: %v", snapshotClassName, err)
 		}
