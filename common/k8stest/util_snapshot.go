@@ -12,6 +12,7 @@ import (
 	"github.com/openebs/openebs-e2e/common/mayastorclient"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
+	v1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,8 +23,6 @@ const (
 	defGetSnapshotTimeout = 60
 	DefCompletionTimeout  = 600
 )
-
-var csiDriver = e2e_config.GetConfig().Product.CsiProvisioner
 
 // MakeSnapshot Create volume snapshot and verify that
 //  1. The Snapshot created
@@ -147,7 +146,7 @@ func DeleteSnapshot(snapshotName string, namespace string) error {
 }
 
 // Create the Snapshot class
-func CreateSnapshotClass(snapshotClassName string) error {
+func CreateSnapshotClass(snapshotClassName string, csiDriver string) error {
 	// Snapshotclass create options
 	createOpts := &snapshotv1.VolumeSnapshotClass{
 		ObjectMeta: metaV1.ObjectMeta{
@@ -776,10 +775,21 @@ func GetMayastorSnapshotScMap() ([]string, error) {
 	snapScs, err := ListSnapshotClass()
 	if err == nil {
 		for _, vsc := range snapScs.Items {
-			if vsc.Driver == csiDriver {
+			if vsc.Driver == e2e_config.GetConfig().Product.CsiProvisioner {
 				mayastorSnapshotStorageClasses = append(mayastorSnapshotStorageClasses, vsc.Name)
 			}
 		}
 	}
 	return mayastorSnapshotStorageClasses, err
+}
+
+// CreateVolumeSnapshot create snapshot class and snapshot
+// it return snapshot object , snapshot content name and err
+func CreateVolumeSnapshot(snapshotClassName string, snapshotName string, pvc string, namespace string, csiDriver string) (*v1.VolumeSnapshot, string, error) {
+	err := CreateSnapshotClass(snapshotClassName, csiDriver)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to create snapshot class %s, error: %v", snapshotClassName, err)
+	}
+	snapshot, snapshotContentName, err := MakeSnapshot(pvc, snapshotClassName, namespace, snapshotName)
+	return snapshot, snapshotContentName, err
 }
