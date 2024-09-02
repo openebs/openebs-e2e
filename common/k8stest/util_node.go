@@ -15,6 +15,7 @@ import (
 	coordinationV1 "k8s.io/api/coordination/v1"
 	coreV1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	storageV1 "k8s.io/api/storage/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -446,4 +447,39 @@ func GetLease(name, ns string) (*coordinationV1.Lease, error) {
 		return nil, errors.New("failed to get lease")
 	}
 	return lease, nil
+}
+
+func GetCsiNode(nodeName string) (*storageV1.CSINode, error) {
+	return gTestEnv.KubeInt.StorageV1().CSINodes().Get(context.TODO(), nodeName, metaV1.GetOptions{})
+}
+
+func GetCsiNodeDriverTopologyKeys(nodeName string, driverName string) ([]string, error) {
+	csiNode, err := GetCsiNode(nodeName)
+	if err != nil {
+		return nil, err
+	}
+	for _, driver := range csiNode.Spec.Drivers {
+		if driver.Name == driverName {
+			return driver.TopologyKeys, nil
+		}
+	}
+	return nil, err
+}
+
+func CheckCsiNodeTopologyKeysPresent(nodeName string, driverName string, key []string) (bool, error) {
+	topologyKey, err := GetCsiNodeDriverTopologyKeys(nodeName, driverName)
+	if err != nil {
+		return false, err
+	}
+	set := make(map[string]bool)
+	for _, value := range topologyKey {
+		set[value] = true
+	}
+
+	for _, value := range key {
+		if !set[value] {
+			return false, nil
+		}
+	}
+	return true, nil
 }

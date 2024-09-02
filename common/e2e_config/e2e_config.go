@@ -134,6 +134,8 @@ type ProductSpec struct {
 	HostPathEngineProvisioner         string            `yaml:"hostPathEngineProvisioner"`
 	LvmEngineControllerDeploymentName string            `yaml:"lvmEngineControllerDeploymentName"`
 	LvmEngineLeaseName                string            `yaml:"lvmEngineLeaseName"`
+	LvmEnginePluginContainerName      string            `yaml:"lvmEnginePluginContainerName"`
+	LvmEnginePluginDriverName         string            `yaml:"lvmEnginePluginDriverName"`
 }
 
 // E2EConfig is an application configuration structure
