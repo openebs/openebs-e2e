@@ -136,6 +136,7 @@ type ProductSpec struct {
 	LvmEngineLeaseName                string            `yaml:"lvmEngineLeaseName"`
 	LvmEnginePluginContainerName      string            `yaml:"lvmEnginePluginContainerName"`
 	LvmEnginePluginDriverName         string            `yaml:"lvmEnginePluginDriverName"`
+	UmbrellaOpenebsHelmChartName      string            `yaml:"umbrellaOpenebsHelmChartName"`
 }
 
 // E2EConfig is an application configuration structure
