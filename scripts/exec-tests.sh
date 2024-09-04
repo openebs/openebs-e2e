@@ -4,7 +4,7 @@ set -eu
 
 SCRIPTDIR=$(dirname "$(realpath "$0")")
 E2EROOT=$(realpath "$SCRIPTDIR/..")
-TESTDIR=$(realpath "$SCRIPTDIR/../src")
+TESTDIR=$(realpath "$SCRIPTDIR/../src/tests/lvm")
 ARTIFACTSDIR="${E2E_ARTIFACTSDIR:-$(realpath $SCRIPTDIR/../artifacts)}"
 
 #exit values
