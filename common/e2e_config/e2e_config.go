@@ -137,6 +137,7 @@ type ProductSpec struct {
 	LvmEnginePluginContainerName      string            `yaml:"lvmEnginePluginContainerName"`
 	LvmEnginePluginDriverName         string            `yaml:"lvmEnginePluginDriverName"`
 	UmbrellaOpenebsHelmChartName      string            `yaml:"umbrellaOpenebsHelmChartName"`
+	PrometheusNodeExporterServicePort int               `yaml:"prometheusNodeExporterServicePort" env-default:"10100"`
 }
 
 // E2EConfig is an application configuration structure
