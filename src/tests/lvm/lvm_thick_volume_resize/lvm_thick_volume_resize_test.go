@@ -6,7 +6,7 @@ import (
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_ginkgo"
 	"github.com/openebs/openebs-e2e/common/k8stest"
-	volumeResize "github.com/openebs/openebs-e2e/src/tests/lvm/common/util_resize"
+	volumeResize "github.com/openebs/openebs-e2e/src/tests/lvm/common"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

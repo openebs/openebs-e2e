@@ -1,4 +1,4 @@
-package util_resize
+package common
 
 import (
 	"time"
