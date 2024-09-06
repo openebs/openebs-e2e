@@ -137,6 +137,7 @@ type ProductSpec struct {
 	LvmEnginePluginContainerName      string            `yaml:"lvmEnginePluginContainerName"`
 	LvmEnginePluginDriverName         string            `yaml:"lvmEnginePluginDriverName"`
 	UmbrellaOpenebsHelmChartName      string            `yaml:"umbrellaOpenebsHelmChartName"`
+	UseUmbrellaOpenEBSChart           bool              `yaml:"useUmbrellaOpenEBSChart" env:"e2e_use_umbrella_openebs_chart" env-default:"false"`
 }
 
 // E2EConfig is an application configuration structure
