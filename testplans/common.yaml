@@ -1,0 +1,8 @@
+meta:
+  environment: {}
+  name: 'install uninstall'
+  description: 'install and uninstall tests'
+  comment: This file includes the common set of testsuites for given testplan
+testsuites:
+  - install
+  - uninstall

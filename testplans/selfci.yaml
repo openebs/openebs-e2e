@@ -1,0 +1,8 @@
+meta:
+  environment: {}
+  name: 'selfci'
+  description: 'tests for e2e code validation'
+  include:
+    - common
+testsuites:
+  - lvm_volume_provisioning

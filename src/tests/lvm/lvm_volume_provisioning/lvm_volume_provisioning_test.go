@@ -35,7 +35,7 @@ func volumeProvisioningTest(decor string, engine common.OpenEbsEngine, volType c
 		ImgDir: "/tmp",
 	}
 
-	workerNodes, err := lvm.ListLvmNode(common.NSMayastor())
+	workerNodes, err := lvm.ListLvmNode(common.NSOpenEBS())
 	Expect(err).ToNot(HaveOccurred(), "failed to list worker node")
 
 	nodeConfig = lvm.LvmNodesDevicePvVgConfig{

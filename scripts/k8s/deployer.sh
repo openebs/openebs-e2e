@@ -130,6 +130,7 @@ fi
 # Install prerequisites
 if ["$SETUP_MAYASTOR" = "true" ]; then
   "$SCRIPT_DIR"/setup-io-prereq.sh --hugepages "$HUGE_PAGES" --mayastor $DRY_RUN
+fi
 
 if [ "$SETUP_ZFS" = "true" ]; then
   "$SCRIPT_DIR"/setup-io-prereq.sh --zfs $DRY_RUN
