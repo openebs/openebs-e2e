@@ -1776,13 +1776,13 @@ func DsUpdateStrategy(dsName string, nameSpace string, rollingUpdate bool) error
 
 // SetNexusRebuildVerify sets or removes environment variable NEXUS_REBUILD_VERIFY for IO engine daemonset,
 // then deletes all the IO engine pods and waits for Mayastor to be ready and pools to be online
-func SetNexusRebuildVerify(on bool) error {
+func SetNexusRebuildVerify(on bool, daemonSetName string) error {
 	var err error
 	var updated bool
 	if on {
-		updated, err = DsSetContainerEnv("mayastor-io-engine", common.NSMayastor(), "io-engine", "NEXUS_REBUILD_VERIFY", "panic")
+		updated, err = DsSetContainerEnv(daemonSetName, common.NSMayastor(), "io-engine", "NEXUS_REBUILD_VERIFY", "panic")
 	} else {
-		updated, err = DsUnsetContainerEnv("mayastor-io-engine", common.NSMayastor(), "io-engine", "NEXUS_REBUILD_VERIFY")
+		updated, err = DsUnsetContainerEnv(daemonSetName, common.NSMayastor(), "io-engine", "NEXUS_REBUILD_VERIFY")
 	}
 	if err != nil {
 		return err

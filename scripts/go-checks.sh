@@ -55,6 +55,9 @@ if golangci-lint > /dev/null 2>&1 ; then
     if ! golangci-lint run -v --allow-parallel-runners ; then
         exitv=1
     fi
+
+    echo ""
+    echo "## linting src  ##"
     cd "$GOSRCDIRSRC" || exit 1
     if ! golangci-lint run -v --allow-parallel-runners ; then
         exitv=1
