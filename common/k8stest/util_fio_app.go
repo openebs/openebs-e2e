@@ -91,12 +91,13 @@ func (dfa *FioApplication) DeployAppWithArgs(fioArgsSet common.FioAppArgsSet) er
 	return dfa.DeployFio(fioArgsSet, "")
 }
 
-func (dfa *FioApplication) DeployFioPodOnly(fioArgsSet common.FioAppArgsSet, podPrefix string, claimName string) error {
+func (dfa *FioApplication) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) error {
 	var err error
 	if dfa.status.fioPodName != "" {
 		return fmt.Errorf("previous pod not deleted %s", dfa.status.fioPodName)
 	}
 
+	// list disk pool in cluster
 	if dfa.Runtime != 0 && dfa.Loops != 0 {
 		return fmt.Errorf("cannot specify both Runtime and Loops")
 	}
@@ -109,7 +110,12 @@ func (dfa *FioApplication) DeployFioPodOnly(fioArgsSet common.FioAppArgsSet, pod
 		return fmt.Errorf("openebs engine not specified")
 	}
 
-	// dfa.status.suffix should be set before calling this function, typically by CreateVolume
+	err = dfa.CreateVolume()
+	if err != nil {
+		return err
+	}
+
+	// dfa.status.suffix will have been set by dfa.CreateVolume
 	decoration := strings.ToLower(dfa.Decor) + dfa.status.suffix
 	dfa.status.fioPodName = podPrefix + decoration
 
@@ -145,6 +151,7 @@ func (dfa *FioApplication) DeployFioPodOnly(fioArgsSet common.FioAppArgsSet, pod
 		efab = efab.WithAdditionalArg(fmt.Sprintf("--output-format=%s", dfa.OutputFormat))
 	}
 	if dfa.Runtime != 0 {
+		// time based loop "forever" timed SIGTERM with terminate
 		efab = efab.WithRuntime(int(dfa.Runtime))
 	}
 
@@ -172,17 +179,16 @@ func (dfa *FioApplication) DeployFioPodOnly(fioArgsSet common.FioAppArgsSet, pod
 
 	// fio pod container
 	container := MakeFioContainer(dfa.status.fioPodName, podArgs)
-
+	//	container.ImagePullPolicy = coreV1.PullAlways
 	// volume claim details
 	volume := coreV1.Volume{
 		Name: "ms-volume",
 		VolumeSource: coreV1.VolumeSource{
 			PersistentVolumeClaim: &coreV1.PersistentVolumeClaimVolumeSource{
-				ClaimName: claimName,
+				ClaimName: dfa.status.pvcName,
 			},
 		},
 	}
-
 	// create the fio pod
 	pod := NewPodBuilder("fio").
 		WithName(dfa.status.fioPodName).
@@ -191,11 +197,11 @@ func (dfa *FioApplication) DeployFioPodOnly(fioArgsSet common.FioAppArgsSet, pod
 		WithContainer(container).
 		WithVolume(volume).
 		WithVolumeDeviceOrMount(dfa.VolType)
+	//		WithHostPath("tmp", "/tmp")
 
 	if dfa.AppNodeName != "" {
 		pod = pod.WithNodeName(dfa.AppNodeName)
 	}
-
 	podObj, err := pod.Build()
 	if err != nil {
 		return fmt.Errorf("generating fio pod definition %s, %v", dfa.status.fioPodName, err)
@@ -205,10 +211,8 @@ func (dfa *FioApplication) DeployFioPodOnly(fioArgsSet common.FioAppArgsSet, pod
 	}
 	_, err = CreatePod(podObj, common.NSDefault)
 	if err != nil {
-		fmt.Println("inside create pod")
 		return fmt.Errorf("creating fio pod %s, %v", dfa.status.fioPodName, err)
 	}
-
 	// wait for pod to transition to running or complete whichever is first
 	var phase coreV1.PodPhase
 	var podLogSynopsis *common.E2eFioPodLogSynopsis
@@ -232,26 +236,9 @@ func (dfa *FioApplication) DeployFioPodOnly(fioArgsSet common.FioAppArgsSet, pod
 	return fmt.Errorf("pod state is %v, %s", phase, podLogSynopsis)
 }
 
-func (dfa *FioApplication) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) error {
-
-	fmt.Println("inside deploy fio")
-
-	// Step 1: Create Volume
-	err := dfa.CreateVolume()
-	if err != nil {
-		fmt.Println("erroror")
-		return err
-	}
-
-	claimName := dfa.status.pvcName
-	// Step 2: Deploy FIO Pod using the newly created volume
-	return dfa.DeployFioPodOnly(fioArgsSet, podPrefix, claimName)
-}
-
 func (dfa *FioApplication) CreateVolume() error {
 	var err error
 
-	fmt.Println("111111111111")
 	decoration := dfa.OpenEbsEngine.String()
 
 	if dfa.VolType.String() == "" {
@@ -278,8 +265,6 @@ func (dfa *FioApplication) CreateVolume() error {
 	decoration = strings.ToLower(dfa.Decor) + decoration
 	dfa.status.pvcName = decoration
 	dfa.status.scName = decoration
-
-	fmt.Println("222222222")
 
 	err = dfa.CreateSc()
 	if err != nil {
@@ -530,8 +515,6 @@ func (dfa *FioApplication) RefreshVolumeState() error {
 // to stream fio pod log output and scan that stream
 // to populate fields in E2eFioPodOutputMonitor
 func (dfa *FioApplication) MonitorPod() (*common.E2eFioPodOutputMonitor, error) {
-	logf.Log.Info("inside monitor pod")
-	logf.Log.Info(dfa.GetPodName())
 	var err error
 	if dfa.status.monitor == nil {
 		dfa.status.monitor, err = MonitorE2EFioPod(dfa.GetPodName(), common.NSDefault)
