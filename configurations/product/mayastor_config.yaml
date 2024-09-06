@@ -133,5 +133,5 @@ product:
     lvmEnginePluginContainerName: "openebs-lvm-plugin"
     lvmEnginePluginDriverName: "local.csi.openebs.io"
     umbrellaOpenebsHelmChartName: "mayastor/openebs"
-    useUmbrellaOpenEBSChart: false
+    useUmbrellaOpenEBSChart: true
 
