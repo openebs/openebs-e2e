@@ -1,0 +1,8 @@
+meta:
+  environment: {}
+  name: 'lvm'
+  description: 'lvm e2e tests'
+  include:
+    - common
+testsuites:
+  - lvm_volume_provisioning

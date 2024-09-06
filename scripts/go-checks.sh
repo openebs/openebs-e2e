@@ -34,32 +34,32 @@ fi
 if golangci-lint > /dev/null 2>&1 ; then
     cd "$GOSRCDIRAPPS" || exit 1
     echo "## linting apps ##"
-    if ! golangci-lint run -v --allow-parallel-runners ; then
+    if ! golangci-lint run -v --allow-parallel-runners --timeout=120s ; then
         exitv=1
     fi
     cd "$GOSRCDIRCOMMON" || exit 1
     echo ""
     echo "## linting common ##"
-    if ! golangci-lint run -v --allow-parallel-runners ; then
+    if ! golangci-lint run -v --allow-parallel-runners --timeout=120s ; then
         exitv=1
     fi
     cd "$GOSRCDIRE2EAGENT" || exit 1
     echo ""
     echo "## linting e2e-agent ##"
-    if ! golangci-lint run -v --allow-parallel-runners ; then
+    if ! golangci-lint run -v --allow-parallel-runners --timeout=120s ; then
         exitv=1
     fi
     cd "$GOSRCDIRE2EPROXY" || exit 1
     echo ""
     echo "## linting e2e-proxy ##"
-    if ! golangci-lint run -v --allow-parallel-runners ; then
+    if ! golangci-lint run -v --allow-parallel-runners --timeout=120s ; then
         exitv=1
     fi
 
     echo ""
     echo "## linting src  ##"
     cd "$GOSRCDIRSRC" || exit 1
-    if ! golangci-lint run -v --allow-parallel-runners ; then
+    if ! golangci-lint run -v --allow-parallel-runners --timeout=120s ; then
         exitv=1
     fi
 

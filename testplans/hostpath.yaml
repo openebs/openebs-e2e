@@ -1,0 +1,8 @@
+meta:
+  environment: {}
+  name: 'hostpath'
+  description: 'hostpath e2e tests'
+  include:
+    - common
+testsuites:
+  - hostpath_volume_provisioning

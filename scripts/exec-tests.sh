@@ -368,9 +368,9 @@ echo "list of tests: $tests"
 for testname in $tests; do
   # Defer uninstall till after other tests have been run.
   if [ "$testname" != "uninstall" ]; then
-    if [ -d "$TESTDIR/tests/$testname" ]; then
+    if [ -d "$TESTDIR/tests/lvm/$testname" ]; then
         testrootdir=$TESTDIR
-        fqtestname="tests/$testname"
+        fqtestname="tests/lvm/$testname"
     elif [ -d "$TESTDIR/$testname" ]; then
         testrootdir=$TESTDIR
         fqtestname="$testname"
