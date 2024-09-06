@@ -6,3 +6,4 @@ meta:
     - common
 testsuites:
   - lvm_volume_provisioning
+  - lvm_shared_mount
