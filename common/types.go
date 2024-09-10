@@ -16,6 +16,7 @@ const (
 	Ext4FsType  FileSystemType = "ext4"
 	XfsFsType   FileSystemType = "xfs"
 	BtrfsFsType FileSystemType = "btrfs"
+	ZfsFsType   FileSystemType = "zfs"
 )
 
 type VolumeType int
@@ -177,8 +178,8 @@ const (
 	Off OnOffVal = iota
 )
 
-func (Val OnOffVal) String() string {
-	switch On {
+func (val OnOffVal) String() string {
+	switch val {
 	case On:
 		return "on"
 	case Off:

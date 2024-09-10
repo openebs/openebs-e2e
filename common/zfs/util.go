@@ -3,6 +3,7 @@ package zfs
 import (
 	"fmt"
 
+	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"github.com/openebs/openebs-e2e/common/k8stest"
@@ -36,7 +37,7 @@ func ListZfsNode(namespace string) ([]string, error) {
 			readyCount,
 		)
 	}
-	zfsNode := make([]string, readyCount)
+	zfsNode := make([]string, 0, readyCount)
 	for _, item := range listZfsDaemonSetPodList.Items {
 		zfsNode = append(zfsNode, item.Spec.NodeName)
 	}
@@ -98,4 +99,28 @@ func (zfsDevicePoolConfig *ZfsNodesDevicePoolConfig) ConfigureZfsNodesWithDevice
 		}
 	}
 	return nil
+}
+
+func SetupZfsNodes(poolName string, size int64) (ZfsNodesDevicePoolConfig, error) {
+	var zfsNodeConfig ZfsNodesDevicePoolConfig
+	loopDevice := e2e_agent.LoopDevice{
+		Size:   size,
+		ImgDir: "/tmp",
+	}
+	workerNodes, err := ListZfsNode(common.NSOpenEBS())
+	if err != nil {
+		return zfsNodeConfig, fmt.Errorf("failed to list zfs worker nodes, error: %v", err)
+	}
+
+	zfsNodeConfig = ZfsNodesDevicePoolConfig{
+		PoolName:      poolName,
+		NodeDeviceMap: make(map[string]e2e_agent.LoopDevice), // Properly initialize the map
+	}
+	for _, node := range workerNodes {
+		zfsNodeConfig.NodeDeviceMap[node] = loopDevice
+	}
+
+	logf.Log.Info("setup node with loop device and zfs pool", "zfs node config", zfsNodeConfig)
+	err = zfsNodeConfig.ConfigureZfsNodesWithDeviceAndPool()
+	return zfsNodeConfig, err
 }
