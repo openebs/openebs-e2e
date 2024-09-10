@@ -5,4 +5,5 @@ meta:
   include:
     - common
 testsuites:
-  - lvm_volume_provisioning
+  - zfs_ci_smoke_test
+  - lvm_ci_smoke_test

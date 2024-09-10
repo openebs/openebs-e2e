@@ -3,7 +3,6 @@ package lvm_volume_provisioning
 import (
 	"testing"
 
-	"github.com/openebs/openebs-e2e/common/e2e_agent"
 	"github.com/openebs/openebs-e2e/common/e2e_ginkgo"
 	"github.com/openebs/openebs-e2e/common/lvm"
 
@@ -15,61 +14,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+var err error
 var nodeConfig lvm.LvmNodesDevicePvVgConfig
-var defFioCompletionTime = 240 // in seconds
-
-func volumeProvisioningTest(decor string, engine common.OpenEbsEngine, volType common.VolumeType, fstype common.FileSystemType, volBindModeWait bool) {
-
-	app := k8stest.FioApplication{
-		Decor:                   decor,
-		VolSizeMb:               4096,
-		OpenEbsEngine:           engine,
-		VolType:                 volType,
-		FsType:                  fstype,
-		Loops:                   1,
-		VolWaitForFirstConsumer: volBindModeWait,
-	}
-
-	loopDevice := e2e_agent.LoopDevice{
-		Size:   10737418240,
-		ImgDir: "/tmp",
-	}
-
-	workerNodes, err := lvm.ListLvmNode(common.NSOpenEBS())
-	Expect(err).ToNot(HaveOccurred(), "failed to list worker node")
-
-	nodeConfig = lvm.LvmNodesDevicePvVgConfig{
-		VgName:        "lvmvg",
-		NodeDeviceMap: make(map[string]e2e_agent.LoopDevice), // Properly initialize the map
-	}
-	for _, node := range workerNodes {
-		nodeConfig.NodeDeviceMap[node] = loopDevice
-	}
-
-	logf.Log.Info("setup node with loop device, pv and vg", "node config", nodeConfig)
-	err = nodeConfig.ConfigureLvmNodesWithDeviceAndVg()
-	Expect(err).ToNot(HaveOccurred(), "failed to setup node")
-
-	// setup sc parameters
-	app.Lvm = k8stest.LvmOptions{
-		VolGroup:      nodeConfig.VgName,
-		Storage:       "lvm",
-		ThinProvision: common.No,
-	}
-
-	logf.Log.Info("create sc, pvc, fio pod")
-	err = app.DeployApplication()
-	Expect(err).To(BeNil(), "failed to deploy app")
-
-	logf.Log.Info("wait for fio pod to complete")
-	err = app.WaitComplete(defFioCompletionTime)
-	Expect(err).ToNot(HaveOccurred(), "fio app did not complete")
-
-	// remove app pod, pvc,sc
-	err = app.Cleanup()
-	Expect(err).To(BeNil(), "failed to clean resources")
-
-}
+var app k8stest.FioApplication
 
 func TestLvmVolumeProvisioningTest(t *testing.T) {
 	// Initialise test and set class and file names for reports
@@ -85,36 +32,50 @@ var _ = Describe("volume_provisioning", func() {
 	})
 
 	AfterEach(func() {
+
+		// cleanup k8s resources if exist
+		logf.Log.Info("cleanup k8s resources if exist")
+		err = app.Cleanup()
+		Expect(err).ToNot(HaveOccurred(), "failed to k8s resource")
+
 		// Check resource leakage.
 		err := e2e_ginkgo.AfterEachK8sCheck()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("lvm ext4: should verify a volume can be created, used and deleted", func() {
-		volumeProvisioningTest("lvm-ext4", common.Lvm, common.VolFileSystem, common.Ext4FsType, true)
+		app, err = VolumeProvisioningTest("lvm-ext4", common.Lvm, common.VolFileSystem, common.Ext4FsType, true, nodeConfig)
+		Expect(err).ToNot(HaveOccurred())
 	})
 	It("lvm xfs: should verify a volume can be created, used and deleted", func() {
-		volumeProvisioningTest("lvm-xfs", common.Lvm, common.VolFileSystem, common.XfsFsType, true)
+		app, err = VolumeProvisioningTest("lvm-xfs", common.Lvm, common.VolFileSystem, common.XfsFsType, true, nodeConfig)
+		Expect(err).ToNot(HaveOccurred())
 	})
 	It("lvm btrfs: should verify a volume can be created, used and deleted", func() {
-		volumeProvisioningTest("lvm-btrfs", common.Lvm, common.VolFileSystem, common.BtrfsFsType, true)
+		app, err = VolumeProvisioningTest("lvm-btrfs", common.Lvm, common.VolFileSystem, common.BtrfsFsType, true, nodeConfig)
+		Expect(err).ToNot(HaveOccurred())
 	})
 	It("lvm block: should verify a volume can be created, used and deleted", func() {
-		volumeProvisioningTest("lvm-rb", common.Lvm, common.VolRawBlock, common.NoneFsType, true)
+		app, err = VolumeProvisioningTest("lvm-rb", common.Lvm, common.VolRawBlock, common.NoneFsType, true, nodeConfig)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	// immediate binding
 	It("lvm ext4 immediate binding: should verify a volume can be created, used and deleted", func() {
-		volumeProvisioningTest("lvm-ext4", common.Lvm, common.VolFileSystem, common.Ext4FsType, false)
+		app, err = VolumeProvisioningTest("lvm-ext4", common.Lvm, common.VolFileSystem, common.Ext4FsType, false, nodeConfig)
+		Expect(err).ToNot(HaveOccurred())
 	})
 	It("lvm xfs immediate binding: should verify a volume can be created, used and deleted", func() {
-		volumeProvisioningTest("lvm-xfs", common.Lvm, common.VolFileSystem, common.XfsFsType, false)
+		app, err = VolumeProvisioningTest("lvm-xfs", common.Lvm, common.VolFileSystem, common.XfsFsType, false, nodeConfig)
+		Expect(err).ToNot(HaveOccurred())
 	})
 	It("lvm btrfs immediate binding: should verify a volume can be created, used and deleted", func() {
-		volumeProvisioningTest("lvm-btrfs", common.Lvm, common.VolFileSystem, common.BtrfsFsType, false)
+		app, err = VolumeProvisioningTest("lvm-btrfs", common.Lvm, common.VolFileSystem, common.BtrfsFsType, false, nodeConfig)
+		Expect(err).ToNot(HaveOccurred())
 	})
 	It("lvm block immediate binding: should verify a volume can be created, used and deleted", func() {
-		volumeProvisioningTest("lvm-rb", common.Lvm, common.VolRawBlock, common.NoneFsType, false)
+		app, err = VolumeProvisioningTest("lvm-rb", common.Lvm, common.VolRawBlock, common.NoneFsType, false, nodeConfig)
+		Expect(err).ToNot(HaveOccurred())
 	})
 })
 
@@ -122,6 +83,9 @@ var _ = BeforeSuite(func() {
 	err := e2e_ginkgo.SetupTestEnv()
 	Expect(err).ToNot(HaveOccurred(), "failed to setup test environment in BeforeSuite : SetupTestEnv %v", err)
 
+	//setup nodes with lvm pv and vg
+	nodeConfig, err = lvm.SetupLvmNodes("lvmvg", 10737418240)
+	Expect(err).ToNot(HaveOccurred(), "failed to setup lvm pv and vg")
 })
 
 var _ = AfterSuite(func() {
