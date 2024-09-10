@@ -71,7 +71,7 @@ type LvmOptions struct {
 type ZfsOptions struct {
 	AllowedTopologies []v1.TopologySelectorTerm
 	RecordSize        string
-	Compression       string
+	Compression       common.OnOffVal
 	DedUp             common.OnOffVal
 	PoolName          string
 	ThinProvision     common.YesNoVal
@@ -344,27 +344,31 @@ func (dfa *FioApplication) CreateSc() error {
 			scBuilder = scBuilder.WithAllowedTopologies(dfa.Lvm.AllowedTopologies)
 		}
 	} else if dfa.OpenEbsEngine == common.Zfs {
-		if dfa.Zfs.Shared.String() != "" {
-			scBuilder = scBuilder.WithZfsShared(dfa.Zfs.Shared.String())
-		}
+
 		if dfa.Zfs.RecordSize != "" {
 			scBuilder = scBuilder.WithZfsRecordSize(dfa.Zfs.RecordSize)
-		}
-		if dfa.Zfs.ThinProvision.String() != "" {
-			scBuilder = scBuilder.WithZfsThinVol(dfa.Zfs.ThinProvision.String())
-		}
-		if dfa.Zfs.Compression != "" {
-			scBuilder = scBuilder.WithZfsCompression(dfa.Zfs.Compression)
-		}
-		if dfa.Zfs.DedUp.String() != "" {
-			scBuilder = scBuilder.WithZfsDeDUp(dfa.Zfs.DedUp.String())
 		}
 		if dfa.Zfs.AllowedTopologies != nil {
 			scBuilder = scBuilder.WithAllowedTopologies(dfa.Zfs.AllowedTopologies)
 		}
 		if dfa.Zfs.PoolName != "" {
 			scBuilder = scBuilder.WithZfsPoolName(dfa.Zfs.PoolName)
+		} else {
+			return fmt.Errorf("zfs pool name not specified")
 		}
+		if dfa.Zfs.Shared.String() != "" {
+			scBuilder = scBuilder.WithZfsShared(dfa.Zfs.Shared.String())
+		}
+		if dfa.Zfs.ThinProvision.String() != "" {
+			scBuilder = scBuilder.WithZfsThinVol(dfa.Zfs.ThinProvision.String())
+		}
+		if dfa.Zfs.Compression.String() != "" {
+			scBuilder = scBuilder.WithZfsCompression(dfa.Zfs.Compression.String())
+		}
+		if dfa.Zfs.DedUp.String() != "" {
+			scBuilder = scBuilder.WithZfsDeDUp(dfa.Zfs.DedUp.String())
+		}
+
 	} else if dfa.OpenEbsEngine == common.Hostpath {
 		if dfa.HostPath.Annotations != nil {
 			scBuilder = scBuilder.WithAnnotations(dfa.HostPath.Annotations)
@@ -411,6 +415,7 @@ func (dfa *FioApplication) Cleanup() error {
 		if err != nil {
 			return fmt.Errorf("failed to delete fio pod %s, err: %v", dfa.GetPodName(), err)
 		}
+		dfa.status.fioPodName = ""
 
 	}
 	var localEngine bool
@@ -421,6 +426,7 @@ func (dfa *FioApplication) Cleanup() error {
 	if dfa.status.createdPVC {
 		err = RemovePVC(dfa.status.pvcName, dfa.status.scName, common.NSDefault, localEngine)
 		if err == nil {
+			dfa.status.createdPVC = false
 			err = RmStorageClass(dfa.status.scName)
 		}
 	}
