@@ -133,9 +133,9 @@ product:
     lvmEnginePluginContainerName: "openebs-lvm-plugin"
     lvmEnginePluginDriverName: "local.csi.openebs.io"
     umbrellaOpenebsHelmChartName: "mayastor/openebs"
-    useUmbrellaOpenEBSChart: false
     zfsEnginePluginContainerName: "openebs-zfs-plugin"
     zfsEnginePluginDriverName: "zfs.csi.openebs.io"
     zfsEngineControllerDeploymentName: "openebs-zfs-localpv-controller"
     zfsEngineLeaseName: "external-resizer-zfs-csi-openebs-io"
+    useUmbrellaOpenEBSChart: true
 
