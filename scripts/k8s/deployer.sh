@@ -3,8 +3,9 @@
 set -e
 
 SCRIPT_DIR="$(dirname "$0")"
-TMP_KIND="/tmp/kind/mayastor"
+TMP_KIND="/tmp/kind/openebs-e2e"
 TMP_KIND_CONFIG="$TMP_KIND/config.yaml"
+TMP_KIND_ZFS="$TMP_KIND/zfs"
 WORKERS=2
 DELAY="false"
 CORES=1
@@ -128,7 +129,7 @@ if [ "$COMMAND" = "stop" ]; then
 fi
 
 # Install prerequisites
-if ["$SETUP_MAYASTOR" = "true" ]; then
+if [ "$SETUP_MAYASTOR" = "true" ]; then
   "$SCRIPT_DIR"/setup-io-prereq.sh --hugepages "$HUGE_PAGES" --mayastor $DRY_RUN
 fi
 
@@ -176,19 +177,37 @@ for node_index in $(seq 1 $WORKERS); do
     - hostPath: $TMP_KIND/$node
       containerPath: /var/local/mayastor
       propagation: HostToContainer
+    - hostPath: /
+      containerPath: /host
+      propagation: HostToContainer
 EOF
-  if [ -n "$SETUP_MAYASTOR" ]; then
+  if [ "$SETUP_ZFS" = "true" ]; then
+    # Should already be installed by prereq script
+    ZFS=$(realpath $(which zfs))
+    cat <<EOF >>$TMP_KIND_ZFS
+    #/bin/sh
+    chroot /host $ZFS "\$@"
+EOF
+    chmod +x $TMP_KIND_ZFS
+    cat <<EOF >> "$TMP_KIND_CONFIG"
+    - hostPath: $TMP_KIND_ZFS
+      containerPath: /sbin/zfs
+      propagation: HostToContainer
+EOF
+  fi
+
+  if [ "$SETUP_MAYASTOR" = "true" ]; then
     cat <<EOF >> "$TMP_KIND_CONFIG"
   labels:
     openebs.io/engine: mayastor
 EOF
+    mkdir -p $host_path/io-engine
+    if [ -n "$POOL_SIZE" ]; then
+      $FALLOCATE -l $POOL_SIZE $host_path/io-engine/disk.io
+    fi
+    corelist=$(seq -s, $((start_core+((node_index-1)*CORES))) 1 $((start_core-1+((node_index)*CORES))))
+    printf "eal_opts:\n  core_list: $corelist\n  developer_delay: $DELAY\n" >$host_path/io-engine/config.yaml
   fi
-  mkdir -p $host_path/io-engine
-  if [ -n "$POOL_SIZE" ]; then
-    $FALLOCATE -l $POOL_SIZE $host_path/io-engine/disk.io
-  fi
-  corelist=$(seq -s, $((start_core+((node_index-1)*CORES))) 1 $((start_core-1+((node_index)*CORES))))
-  printf "eal_opts:\n  core_list: $corelist\n  developer_delay: $DELAY\n" >$host_path/io-engine/config.yaml
 done
 
 if [ -n "$DRY_RUN" ]; then
