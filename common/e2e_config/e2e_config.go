@@ -139,6 +139,8 @@ type ProductSpec struct {
 	UmbrellaOpenebsHelmChartName      string            `yaml:"umbrellaOpenebsHelmChartName"`
 	UseUmbrellaOpenEBSChart           bool              `yaml:"useUmbrellaOpenEBSChart" env:"e2e_use_umbrella_openebs_chart" env-default:"false"`
 	PrometheusNodeExporterServicePort int               `yaml:"prometheusNodeExporterServicePort" env-default:"10100"`
+	ZfsEnginePluginContainerName      string            `yaml:"zfsEnginePluginContainerName"`
+	ZfsEnginePluginDriverName         string            `yaml:"zfsEnginePluginDriverName"`
 }
 
 // E2EConfig is an application configuration structure

@@ -101,7 +101,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	// logf.Log.Info("remove node with device and zpool", "node config", nodeConfig)
+	logf.Log.Info("remove node with device and zpool", "node config", nodeConfig)
 	err = nodeConfig.RemoveConfiguredDeviceZfsPool()
 	Expect(err).ToNot(HaveOccurred(), "failed to cleanup node with device")
 	// NB This only tears down the local structures for talking to the cluster,
