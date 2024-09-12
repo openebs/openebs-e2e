@@ -3,6 +3,7 @@ package lvm
 import (
 	"fmt"
 
+	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 
@@ -111,12 +112,12 @@ func (lvmNodesDevicePvVgConfig *LvmNodesDevicePvVgConfig) ConfigureLvmNodesWithD
 			}
 			logf.Log.Info("Creating lvm pv", "node", node, "device path", device.DiskPath)
 			_, lvmPvErr := e2e_agent.LvmCreatePv(*nodeIp, device.DiskPath)
-			if err != nil {
+			if lvmPvErr != nil {
 				return fmt.Errorf("failed to create lvm pv on node %s with disk path %s, error: %v", node, device.DiskPath, lvmPvErr)
 			}
 			logf.Log.Info("Creating lvm vg", "node", node, "device path", device.DiskPath)
 			_, lvmVgErr := e2e_agent.LvmCreateVg(*nodeIp, device.DiskPath, lvmNodesDevicePvVgConfig.VgName)
-			if err != nil {
+			if lvmVgErr != nil {
 				return fmt.Errorf("failed to create lvm vg %s on node %s with disk path %s, error: %v",
 					lvmNodesDevicePvVgConfig.VgName,
 					node,
@@ -127,4 +128,28 @@ func (lvmNodesDevicePvVgConfig *LvmNodesDevicePvVgConfig) ConfigureLvmNodesWithD
 		}
 	}
 	return nil
+}
+
+func SetupLvmNodes(vgName string, size int64) (LvmNodesDevicePvVgConfig, error) {
+	var lvmNodeConfig LvmNodesDevicePvVgConfig
+	loopDevice := e2e_agent.LoopDevice{
+		Size:   size,
+		ImgDir: "/tmp",
+	}
+	workerNodes, err := ListLvmNode(common.NSOpenEBS())
+	if err != nil {
+		return lvmNodeConfig, fmt.Errorf("failed to list lvm worker nodes, error: %v", err)
+	}
+
+	lvmNodeConfig = LvmNodesDevicePvVgConfig{
+		VgName:        vgName,
+		NodeDeviceMap: make(map[string]e2e_agent.LoopDevice), // Properly initialize the map
+	}
+	for _, node := range workerNodes {
+		lvmNodeConfig.NodeDeviceMap[node] = loopDevice
+	}
+
+	logf.Log.Info("setup node with loop device, lvm pv and vg", "lvm node config", lvmNodeConfig)
+	err = lvmNodeConfig.ConfigureLvmNodesWithDeviceAndVg()
+	return lvmNodeConfig, err
 }

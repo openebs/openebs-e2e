@@ -92,9 +92,9 @@ func (zfsDevicePoolConfig *ZfsNodesDevicePoolConfig) ConfigureZfsNodesWithDevice
 			if err != nil {
 				return fmt.Errorf("failed to get node %s IP, error: %v", node, err)
 			}
-			_, zfsPoolErr := e2e_agent.ZfsCreatePool(*nodeIp, device.DiskPath, zfsDevicePoolConfig.PoolName)
-			if err != nil {
-				return fmt.Errorf("failed to create zfs pool on node %s, error: %v", node, zfsPoolErr)
+			out, zfsPoolErr := e2e_agent.ZfsCreatePool(*nodeIp, device.DiskPath, zfsDevicePoolConfig.PoolName)
+			if zfsPoolErr != nil {
+				return fmt.Errorf("failed to create zfs pool on node %s, error: %v, output: %s", node, zfsPoolErr, out)
 			}
 		}
 	}
