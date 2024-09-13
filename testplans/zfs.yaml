@@ -7,3 +7,4 @@ meta:
 testsuites:
   - zfs_volume_provisioning
   - zfs_volume_snapshot
+  - zfs_custom_node_topology

@@ -110,9 +110,11 @@ func (dfa *FioApplication) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix 
 		return fmt.Errorf("openebs engine not specified")
 	}
 
-	err = dfa.CreateVolume()
-	if err != nil {
-		return err
+	if !dfa.status.createdPVC {
+		err = dfa.CreateVolume()
+		if err != nil {
+			return err
+		}
 	}
 
 	// dfa.status.suffix will have been set by dfa.CreateVolume
