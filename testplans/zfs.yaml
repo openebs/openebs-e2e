@@ -6,3 +6,4 @@ meta:
     - common
 testsuites:
   - zfs_volume_provisioning
+  - zfs_volume_snapshot
