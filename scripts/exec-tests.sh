@@ -4,7 +4,7 @@ set -eu
 
 SCRIPTDIR=$(dirname "$(realpath "$0")")
 E2EROOT=$(realpath "$SCRIPTDIR/..")
-TESTDIR=$(realpath "$SCRIPTDIR/../src")
+TESTDIR=$(realpath "$SCRIPTDIR/../src/tests")
 ARTIFACTSDIR="${E2E_ARTIFACTSDIR:-$(realpath $SCRIPTDIR/../artifacts)}"
 
 #exit values
@@ -368,17 +368,17 @@ echo "list of tests: $tests"
 for testname in $tests; do
   # Defer uninstall till after other tests have been run.
   if [ "$testname" != "uninstall" ]; then
-    if [ -d "$TESTDIR/tests/lvm/$testname" ]; then
+    if [ -d "$TESTDIR/lvm/$testname" ]; then
         testrootdir=$TESTDIR
-        fqtestname="tests/lvm/$testname"
-    elif [ -d "$TESTDIR/tests/zfs/$testname" ]; then
+        fqtestname="lvm/$testname"
+    elif [ -d "$TESTDIR/zfs/$testname" ]; then
         testrootdir=$TESTDIR
-        fqtestname="tests/zfs/$testname"
+        fqtestname="zfs/$testname"
     elif [ -d "$TESTDIR/$testname" ]; then
         testrootdir=$TESTDIR
         fqtestname="$testname"
     else
-        echo "test directory $testname not found under $TESTDIR/tests/ or $TESTDIR"
+        echo "test directory $testname not found under $TESTDIR/lvm/ , $TESTDIR/zfs/ or $TESTDIR"
         exit $EXITV_FILE_MISSING
     fi
 

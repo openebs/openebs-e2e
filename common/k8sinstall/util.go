@@ -35,7 +35,6 @@ func installTheProduct() error {
 	_ = CreateNamespace(common.NSOpenEBS())
 
 	e2eCfg := e2e_config.GetConfig()
-	logf.Log.Info("e2e_config.GetConfig()", "CONFIG", e2eCfg)
 
 	_, err = k8stest.EnsureE2EAgent()
 	if err != nil {
@@ -99,6 +98,12 @@ func installOpenebs(namespace string, cmdArgs []string) error {
 	cmdArgs = append(cmdArgs,
 		"--set",
 		fmt.Sprintf("engines.replicated.mayastor.enabled=%v", e2eCfg.ReplicatedEngine),
+		"--set",
+		"lvm-localpv.analytics.enabled=false",
+		"--set",
+		"zfs-localpv.analytics.enabled=false",
+		"--set",
+		"localpv-provisioner.analytics.enabled=false",
 	)
 
 	if e2eCfg.ImagePullPolicy != "" {
