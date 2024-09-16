@@ -1,0 +1,9 @@
+meta:
+  environment: {}
+  name: 'debug-lvm'
+  description: 'debug lvm e2e tests'
+  include:
+    - common
+testsuites:
+  - lvm_volume_provisioning
+  - lvm_shared_mount

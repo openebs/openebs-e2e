@@ -1,0 +1,69 @@
+name: debug e2e tests
+on:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v11
+        with:
+          kvm: true
+      - uses: DeterminateSystems/magic-nix-cache-action@v6
+      - name: Pre-populate nix-shell
+        run: |
+          export NIX_PATH=nixpkgs=$(jq '.nixpkgs.url' nix/sources.json -r)
+          echo "NIX_PATH=$NIX_PATH" >> $GITHUB_ENV
+          nix-shell shell.nix --run "echo"
+      - name: Go checks
+        run: |
+          nix-shell shell.nix --run "./scripts/go-checks.sh"
+  lvm:
+    needs: ['lint']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v11
+        with:
+          kvm: true
+      - uses: DeterminateSystems/magic-nix-cache-action@v6
+      - name: Pre-populate nix-shell
+        run: |
+          export NIX_PATH=nixpkgs=$(jq '.nixpkgs.url' nix/sources.json -r)
+          echo "NIX_PATH=$NIX_PATH" >> $GITHUB_ENV
+          nix-shell shell.nix --run "echo"
+      - name: BootStrap k8s cluster
+        run: |
+          nix-shell shell.nix --run "./scripts/k8s/deployer.sh start --workers 1 --lvm"
+      - name: Setup tmate session
+        # if: ${{ failure() }}
+        timeout-minutes: 30
+        uses: mxschmitt/action-tmate@v3
+      - name: Lvm e2e test
+        run: |
+          nix-shell shell.nix --run "./scripts/e2e-test.sh --testplan debug-lvm"
+  zfs:
+    needs: ['lint']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v11
+        with:
+          kvm: true
+      - uses: DeterminateSystems/magic-nix-cache-action@v6
+      - name: Pre-populate nix-shell
+        run: |
+          export NIX_PATH=nixpkgs=$(jq '.nixpkgs.url' nix/sources.json -r)
+          echo "NIX_PATH=$NIX_PATH" >> $GITHUB_ENV
+          nix-shell shell.nix --run "echo"
+      - name: BootStrap k8s cluster
+        run: |
+          nix-shell shell.nix --run "./scripts/k8s/deployer.sh start --workers 1 --zfs"
+      - name: Setup tmate session
+        # if: ${{ failure() }}
+        timeout-minutes: 30
+        uses: mxschmitt/action-tmate@v3
+      - name: Zfs e2e test
+        run: |
+          nix-shell shell.nix --run "./scripts/e2e-test.sh --testplan debug-zfs"
