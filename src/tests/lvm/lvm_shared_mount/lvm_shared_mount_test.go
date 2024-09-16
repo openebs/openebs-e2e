@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/openebs-e2e/common"
-	"github.com/openebs/openebs-e2e/common/e2e_agent"
 	"github.com/openebs/openebs-e2e/common/e2e_ginkgo"
 	"github.com/openebs/openebs-e2e/common/k8stest"
 	"github.com/openebs/openebs-e2e/common/lvm"
@@ -24,34 +23,13 @@ import (
 //     Then both applications should be in running state using the same volume
 
 var nodeConfig lvm.LvmNodesDevicePvVgConfig
-
-func setupLVM() {
-	loopDevice := e2e_agent.LoopDevice{
-		Size:   10737418240,
-		ImgDir: "/tmp",
-	}
-
-	workerNodes, err := lvm.ListLvmNode(common.NSOpenEBS())
-	Expect(err).ToNot(HaveOccurred(), "failed to list worker nodes")
-
-	nodeConfig = lvm.LvmNodesDevicePvVgConfig{
-		VgName:        "lvmvg",
-		NodeDeviceMap: make(map[string]e2e_agent.LoopDevice),
-	}
-	for _, node := range workerNodes {
-		nodeConfig.NodeDeviceMap[node] = loopDevice
-	}
-
-	logf.Log.Info("Setting up node with loop device, PV, and VG", "node config", nodeConfig)
-	err = nodeConfig.ConfigureLvmNodesWithDeviceAndVg()
-	Expect(err).ToNot(HaveOccurred(), "failed to setup node")
-}
+var busyboxapp k8stest.FioApplication
+var podNames []string
 
 func fsVolumeSharedMountTest(decor string, engine common.OpenEbsEngine, fstype common.FileSystemType, volBindModeWait bool) {
-	// Initialize FioApplication instance
 	// FIXME: here we are using k8stest.FioApplication to use its functionality
 	// and not deploying FIO, instead busybox application will be deployed.
-	busyboxapp := k8stest.FioApplication{
+	busyboxapp = k8stest.FioApplication{
 		Decor:                          decor,
 		VolSizeMb:                      4096,
 		OpenEbsEngine:                  engine,
@@ -61,9 +39,6 @@ func fsVolumeSharedMountTest(decor string, engine common.OpenEbsEngine, fstype c
 		VolWaitForFirstConsumer:        volBindModeWait,
 		SkipPvcVerificationAfterCreate: true,
 	}
-
-	// Set up LVM configuration
-	setupLVM()
 
 	// Set up storage class parameters
 	busyboxapp.Lvm = k8stest.LvmOptions{
@@ -81,6 +56,7 @@ func fsVolumeSharedMountTest(decor string, engine common.OpenEbsEngine, fstype c
 	// Deploy first BusyBox pod and create file with MD5 checksum
 	podName1 := "busybox"
 	deployBusyBoxPod(podName1, busyboxapp.GetPvcName(), busyboxapp.VolType)
+	podNames = append(podNames, podName1)
 
 	filePath := "/volume/testfile.txt"
 	fileContent := "This is some test data."
@@ -100,6 +76,7 @@ func fsVolumeSharedMountTest(decor string, engine common.OpenEbsEngine, fstype c
 	// Deploy second BusyBox pod to verify data
 	podName2 := "busybox-second"
 	deployBusyBoxPod(podName2, busyboxapp.GetPvcName(), busyboxapp.VolType)
+	podNames = append(podNames, podName2)
 
 	combinedCmd2 := fmt.Sprintf(
 		"md5sum %s > %s",
@@ -127,9 +104,6 @@ func fsVolumeSharedMountTest(decor string, engine common.OpenEbsEngine, fstype c
 		Expect(err).To(BeNil(), "GetPodStatusByPrefix got error %v", err)
 		Expect(phase == coreV1.PodRunning).Should(BeTrue(), fmt.Sprintf("%s pod is not in running state", podName))
 	}
-
-	// Clean up resources
-	cleanUpResources([]string{podName1, podName2}, busyboxapp.GetPvcName())
 }
 
 func deployBusyBoxPod(podName, pvcName string, volType common.VolumeType) *coreV1.Pod {
@@ -182,7 +156,7 @@ func cleanUpResources(pods []string, pvcName string) {
 		},
 			k8stest.DefTimeoutSecs,
 			"5s",
-		).Should(Equal(false), "busybox pod 1 deletion failed")
+		).Should(Equal(false), "busybox pod deletion failed")
 	}
 
 	err := k8stest.DeletePVC(pvcName, common.NSDefault)
@@ -205,6 +179,10 @@ var _ = Describe("lvm_shared_mount_volume", func() {
 	})
 
 	AfterEach(func() {
+		// Clean up after each test
+		cleanUpResources(podNames, busyboxapp.GetPvcName())
+		podNames = nil // Reset the pod list for the next test
+
 		err := e2e_ginkgo.AfterEachK8sCheck()
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -234,12 +212,14 @@ var _ = Describe("lvm_shared_mount_volume", func() {
 var _ = BeforeSuite(func() {
 	err := e2e_ginkgo.SetupTestEnv()
 	Expect(err).ToNot(HaveOccurred(), "failed to setup test environment in BeforeSuite : SetupTestEnv %v", err)
+
+	//setup nodes with lvm pv and vg
+	nodeConfig, err = lvm.SetupLvmNodes("lvmvg", 10737418240)
+	Expect(err).ToNot(HaveOccurred(), "failed to setup lvm pv and vg")
 })
 
 var _ = AfterSuite(func() {
-
-	// NB This only tears down the local structures for talking to the cluster,
-	// not the kubernetes cluster itself.	By("tearing down the test environment")
+	// NB This only tears down the local structures for talking to the cluster, not the kubernetes cluster itself.
 	logf.Log.Info("remove node with device and vg", "node config", nodeConfig)
 	err := nodeConfig.RemoveConfiguredLvmNodesWithDeviceAndVg()
 	Expect(err).ToNot(HaveOccurred(), "failed to cleanup node with device")
