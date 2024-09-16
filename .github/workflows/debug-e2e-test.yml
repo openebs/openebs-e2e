@@ -37,7 +37,8 @@ jobs:
         run: |
           nix-shell shell.nix --run "./scripts/k8s/deployer.sh start --workers 1 --lvm"
       - name: Setup tmate session
-        # if: ${{ failure() }}
+        with:
+          detached: true
         timeout-minutes: 30
         uses: mxschmitt/action-tmate@v3
       - name: Lvm e2e test
@@ -61,7 +62,8 @@ jobs:
         run: |
           nix-shell shell.nix --run "./scripts/k8s/deployer.sh start --workers 1 --zfs"
       - name: Setup tmate session
-        # if: ${{ failure() }}
+        with:
+          detached: true
         timeout-minutes: 30
         uses: mxschmitt/action-tmate@v3
       - name: Zfs e2e test
