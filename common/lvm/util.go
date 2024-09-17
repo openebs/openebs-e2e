@@ -2,6 +2,7 @@ package lvm
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
@@ -132,13 +133,27 @@ func (lvmNodesDevicePvVgConfig *LvmNodesDevicePvVgConfig) ConfigureLvmNodesWithD
 
 func SetupLvmNodes(vgName string, size int64) (LvmNodesDevicePvVgConfig, error) {
 	var lvmNodeConfig LvmNodesDevicePvVgConfig
-	loopDevice := e2e_agent.LoopDevice{
-		Size:   size,
-		ImgDir: "/tmp",
-	}
 	workerNodes, err := ListLvmNode(common.NSOpenEBS())
 	if err != nil {
 		return lvmNodeConfig, fmt.Errorf("failed to list lvm worker nodes, error: %v", err)
+	}
+	if len(workerNodes) == 0 {
+		return lvmNodeConfig, fmt.Errorf("lvm worker nodes not found")
+	}
+	var imgDir string
+	// Cluster setup on github runner will have worker name starts with kind- like kind-worker, kind-worker2
+	// create disk image file at /mnt on host which will /host/host/mnt in e2e-agent container because
+	// on github runner one device is mounted
+	// and if worker name does not start kind- then create disk image file at /tmp directory of host
+	if strings.Contains(workerNodes[0], "kind-") {
+		imgDir = "/host/host/mnt"
+	} else {
+		imgDir = "/tmp"
+	}
+
+	loopDevice := e2e_agent.LoopDevice{
+		Size:   size,
+		ImgDir: imgDir,
 	}
 
 	lvmNodeConfig = LvmNodesDevicePvVgConfig{

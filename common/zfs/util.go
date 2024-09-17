@@ -2,6 +2,7 @@ package zfs
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
@@ -103,13 +104,26 @@ func (zfsDevicePoolConfig *ZfsNodesDevicePoolConfig) ConfigureZfsNodesWithDevice
 
 func SetupZfsNodes(poolName string, size int64) (ZfsNodesDevicePoolConfig, error) {
 	var zfsNodeConfig ZfsNodesDevicePoolConfig
-	loopDevice := e2e_agent.LoopDevice{
-		Size:   size,
-		ImgDir: "/tmp",
-	}
 	workerNodes, err := ListZfsNode(common.NSOpenEBS())
 	if err != nil {
 		return zfsNodeConfig, fmt.Errorf("failed to list zfs worker nodes, error: %v", err)
+	}
+	if len(workerNodes) == 0 {
+		return zfsNodeConfig, fmt.Errorf("zfs worker nodes not found")
+	}
+	var imgDir string
+	// Cluster setup on github runner will have worker name starts with kind- like kind-worker, kind-worker2
+	// create disk image file at /mnt on host which will /host/host/mnt in e2e-agent container because
+	// on github runner one device is mounted
+	// and if worker name does not start kind- then create disk image file at /tmp directory of host
+	if strings.Contains(workerNodes[0], "kind-") {
+		imgDir = "/host/host/mnt"
+	} else {
+		imgDir = "/tmp"
+	}
+	loopDevice := e2e_agent.LoopDevice{
+		Size:   size,
+		ImgDir: imgDir,
 	}
 
 	zfsNodeConfig = ZfsNodesDevicePoolConfig{
