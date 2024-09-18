@@ -141,6 +141,8 @@ type ProductSpec struct {
 	PrometheusNodeExporterServicePort int               `yaml:"prometheusNodeExporterServicePort" env-default:"10100"`
 	ZfsEnginePluginContainerName      string            `yaml:"zfsEnginePluginContainerName"`
 	ZfsEnginePluginDriverName         string            `yaml:"zfsEnginePluginDriverName"`
+	ZfsEngineControllerDeploymentName string            `yaml:"zfsEngineControllerDeploymentName"`
+	ZfsEngineLeaseName                string            `yaml:"zfsEngineLeaseName"`
 }
 
 // E2EConfig is an application configuration structure

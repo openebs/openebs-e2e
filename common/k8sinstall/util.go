@@ -171,3 +171,52 @@ func ScaleLvmControllerViaHelm(expected_replica int32) (int32, error) {
 
 	return orig_replicas, nil
 }
+
+// ScaleZfsControllerViaHelm return original replica count of zfs controller deployment before any scale operation
+func ScaleZfsControllerViaHelm(expected_replica int32) (int32, error) {
+	e2eCfg := e2e_config.GetConfig()
+	orig_replicas, err := k8stest.GetDeploymentSpecReplicas(e2eCfg.Product.ZfsEngineControllerDeploymentName, common.NSOpenEBS())
+	if err != nil {
+		return orig_replicas, fmt.Errorf("failed to get deployment replicas, error: %v", err)
+	}
+
+	values := map[string]interface{}{
+		"engines.replicated.mayastor.enabled": e2eCfg.ReplicatedEngine,
+		"zfs-localpv.zfsController.replicas":  expected_replica,
+	}
+
+	err = apps.UpgradeHelmChart(e2eCfg.Product.OpenEBSHelmChartName,
+		common.NSOpenEBS(),
+		e2eCfg.Product.OpenEBSHelmReleaseName,
+		values,
+	)
+	if err != nil {
+		return orig_replicas, err
+	}
+
+	ready, err := k8stest.OpenEBSReady(10, 540)
+	if err != nil {
+		return orig_replicas, err
+	}
+	if !ready {
+		return orig_replicas, fmt.Errorf("all pods not ready, openebs ready check failed")
+	}
+
+	var replicas int32
+	timeout_seconds := 120
+	endTime := time.Now().Add(time.Duration(timeout_seconds) * time.Second)
+	for ; time.Now().Before(endTime); time.Sleep(time.Second * 2) {
+		replicas, err = k8stest.GetDeploymentStatusReplicas(e2eCfg.Product.ZfsEngineControllerDeploymentName, common.NSOpenEBS())
+		if err != nil {
+			return orig_replicas, fmt.Errorf("failed to get status replicas, error: %v", err)
+		}
+		if replicas == expected_replica {
+			break
+		}
+	}
+	if replicas != expected_replica {
+		return orig_replicas, fmt.Errorf("timed out waiting for pods to be restored, pod count: %d", replicas)
+	}
+
+	return orig_replicas, nil
+}
