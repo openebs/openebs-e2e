@@ -2,16 +2,20 @@
 
 set -e
 
-HUGE_PAGES=
+HUGE_PAGES=1800
 HUGE_PAGES_OVERRIDE=
-NVME_TCP=
 SETUP_ZFS=
 SETUP_LVM=
 SETUP_MAYASTOR=
 DRY_RUN=
-SYSCTL="sudo sysctl"
-MODPROBE="sudo modprobe"
+SUDO=${SUDO:-"sudo"}
+SYSCTL="sysctl"
+MODPROBE="modprobe"
+APTGET="apt-get"
+LSMOD="lsmod"
 UPDATED=0
+INSTALLED_KMODS=
+DISTRO=
 
 help() {
   cat <<EOF
@@ -40,11 +44,7 @@ die() {
 }
 
 setup_hugepages() {
-  $SYSCTL -w vm.nr_hugepages="$1"
-}
-
-modprobe_nvme_tcp() {
-  $MODPROBE nvme_tcp
+  $SUDO $SYSCTL -w vm.nr_hugepages="$1"
 }
 
 nvme_ana_check() {
@@ -52,44 +52,80 @@ nvme_ana_check() {
 }
 
 distro() {
-  cat /etc/os-release | awk -F= '/^NAME=/ {print $2}' | tr -d '"'
+  if [ -z "$DISTRO" ]; then
+    DISTRO=$(cat /etc/os-release | awk -F= '/^NAME=/ {print $2}' | tr -d '"')
+  fi
+  echo "$DISTRO"
 }
 
 install_kernel_modules_nsup() {
-  die "Installing kernel modules not supported for $1"
+  die "Installing extra kernel modules is not supported for $1"
 }
 
 update_apt() {
   if [ "$UPDATED" -eq 0 ]; then
-    sudo apt-get update
+    $SUDO $APTGET update
     UPDATED=1
   fi
 }
+apt_install() {
+  update_apt
+  if $SUDO $APTGET install -y $@; then
+    echo "Successfully installed $@"
+  else
+    die "Failed to install $@"
+  fi
+}
+
+kmod_loaded() {
+  local mod="${1//-/_}"
+  # either builtin or as a module
+  [ -d "/sys/module/$mod" ] || $LSMOD | grep -q "$mod"
+}
 
 install_kernel_modules() {
-  DISTRO="$(distro)"
-  case "$DISTRO" in
+  if [ "$INSTALLED_KMODS" = "yes" ]; then
+    return 0;
+  fi
+
+  case "$(distro)" in
     Ubuntu)
-      update_apt
-      sudo apt-get install -y linux-modules-extra-$(uname -r) xfsprogs quota
+      apt_install linux-modules-extra-$(uname -r)
+      INSTALLED_KMODS="yes"
       ;;
     NixOS | *)
-      install_kernel_modules_nsup "$DISTRO"
+      install_kernel_modules_nsup "$(distro)"
       ;;
   esac
 }
+modprobe_kmod() {
+  $SUDO $MODPROBE $@
+}
+
+load_kernel_module() {
+  if kmod_loaded $1; then
+    echo "$1 kernel module already loaded"
+    return 0;
+  fi
+
+  if ! modprobe_kmod $1 -q; then
+    # perhaps we're missing the modules?
+    install_kernel_modules
+    # now we can give it another go as our module may be available
+    if ! modprobe_kmod $1; then
+      die "Failed to load $1 kernel module!"
+    fi
+  fi
+
+  echo "$1 kernel module loaded"
+}
 
 install_zfs() {
-  if ! command -v zfs &> /dev/null; then
+  if ! command -v zfs &>/dev/null; then
     DISTRO="$(distro)"
     case "$DISTRO" in
       Ubuntu)
-        update_apt
-        if sudo apt-get install -y zfsutils-linux; then
-          echo "Successfully installed zfsutils-linux"
-        else
-          die "Failed to install zfsutils-linux"
-        fi
+        apt_install zfsutils-linux
         ;;
       NixOS | *)
         die "Installation of zfsutils-linux not supported for $DISTRO"
@@ -101,16 +137,11 @@ install_zfs() {
 }
 
 install_lvm() {
-  if ! command -v lvm &> /dev/null; then
+  if ! command -v lvm &>/dev/null; then
     DISTRO="$(distro)"
     case "$DISTRO" in
       Ubuntu)
-        update_apt
-        if sudo apt-get install -y lvm2; then
-          echo "Successfully installed lvm2"
-        else
-          die "Failed to install lvm2"
-        fi
+        apt_install lvm2
         ;;
       NixOS | *)
         die "Installation of lvm2 not supported for $DISTRO"
@@ -123,30 +154,32 @@ install_lvm() {
 
 load_lvm_modules() {
   # Load LVM snapshot and thin provisioning modules
-  sudo modprobe dm-snapshot
-  sudo modprobe dm-thin-pool
+  load_kernel_module dm-snapshot
+  load_kernel_module dm-thin-pool
 }
 
-mayastor() {
-if [ -n "$NVME_TCP" ]; then
-  if ! lsmod | grep "nvme_tcp" >/dev/null; then
-    if ! modprobe nvme_tcp >/dev/null; then
-      install_kernel_modules
-      if ! modprobe nvme_tcp; then
-        die "Failed to load nvme_tcp kernel module!"
-      fi
-    fi
-    echo "Installed nvme_tcp kernel module"
-  else
-    echo "nvme_tcp kernel module already installed"
-  fi
-
+setup_mayastor() {
+  load_kernel_module nvme-tcp
   if [ "$(nvme_ana_check)" != "Y" ]; then
     echo_stderr "NVMe multipath support is NOT enabled!"
   else
     echo "NVMe multipath support IS enabled"
   fi
-fi
+
+  if [ -n "$HUGE_PAGES" ]; then
+    pages=$($SYSCTL -b vm.nr_hugepages)
+
+    if [ "$HUGE_PAGES" -gt "$pages" ]; then
+      setup_hugepages "$HUGE_PAGES"
+    else
+      if [ "$HUGE_PAGES" -lt "$pages" ] && [ -n "$HUGE_PAGES_OVERRIDE" ]; then
+        echo "Overriding hugepages from $pages to $HUGE_PAGES, as requested"
+        setup_hugepages "$HUGE_PAGES"
+      else
+        echo "Current hugepages ($pages) are sufficient"
+      fi
+    fi
+  fi
 }
 
 while [ "$#" -gt 0 ]; do
@@ -171,7 +204,7 @@ while [ "$#" -gt 0 ]; do
       shift
       ;;
     --mayastor)
-      NVME_TCP="y"
+      SETUP_MAYASTOR="y"
       shift
       ;;
     --zfs)
@@ -185,8 +218,7 @@ while [ "$#" -gt 0 ]; do
     --dry-run)
       if [ -z "$DRY_RUN" ]; then
         DRY_RUN="--dry-run"
-        SYSCTL="echo $SYSCTL"
-        MODPROBE="echo $MODPROBE"
+        SUDO="echo $SUDO"
       fi
       shift
       ;;
@@ -196,23 +228,8 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if [ -n "$HUGE_PAGES" ]; then
-  pages=$(sysctl -b vm.nr_hugepages)
-
-  if [ "$HUGE_PAGES" -gt "$pages" ]; then
-    setup_hugepages "$HUGE_PAGES"
-  else
-    if [ "$HUGE_PAGES" -lt "$pages" ] && [ -n "$HUGE_PAGES_OVERRIDE" ]; then
-      echo "Overriding hugepages from $pages to $HUGE_PAGES, as requested"
-      setup_hugepages "$HUGE_PAGES"
-    else
-      echo "Current hugepages ($pages) are sufficient"
-    fi
-  fi
-fi
-
-if [ -n "$SETUP_MAYASTOR"]; then
-   mayastor
+if [ -n "$SETUP_MAYASTOR" ]; then
+  setup_mayastor
 fi
 
 if [ -n "$SETUP_ZFS" ]; then

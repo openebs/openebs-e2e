@@ -44,7 +44,7 @@ mkShell {
   ;
 
   shellHook = ''
-    if [ -z "$CI" ]; then
+    if [ -z "$CI" ] && [ "$IN_NIX_SHELL" = "impure" ]; then
       pre-commit install
       pre-commit install --hook commit-msg
     fi

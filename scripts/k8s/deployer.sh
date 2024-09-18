@@ -18,7 +18,9 @@ DOCKER="docker"
 HUGE_PAGES=1800
 SETUP_ZFS="false"
 SETUP_LVM="false"
-SETUP_MAYASTOR="false"
+SETUP_MAYASTOR="true"
+LABEL=
+SUDO=${SUDO:-"sudo"}
 
 help() {
   cat <<EOF
@@ -35,6 +37,7 @@ Options:
   --zfs                             Install ZFS utilities.
   --lvm                             Install LVM utilities and load required modules.
   --mayastor                        Setup pre-requisites, install and load required modules.
+  --label                           Label worker nodes with the io-engine selector.
 
 Command:
   start                             Start the k8s cluster.
@@ -64,10 +67,12 @@ while [ "$#" -gt 0 ]; do
       exit 0
       shift;;
     start)
+      [ -n "$COMMAND" ] && die "Command already specified"
       COMMAND="start"
       DO_ARGS="y"
       shift;;
     stop)
+      [ -n "$COMMAND" ] && die "Command already specified"
       COMMAND="stop"
       DO_ARGS="y"
       shift;;
@@ -97,14 +102,8 @@ while [ "$#" -gt 0 ]; do
       test $# -lt 1 && die "Missing hugepage number"
       HUGE_PAGES=$1
       shift;;
-    --dry-run)
-      if [ -z "$DRY_RUN" ]; then
-        DRY_RUN="--dry-run"
-        KIND="echo $KIND"
-        FALLOCATE="echo $FALLOCATE"
-        KUBECTL="echo $KUBECTL"
-        DOCKER="echo $DOCKER"
-      fi
+    --label)
+      LABEL="true"
       shift;;
     --zfs)
       SETUP_ZFS="true"
@@ -112,18 +111,28 @@ while [ "$#" -gt 0 ]; do
     --lvm)
       SETUP_LVM="true"
       shift;;
+    --dry-run)
+      if [ -z "$DRY_RUN" ]; then
+        DRY_RUN="--dry-run"
+        KIND="echo $KIND"
+        FALLOCATE="echo $FALLOCATE"
+        KUBECTL="echo $KUBECTL"
+        DOCKER="echo $DOCKER"
+        SUDO="echo"
+      fi
+      shift;;
     *)
-      die "Unknown argument $1!"
+      die "Unknown argument $1!\n$(help)"
       shift;;
   esac
 done
 
 if [ -z "$COMMAND" ]; then
-  die "No command specified!"
+  die "No command specified!\n$(help)"
 fi
 
 if [ "$COMMAND" = "stop" ]; then
-  sudo nvme disconnect-all
+  $SUDO nvme disconnect-all
   $KIND delete cluster
   exit 0
 fi
@@ -177,9 +186,6 @@ for node_index in $(seq 1 $WORKERS); do
     - hostPath: $TMP_KIND/$node
       containerPath: /var/local/mayastor
       propagation: HostToContainer
-    - hostPath: /
-      containerPath: /host
-      propagation: HostToContainer
 EOF
   if [ "$SETUP_ZFS" = "true" ]; then
     # Should already be installed by prereq script
@@ -190,6 +196,9 @@ EOF
 EOF
     chmod +x $TMP_KIND_ZFS
     cat <<EOF >> "$TMP_KIND_CONFIG"
+    - hostPath: /
+      containerPath: /host
+      propagation: HostToContainer
     - hostPath: $TMP_KIND_ZFS
       containerPath: /sbin/zfs
       propagation: HostToContainer
@@ -197,10 +206,12 @@ EOF
   fi
 
   if [ "$SETUP_MAYASTOR" = "true" ]; then
-    cat <<EOF >> "$TMP_KIND_CONFIG"
+    if [ "$LABEL" = "true" ]; then
+      cat <<EOF >> "$TMP_KIND_CONFIG"
   labels:
     openebs.io/engine: mayastor
 EOF
+    fi
     mkdir -p $host_path/io-engine
     if [ -n "$POOL_SIZE" ]; then
       $FALLOCATE -l $POOL_SIZE $host_path/io-engine/disk.io
