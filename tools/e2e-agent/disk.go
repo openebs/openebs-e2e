@@ -41,7 +41,10 @@ func (disk *LoopDevice) createDiskImage() error {
 	if err != nil {
 		return fmt.Errorf("error truncating disk image. Error : %v", err)
 	}
-
+	err = f.Close()
+	if err != nil {
+		return fmt.Errorf("error closing disk image file %s. Error : %v", disk.ImageName, err)
+	}
 	return nil
 }
 
