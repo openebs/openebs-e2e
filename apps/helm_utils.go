@@ -129,7 +129,7 @@ func UpgradeHelmChart(helmChart, namespace, releaseName string, values map[strin
 	// Execute the command.
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to upgrade MongoDB with Helm: %v\n%s", err, output)
+		return fmt.Errorf("failed to upgrade with Helm: %v\n%s", err, output)
 	}
 	return nil
 }

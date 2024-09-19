@@ -8,3 +8,4 @@ testsuites:
   - zfs_volume_provisioning
   - zfs_volume_snapshot
   - zfs_custom_node_topology
+  # - zfs_ha_controller // this test require minimum two worker nodes in cluster

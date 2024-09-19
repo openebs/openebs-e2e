@@ -33,11 +33,6 @@ var _ = Describe("zfs_ci_smoke_test", func() {
 	})
 
 	AfterEach(func() {
-		// cleanup k8s resources if exist
-		logf.Log.Info("cleanup k8s resources if exist")
-		err = app.Cleanup()
-		Expect(err).ToNot(HaveOccurred(), "failed to k8s resource")
-
 		// Check resource leakage.
 		after_err := e2e_ginkgo.AfterEachK8sCheck()
 

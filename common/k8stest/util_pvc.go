@@ -1344,7 +1344,7 @@ func IsNormalPvcEventPresent(pvcName string, namespace string, errorSubstring st
 		return false, fmt.Errorf("failed to get pvc events in namespace %s, error: %v", namespace, err)
 	}
 	for _, event := range events.Items {
-		logf.Log.Info("Found PVC event", "message", event.Message)
+		logf.Log.Info("Found PVC event", "message", event.Message, "event type", event.Type)
 		if event.Type == "Normal" && strings.Contains(event.Message, errorSubstring) {
 			return true, err
 		}
