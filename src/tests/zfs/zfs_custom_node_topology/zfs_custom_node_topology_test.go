@@ -3,6 +3,7 @@ package zfs_custom_node_topology
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"github.com/openebs/openebs-e2e/common/e2e_ginkgo"
@@ -119,7 +120,7 @@ func customTopologyImmediateTest(decor string, engine common.OpenEbsEngine, volT
 		productConfig.ZfsEngineComponentDsPodLabelValue)
 
 	// restart zfs daemonset pods so that topology key present in csinode kubernetes object
-	// for local.csi.openebs.io plugin driver should be removed before starting new topology test
+	// for zfs.csi.openebs.io plugin driver should be removed before starting new topology test
 	// and to do so , daemonset pods need to restarted after removing node label with the key
 	err = k8stest.DeletePodsByLabel(label, common.NSOpenEBS())
 	Expect(err).To(BeNil(), "failed to restart zfs daemonset pods with label %s", label)
@@ -158,7 +159,7 @@ func customTopologyImmediateTest(decor string, engine common.OpenEbsEngine, volT
 		"5s",
 	).Should(BeFalse())
 
-	Expect(csiNodeErr).ToNot(HaveOccurred(), "failed to get csi node %s, %v", targetNode, csiNodeErr)
+	Expect(csiNodeErr).ToNot(HaveOccurred(), "failed to get csi node %s, %v", workerNodes[0], csiNodeErr)
 }
 
 /*
@@ -232,6 +233,9 @@ func customTopologyWfcTest(decor string, engine common.OpenEbsEngine, volType co
 		Expect(err).ToNot(HaveOccurred(), "failed to create volume %s, %v", app.Decor, err)
 	}
 
+	logf.Log.Info("Sleep for 30 seconds before verifying pvc's pending state")
+	time.Sleep(30 * time.Second)
+
 	for ix, app := range appInstances {
 		logf.Log.Info(fmt.Sprintf("%d)", ix), "zfs-volume", app.Decor)
 		// verify pvc to be in pending state
@@ -245,7 +249,7 @@ func customTopologyWfcTest(decor string, engine common.OpenEbsEngine, volType co
 		productConfig.ZfsEngineComponentDsPodLabelValue)
 
 	// Restart zfs daemonset pods after applying node label with key
-	// so that csinode kubernetes object for local.csi.openebs.io plugin driver picks
+	// so that csinode kubernetes object for zfs.csi.openebs.io plugin driver picks
 	// that particular topology key for scheduling volume
 	err = k8stest.DeletePodsByLabel(label, common.NSOpenEBS())
 	Expect(err).To(BeNil(), "failed to restart zfs daemonset pods with label %s", label)
@@ -330,7 +334,7 @@ func customTopologyWfcTest(decor string, engine common.OpenEbsEngine, volType co
 	targetNode = ""
 
 	// restart zfs daemonset pods so that topology key present in csinode kubernetes object
-	// for local.csi.openebs.io plugin driver should be removed before starting new topology test
+	// for zfs.csi.openebs.io plugin driver should be removed before starting new topology test
 	// and to do so , daemonset pods needs to restated after removing node label with the key
 	err = k8stest.DeletePodsByLabel(label, common.NSOpenEBS())
 	Expect(err).To(BeNil(), "failed to restart zfs daemonset pods with label %s", label)

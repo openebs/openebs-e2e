@@ -7,3 +7,8 @@ meta:
 testsuites:
   - lvm_volume_provisioning
   - lvm_shared_mount
+  - lvm_volume_snapshot
+  - lvm_thick_volume_resize
+  # - lvm_ha_controller // this test require minimum two worker nodes in cluster
+  - lvm_custom_node_topology
+  - lvm_thin_volume_resize

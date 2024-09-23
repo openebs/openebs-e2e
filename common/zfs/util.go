@@ -119,7 +119,7 @@ func SetupZfsNodes(poolName string, size int64) (ZfsNodesDevicePoolConfig, error
 	if strings.Contains(workerNodes[0], "kind-") {
 		imgDir = "/host/host/mnt"
 	} else {
-		imgDir = "/tmp"
+		imgDir = "/mnt"
 	}
 	loopDevice := e2e_agent.LoopDevice{
 		Size:   size,
