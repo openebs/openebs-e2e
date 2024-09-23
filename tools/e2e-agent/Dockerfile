@@ -11,7 +11,7 @@ COPY  ./ /
 # It ensures that devices are configured as soon as they are plugged in and discovered.
 # It propagates information about a processed device.
 RUN apt-get update; apt-get install net-tools iptables wget parted udev nvme-cli build-essential gettext gettext-base \
-        libinih-dev uuid-dev liburcu-dev  libblkid-dev btrfs-progs lvm2 zfsutils-linux -y;
+        libinih-dev uuid-dev liburcu-dev  libblkid-dev btrfs-progs -y;
 RUN wget https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz; \
         tar -C /usr/local/ -xzf go${GO_VERSION}.linux-amd64.tar.gz; \
         rm -rf go${GO_VERSION}.linux-amd64.tar.gz; \

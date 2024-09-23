@@ -77,7 +77,7 @@ type Lvm struct {
 	Pv                          string `json:"pv"`                          // Physical volume
 	Vg                          string `json:"vg"`                          // Volume group
 	ThinPoolAutoExtendThreshold int    `json:"thinPoolAutoExtendThreshold"` // thin pool auto extend threshold
-	ThinPoolAutoExtendPercent   int    `json:"ThinPoolAutoExtendPercent"`   // thin pool auto extend percent
+	ThinPoolAutoExtendPercent   int    `json:"thinPoolAutoExtendPercent"`   // thin pool auto extend percent
 }
 
 type LoopDevice struct {
@@ -1094,4 +1094,52 @@ func RemoveHostPathDisk(serverAddr string, diskPath string, mountPoint string) e
 	}
 	logf.Log.Info("RemoveHostPathDisk succeeded", "output", out)
 	return err
+}
+
+// LvmLvChangeMonitor monitor lvm lv
+func LvmLvChangeMonitor(serverAddr string, vgName string) (string, error) {
+	data := Lvm{
+		Vg: vgName,
+	}
+	logf.Log.Info("Executing lvchange", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/lvmlvchangemonitor"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to monitor lvm lv, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("LvmLvChangeMonitor succeeded", "output", out)
+	return out, err
+}
+
+// LvmLvRemoveThinPool delete lvm thin pool lv
+func LvmLvRemoveThinPool(serverAddr string, vgName string) (string, error) {
+	data := Lvm{
+		Vg: vgName,
+	}
+	logf.Log.Info("Executing lvchange", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/lvmlvremovethinpool"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to remove lvm thin pool lv, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("LvmLvRemoveThinPool succeeded", "output", out)
+	return out, err
 }
