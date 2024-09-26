@@ -136,8 +136,9 @@ func installPrometheus(namespace string) error {
 	logf.Log.Info("About to execute: helm install e2e-prometheus prometheus-community/kube-prometheus-stack", " --set ",
 		cmdString, "namespace", namespace)
 	out, err := cmd.CombinedOutput()
+	logf.Log.Info(string(out))
 	if err != nil {
-		return fmt.Errorf("failed to install prometheus using helm chart: namespace: %s Output: %s : Error: %v", namespace, out, err)
+		return fmt.Errorf("failed to install prometheus using helm chart: namespace: %s Output: %s : Error: %v", namespace, string(out), err)
 	}
 	return nil
 }
@@ -197,8 +198,9 @@ func addPrometheusHelmRepo() error {
 	)
 	logf.Log.Info("About to execute: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts")
 	out, err := cmd.CombinedOutput()
+	logf.Log.Info(string(out))
 	if err != nil {
-		return fmt.Errorf("failed to add prometheus helm repo: Output: %s : Error: %v", out, err)
+		return fmt.Errorf("failed to add prometheus helm repo: Output: %s : Error: %v", string(out), err)
 	}
 	return nil
 }
@@ -211,8 +213,9 @@ func updatePrometheusHelmRepo() error {
 	)
 	logf.Log.Info("About to execute: helm repo update")
 	out, err := cmd.CombinedOutput()
+	logf.Log.Info(string(out))
 	if err != nil {
-		return fmt.Errorf("failed to update helm repo: Output: %s : Error: %v", out, err)
+		return fmt.Errorf("failed to update helm repo: Output: %s : Error: %v", string(out), err)
 	}
 	return nil
 }
