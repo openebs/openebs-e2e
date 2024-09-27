@@ -241,6 +241,10 @@ func (dfa *FioApplication) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix 
 func (dfa *FioApplication) CreateVolume() error {
 	var err error
 
+	if dfa.status.createdPVC || dfa.status.importedVolume {
+		return nil
+	}
+
 	decoration := dfa.OpenEbsEngine.String()
 
 	if dfa.VolType.String() == "" {

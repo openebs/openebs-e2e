@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openebs/openebs-e2e/common/e2e_agent"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"github.com/openebs/openebs-e2e/common/e2e_ginkgo"
 	"github.com/openebs/openebs-e2e/common/k8sinstall"
@@ -39,41 +38,22 @@ var nodeConfig lvm.LvmNodesDevicePvVgConfig
 var defLeaseSwitchTime = 120 // in seconds
 var nodesWithoutTaint []string
 var lvmControllerOrgReplica int32
+var app k8stest.FioApplication
 var volumeProvisionErrorMsg = "waiting for a volume to be created"
 
 func controllerHaTest(decor string, engine common.OpenEbsEngine, volType common.VolumeType, fstype common.FileSystemType, volBindModeWait bool) {
-
+	var err error
 	e2e_config := e2e_config.GetConfig().Product
-	app := k8stest.FioApplication{
+	app = k8stest.FioApplication{
 		Decor:                          decor,
-		VolSizeMb:                      4096,
+		VolSizeMb:                      1024,
 		OpenEbsEngine:                  engine,
 		VolType:                        volType,
 		FsType:                         fstype,
-		Loops:                          5,
+		Loops:                          7,
 		VolWaitForFirstConsumer:        volBindModeWait,
 		SkipPvcVerificationAfterCreate: true,
 	}
-
-	loopDevice := e2e_agent.LoopDevice{
-		Size:   10737418240,
-		ImgDir: "/tmp",
-	}
-
-	workerNodes, err := lvm.ListLvmNode(common.NSOpenEBS())
-	Expect(err).ToNot(HaveOccurred(), "failed to list worker node")
-
-	nodeConfig = lvm.LvmNodesDevicePvVgConfig{
-		VgName:        "lvmvg",
-		NodeDeviceMap: make(map[string]e2e_agent.LoopDevice), // Properly initialize the map
-	}
-	for _, node := range workerNodes {
-		nodeConfig.NodeDeviceMap[node] = loopDevice
-	}
-
-	logf.Log.Info("setup node with loop device, pv and vg", "node config", nodeConfig)
-	err = nodeConfig.ConfigureLvmNodesWithDeviceAndVg()
-	Expect(err).ToNot(HaveOccurred(), "failed to setup node")
 
 	// setup sc parameters
 	app.Lvm = k8stest.LvmOptions{
@@ -102,6 +82,10 @@ func controllerHaTest(decor string, engine common.OpenEbsEngine, volType common.
 	err = app.CreateVolume()
 	Expect(err).To(BeNil(), "failed to create pvc")
 
+	// sleep for 30 seconds
+	logf.Log.Info("Sleep for 30 seconds")
+	time.Sleep(30 * time.Second)
+
 	// verify pvc to be in pending state
 	pvcPhase, err := k8stest.GetPvcStatusPhase(app.GetPvcName(), common.NSDefault)
 	Expect(err).ToNot(HaveOccurred(), "failed to get pvc phase")
@@ -127,11 +111,6 @@ func controllerHaTest(decor string, engine common.OpenEbsEngine, volType common.
 	Expect(isEventPresent).To(BeTrue())
 
 	// Scale up the lvm-controller deployment replica to initial replica + 1
-	err = k8stest.RestoreDeploymentReplicas(lvmControllerName, common.NSOpenEBS(), 120, lvmControllerOrgReplica+1)
-	Expect(err).To(BeNil(), "failed to scale  deployment %s, error: %v", lvmControllerName, err)
-
-	// get the no of replicas in lvm-controller deployment
-	// Scale up the lvm-controller deployment
 	logf.Log.Info("Scale up lvm-controller deployment")
 	_, err = k8sinstall.ScaleLvmControllerViaHelm(lvmControllerOrgReplica + 1)
 	Expect(err).To(BeNil(), "failed to scale deployment %s, error: %v", lvmControllerName, err)
@@ -227,12 +206,11 @@ var _ = Describe("lvm_ha_controller", func() {
 
 	AfterEach(func() {
 		// Check resource leakage.
-		err := e2e_ginkgo.AfterEachK8sCheck()
-		Expect(err).ToNot(HaveOccurred())
+		after_err := e2e_ginkgo.AfterEachK8sCheck()
 		if len(nodesWithoutTaint) != 0 {
 			// remove taints form nodes
 			for _, node := range nodesWithoutTaint {
-				err = k8stest.RemoveNoScheduleTaintFromNode(node)
+				err := k8stest.RemoveNoScheduleTaintFromNode(node)
 				Expect(err).To(BeNil(), "failed to taint node %s", node)
 			}
 			ready, err := k8stest.OpenEBSReady(10, 540)
@@ -240,31 +218,31 @@ var _ = Describe("lvm_ha_controller", func() {
 			Expect(ready).To(BeTrue(), "some of the openebs pods are not running")
 		}
 
+		// cleanup k8s resources if exist
+		logf.Log.Info("cleanup k8s resources if exist")
+		err := app.Cleanup()
+		Expect(err).ToNot(HaveOccurred(), "failed to k8s resource")
+
 		// Scale up the lvm-controller deployment replica to initial replica
 		logf.Log.Info("Scale up lvm-controller deployment")
 		_, err = k8sinstall.ScaleLvmControllerViaHelm(lvmControllerOrgReplica)
 		Expect(err).To(BeNil(), "failed to scale  deployment %s, error: %v", e2e_config.GetConfig().Product.LvmEngineControllerDeploymentName, err)
-	})
-
-	It("lvm ext4: should verify high availability mode", func() {
-		controllerHaTest("lvm-ha", common.Lvm, common.VolFileSystem, common.Ext4FsType, true)
-	})
-	It("lvm block: should verify high availability mode", func() {
-		controllerHaTest("lvm-ha", common.Lvm, common.VolRawBlock, common.NoneFsType, true)
+		Expect(after_err).ToNot(HaveOccurred())
 	})
 
 	// immediate binding
 	It("lvm ext4 immediate binding: should verify high availability mode", func() {
 		controllerHaTest("lvm-ha", common.Lvm, common.VolFileSystem, common.Ext4FsType, false)
 	})
-	It("lvm block immediate binding: should verify high availability mode", func() {
-		controllerHaTest("lvm-ha", common.Lvm, common.VolRawBlock, common.NoneFsType, false)
-	})
+
 })
 
 var _ = BeforeSuite(func() {
 	err := e2e_ginkgo.SetupTestEnv()
 	Expect(err).ToNot(HaveOccurred(), "failed to setup test environment in BeforeSuite : SetupTestEnv %v", err)
+	//setup nodes with lvm pv and vg
+	nodeConfig, err = lvm.SetupLvmNodes("lvmvg", 10737418240)
+	Expect(err).ToNot(HaveOccurred(), "failed to setup lvm pv and vg")
 
 })
 

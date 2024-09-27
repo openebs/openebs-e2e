@@ -148,7 +148,7 @@ func SetupLvmNodes(vgName string, size int64) (LvmNodesDevicePvVgConfig, error) 
 	if strings.Contains(workerNodes[0], "kind-") {
 		imgDir = "/host/host/mnt"
 	} else {
-		imgDir = "/tmp"
+		imgDir = "/mnt"
 	}
 
 	loopDevice := e2e_agent.LoopDevice{
