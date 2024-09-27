@@ -17,6 +17,24 @@ data:
     else
       chroot /host zfs "$@"
     fi
+  ZPOOL: |
+    #!/bin/sh
+    if [ -x /host/sbin/zpool ]; then
+      chroot /host /sbin/zpool "$@"
+    elif [ -x /host/usr/sbin/zpool ]; then
+      chroot /host /usr/sbin/zpool "$@"
+    else
+      chroot /host zpool "$@"
+    fi
+  LVM: |
+    #!/bin/sh
+    if [ -x /host/sbin/lvm ]; then
+      chroot /host /sbin/lvm "$@"
+    elif [ -x /host/usr/sbin/lvm ]; then
+      chroot /host /usr/sbin/lvm "$@"
+    else
+      chroot /host lvm "$@"
+    fi
 
 ---
 kind: DaemonSet
@@ -50,7 +68,7 @@ spec:
           securityContext:
             privileged: true
             allowPrivilegeEscalation: true
-          image: openebs/e2e-agent:v3.0.3
+          image: openebs/e2e-agent:v3.0.4
           imagePullPolicy: Always
           volumeMounts:
             - name: host-root
@@ -63,6 +81,12 @@ spec:
             - mountPath: /sbin/zfs
               name: chroot-zfs
               subPath: ZFS
+            - mountPath: /sbin/lvm
+              name: chroot-lvm
+              subPath: LVM
+            - mountPath: /sbin/zpool
+              name: chroot-zpool
+              subPath: ZPOOL
       volumes:
         - name: host-root
           hostPath:
@@ -80,6 +104,13 @@ spec:
           configMap:
             defaultMode: 0555
             name: test-vars
+        - name: chroot-lvm
+          configMap:
+            defaultMode: 0555
+            name: test-vars
+        - name: chroot-zpool
+          configMap:
+            defaultMode: 0555
+            name: test-vars
           
-
 ---

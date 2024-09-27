@@ -163,6 +163,8 @@ func handleRequests() {
 	router.HandleFunc("/lvmremovevg", LvmRemoveVg).Methods("POST")
 	router.HandleFunc("/lvmthinpoolautoextendthreshold", LvmThinPoolAutoExtendThreshold).Methods("POST")
 	router.HandleFunc("/lvmthinpoolautoextendpercent", LvmThinPoolAutoExtendPercent).Methods("POST")
+	router.HandleFunc("/lvmlvchangemonitor", LvmLvChangeMonitor).Methods("POST")
+	router.HandleFunc("/lvmlvremovethinpool", LvmLvRemoveThinPool).Methods("POST")
 	//loop device
 	router.HandleFunc("/createloopdevice", CreateLoopDevice).Methods("POST")
 	router.HandleFunc("/deleteloopdevice", DeleteLoopDevice).Methods("POST")

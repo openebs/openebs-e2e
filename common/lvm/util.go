@@ -168,3 +168,47 @@ func SetupLvmNodes(vgName string, size int64) (LvmNodesDevicePvVgConfig, error) 
 	err = lvmNodeConfig.ConfigureLvmNodesWithDeviceAndVg()
 	return lvmNodeConfig, err
 }
+
+// EnableLvmThinPoolAutoExpansion enable auto extending of the Thin Pool (Configure Over-Provisioning protection)
+func EnableLvmThinPoolAutoExpansion(thinPoolAutoExtendThreshold, thinPoolAutoExtendPercent int) error {
+
+	workerNodes, err := ListLvmNode(common.NSOpenEBS())
+	if err != nil {
+		return fmt.Errorf("failed to list lvm worker nodes, error: %v", err)
+	}
+	if len(workerNodes) == 0 {
+		return fmt.Errorf("lvm worker nodes not found")
+	}
+	/*
+		Editing the settings in the /etc/lvm/lvm.conf can allow auto growth of the thin pool when required.
+		By default, the threshold is 100% which means that the pool will not grow.
+		If we set this to, 75%, the Thin Pool will autoextend when the pool is 75% full.
+		It will increase by the default percentage of 20% if the value is not changed.
+		We can see these settings using the command grep against the file.
+		$ grep -E ‘^\s*thin_pool_auto’ /etc/lvm/lvm.conf
+		thin_pool_autoextend_threshold = 100
+		thin_pool_autoextend_percent = 20
+	*/
+
+	for _, node := range workerNodes {
+		nodeIp, err := k8stest.GetNodeIPAddress(node)
+		if err != nil {
+			return fmt.Errorf("failed to get node %s IP, error: %v", node, err)
+		}
+
+		out, err := e2e_agent.LvmThinPoolAutoExtendThreshold(*nodeIp, thinPoolAutoExtendThreshold)
+		if err != nil {
+			return fmt.Errorf("failed to set up thin_pool_autoextend_threshold value %d on node %s,output: %s error: %v",
+				thinPoolAutoExtendThreshold, node, out, err)
+		}
+
+		out, err = e2e_agent.LvmThinPoolAutoExtendPercent(*nodeIp, thinPoolAutoExtendPercent)
+		if err != nil {
+			return fmt.Errorf("failed to set up thin_pool_autoextend_percent value %d on node %s,output: %s error: %v",
+				thinPoolAutoExtendPercent, node, out, err)
+		}
+
+	}
+
+	return nil
+}

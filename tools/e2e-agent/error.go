@@ -12,12 +12,13 @@ type E2eAgentErrcode int
 
 const (
 	// general errors
-	ErrNone       E2eAgentErrcode = 0
-	ErrGeneral    E2eAgentErrcode = 1
-	ErrJsonDecode E2eAgentErrcode = 2
-	ErrJsonEncode E2eAgentErrcode = 3
-	ErrReadFail   E2eAgentErrcode = 4
-	ErrExecFailed E2eAgentErrcode = 5
+	ErrNone         E2eAgentErrcode = 0
+	ErrGeneral      E2eAgentErrcode = 1
+	ErrJsonDecode   E2eAgentErrcode = 2
+	ErrJsonEncode   E2eAgentErrcode = 3
+	ErrReadFail     E2eAgentErrcode = 4
+	ErrExecFailed   E2eAgentErrcode = 5
+	ErrFileNotExist E2eAgentErrcode = 6
 
 	// event errors
 	ErrConnectFail          E2eAgentErrcode = 101

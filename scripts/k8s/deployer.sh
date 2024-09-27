@@ -6,6 +6,8 @@ SCRIPT_DIR="$(dirname "$0")"
 TMP_KIND="/tmp/kind/openebs-e2e"
 TMP_KIND_CONFIG="$TMP_KIND/config.yaml"
 TMP_KIND_ZFS="$TMP_KIND/zfs"
+TMP_KIND_LVM="$TMP_KIND/lvm"
+TMP_KIND_ZPOOL="$TMP_KIND/zpool"
 WORKERS=2
 DELAY="false"
 CORES=1
@@ -201,6 +203,42 @@ EOF
       propagation: HostToContainer
     - hostPath: $TMP_KIND_ZFS
       containerPath: /sbin/zfs
+      propagation: HostToContainer
+EOF
+  fi
+
+  if [ "$SETUP_ZFS" = "true" ]; then
+    # Should already be installed by prereq script
+    ZPOOL=$(realpath $(which zpool))
+    cat <<EOF >>$TMP_KIND_ZPOOL
+    #/bin/sh
+    chroot /host $ZPOOL "\$@"
+EOF
+    chmod +x $TMP_KIND_ZPOOL
+    cat <<EOF >> "$TMP_KIND_CONFIG"
+    - hostPath: /
+      containerPath: /host
+      propagation: HostToContainer
+    - hostPath: $TMP_KIND_ZPOOL
+      containerPath: /sbin/zpool
+      propagation: HostToContainer
+EOF
+  fi
+  
+  if [ "$SETUP_LVM" = "true" ]; then
+    # Should already be installed by prereq script
+    LVM=$(realpath $(which lvm))
+    cat <<EOF >>$TMP_KIND_LVM
+    #/bin/sh
+    chroot /host $LVM "\$@"
+EOF
+    chmod +x $TMP_KIND_LVM
+    cat <<EOF >> "$TMP_KIND_CONFIG"
+    - hostPath: /
+      containerPath: /host
+      propagation: HostToContainer
+    - hostPath: $TMP_KIND_LVM
+      containerPath: /sbin/lvm
       propagation: HostToContainer
 EOF
   fi
