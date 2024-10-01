@@ -128,7 +128,7 @@ func installPrometheus(namespace string) error {
 		return fmt.Errorf("failed to update helm repo: Error: %v", err)
 	}
 
-	cmdString := "prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false,nodeExporter.enabled=false,prometheus.service.type=NodePort,alertmanager.enabled=false,grafana.enabled=false"
+	cmdString := "prometheus.prometheusSpec.serviceMonitorSelector.matchLabels=null,nodeExporter.enabled=false,prometheus.service.type=NodePort,alertmanager.enabled=false,grafana.enabled=false"
 	// install prometheus using helm
 	cmd := exec.Command(
 		"helm", "install", "e2e-prometheus", "prometheus-community/kube-prometheus-stack",
