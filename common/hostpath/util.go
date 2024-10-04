@@ -1,6 +1,7 @@
 package hostpath
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
@@ -74,4 +75,28 @@ func (hostPathConfig *HostPathDeviceNodeConfig) ConfigureHostPathDevices() error
 		}
 	}
 	return nil
+}
+
+func GetHostPathAnnotationConfig() (map[string]string, error) {
+	type hostpathConfig struct {
+		Name  string `json:"name"`
+		Value string `json:"value"`
+	}
+	config := []hostpathConfig{
+		{Name: "StorageType", Value: "hostpath"},
+		{Name: "BasePath", Value: "/var/local-hostpath"},
+	}
+	// Marshal the configuration to a JSON string
+	configBytes, err := json.Marshal(config)
+	if err != nil {
+		logf.Log.Info("Error marshalling configuration:", "Error", err)
+		return nil, err
+
+	}
+	configString := string(configBytes)
+
+	return map[string]string{
+		"openebs.io/cas-type":   "local",
+		"cas.openebs.io/config": configString,
+	}, err
 }

@@ -374,6 +374,9 @@ for testname in $tests; do
     elif [ -d "$TESTDIR/zfs/$testname" ]; then
         testrootdir=$TESTDIR
         fqtestname="zfs/$testname"
+    elif [ -d "$TESTDIR/hostpath/$testname" ]; then
+        testrootdir=$TESTDIR
+        fqtestname="hostpath/$testname"
     elif [ -d "$TESTDIR/$testname" ]; then
         testrootdir=$TESTDIR
         fqtestname="$testname"

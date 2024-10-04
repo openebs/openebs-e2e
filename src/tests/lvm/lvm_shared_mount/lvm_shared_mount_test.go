@@ -3,7 +3,6 @@ package lvm_shared_mount_volume
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -55,7 +54,8 @@ func fsVolumeSharedMountTest(decor string, engine common.OpenEbsEngine, fstype c
 
 	// Deploy first BusyBox pod and create file with MD5 checksum
 	podName1 := "busybox"
-	deployBusyBoxPod(podName1, busyboxapp.GetPvcName(), busyboxapp.VolType)
+	err = k8stest.DeployBusyBoxPod(podName1, busyboxapp.GetPvcName(), busyboxapp.VolType)
+	Expect(err).To(BeNil(), "failed to deploy busybox")
 	podNames = append(podNames, podName1)
 
 	filePath := "/volume/testfile.txt"
@@ -75,7 +75,8 @@ func fsVolumeSharedMountTest(decor string, engine common.OpenEbsEngine, fstype c
 
 	// Deploy second BusyBox pod to verify data
 	podName2 := "busybox-second"
-	deployBusyBoxPod(podName2, busyboxapp.GetPvcName(), busyboxapp.VolType)
+	err = k8stest.DeployBusyBoxPod(podName2, busyboxapp.GetPvcName(), busyboxapp.VolType)
+	Expect(err).To(BeNil(), "failed to deploy busybox")
 	podNames = append(podNames, podName2)
 
 	combinedCmd2 := fmt.Sprintf(
@@ -106,68 +107,6 @@ func fsVolumeSharedMountTest(decor string, engine common.OpenEbsEngine, fstype c
 	}
 }
 
-func deployBusyBoxPod(podName, pvcName string, volType common.VolumeType) *coreV1.Pod {
-	args := []string{"sleep", "10000000"}
-	podContainer := coreV1.Container{
-		Name:            podName,
-		Image:           "busybox",
-		ImagePullPolicy: coreV1.PullAlways,
-		Args:            args,
-	}
-
-	volume := coreV1.Volume{
-		Name: "ms-volume",
-		VolumeSource: coreV1.VolumeSource{
-			PersistentVolumeClaim: &coreV1.PersistentVolumeClaimVolumeSource{
-				ClaimName: pvcName,
-			},
-		},
-	}
-
-	podObj, err := k8stest.NewPodBuilder(podName).
-		WithName(podName).
-		WithNamespace(common.NSDefault).
-		WithRestartPolicy(coreV1.RestartPolicyNever).
-		WithContainer(podContainer).
-		WithVolume(volume).
-		WithVolumeDeviceOrMount(volType).Build()
-	Expect(err).ToNot(HaveOccurred(), "Generating pod definition, err: %v", err)
-	Expect(podObj).ToNot(BeNil(), "failed to generate pod definition")
-
-	_, err = k8stest.CreatePod(podObj, common.NSDefault)
-	Expect(err).ToNot(HaveOccurred(), "Creating pod, err: %v", err)
-
-	Eventually(func() bool {
-		return k8stest.IsPodRunning(podName, common.NSDefault)
-	}, k8stest.DefTimeoutSecs, "2s").Should(Equal(true))
-
-	logf.Log.Info(fmt.Sprintf("%s pod is running.", podName))
-	return podObj
-}
-
-func cleanUpResources(pods []string, pvcName string) {
-	for _, pod := range pods {
-		err := k8stest.DeletePod(pod, common.NSDefault)
-		Expect(err).ToNot(HaveOccurred(), "failed to delete pod %s err %v", pod, err)
-
-		// check if pod is deleted successfully
-		Eventually(func() bool {
-			return k8stest.IsPodRunning(pod, common.NSDefault)
-		},
-			k8stest.DefTimeoutSecs,
-			"5s",
-		).Should(Equal(false), "busybox pod deletion failed")
-	}
-
-	err := k8stest.DeletePVC(pvcName, common.NSDefault)
-	Expect(err).ToNot(HaveOccurred(), "failed to delete pvc %s err %v", pvcName, err)
-
-	err = k8stest.RmStorageClass(pvcName)
-	Expect(err).ToNot(HaveOccurred(), "Deleting storage class %s", pvcName)
-
-	time.Sleep(10 * time.Second)
-}
-
 func TestLvmVolumeResizeTest(t *testing.T) {
 	e2e_ginkgo.InitTesting(t, "lvm_shared_mount_volume", "lvm_shared_mount_volume")
 }
@@ -180,10 +119,11 @@ var _ = Describe("lvm_shared_mount_volume", func() {
 
 	AfterEach(func() {
 		// Clean up after each test
-		cleanUpResources(podNames, busyboxapp.GetPvcName())
+		err := k8stest.CleanUpBusyboxResources(podNames, busyboxapp.GetPvcName())
+		Expect(err).ToNot(HaveOccurred())
 		podNames = nil // Reset the pod list for the next test
 
-		err := e2e_ginkgo.AfterEachK8sCheck()
+		err = e2e_ginkgo.AfterEachK8sCheck()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
