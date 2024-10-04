@@ -6,3 +6,4 @@ meta:
     - common
 testsuites:
   - hostpath_volume_provisioning
+  - hostpath_data_integrity
