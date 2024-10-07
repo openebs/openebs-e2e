@@ -100,6 +100,11 @@ type Zpool struct {
 	PoolName     string `json:"poolName"`
 }
 
+type Rdma struct {
+	DeviceName    string `json:"deviceName"`
+	InterfaceName string `json:"interfaceName"`
+}
+
 func sendRequest(reqType, url string, data interface{}) error {
 	_, err := sendRequestGetResponse(reqType, url, data, true)
 	return err
@@ -1141,5 +1146,76 @@ func LvmLvRemoveThinPool(serverAddr string, vgName string) (string, error) {
 		return out, fmt.Errorf("failed to remove lvm thin pool lv, errcode %d", e2eagenterrcode)
 	}
 	logf.Log.Info("LvmLvRemoveThinPool succeeded", "output", out)
+	return out, err
+}
+
+// ListRdmaDevice get pre-created and available RDMA device
+func ListRdmaDevice(serverAddr string) (string, error) {
+	logf.Log.Info("Executing GetRdmaDevice", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/listrdmadevice"
+	encodedresult, err := sendRequestGetResponse("POST", url, nil, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to list available RDMA device, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("ListRdmaDevice succeeded", "output", out)
+	return out, err
+}
+
+// CreateRdmaDevice create rdma device
+func CreateRdmaDevice(serverAddr string, deviceName string, interfaceName string) (string, error) {
+	data := Rdma{
+		DeviceName:    deviceName,
+		InterfaceName: interfaceName,
+	}
+	logf.Log.Info("Executing CreateRdmaDevice", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/createrdmadevice"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to create rdma device, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("CreateRdmaDevice succeeded", "output", out)
+	return out, err
+}
+
+// DeleteRdmaDevice destroy rdma device
+func DeleteRdmaDevice(serverAddr string, deeviceName string) (string, error) {
+	data := Rdma{
+		DeviceName: deeviceName,
+	}
+	logf.Log.Info("Executing DeleteRdmaDevice", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/deleterdmadevice"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to delete rdma device, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("DeleteRdmaDevice succeeded", "output", out)
 	return out, err
 }
