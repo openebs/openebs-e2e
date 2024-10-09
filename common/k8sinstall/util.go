@@ -220,3 +220,31 @@ func ScaleZfsControllerViaHelm(expected_replica int32) (int32, error) {
 
 	return orig_replicas, nil
 }
+
+// SetRdmaViaHelm enable and disable RDMA
+func SetRdmaViaHelm(enableRdma bool, iface string) error {
+	e2eCfg := e2e_config.GetConfig()
+	values := map[string]interface{}{
+		"io_engine.target.nvmf.rdma.enabled": enableRdma,
+		"io_engine.target.nvmf.iface":        iface,
+	}
+
+	err := apps.UpgradeHelmChart(e2eCfg.Product.ChartName,
+		common.NSMayastor(),
+		e2eCfg.Product.HelmReleaseName,
+		values,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to set RDMA via helm, error: %v", err)
+	}
+
+	ready, err := k8stest.OpenEBSReady(10, 340)
+	if err != nil {
+		return err
+	}
+	if !ready {
+		return fmt.Errorf("all pods not ready, openebs ready check failed")
+	}
+
+	return nil
+}
