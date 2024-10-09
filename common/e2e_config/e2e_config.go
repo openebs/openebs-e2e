@@ -484,8 +484,10 @@ func GetConfig() E2EConfig {
 		var info os.FileInfo
 		e2eRootDir, haveE2ERootDir := os.LookupEnv("e2e_root_dir")
 		openebsE2eRootDir, haveOpenebsE2eRootDir := os.LookupEnv("openebs_e2e_root_dir")
-		if !haveOpenebsE2eRootDir {
-			panic("openebs e2e root environment variable not set")
+		if configContext == E2eTesting {
+			if !haveOpenebsE2eRootDir {
+				panic("openebs_e2e_root environment variable not set")
+			}
 		}
 
 		// Initialise the configuration
