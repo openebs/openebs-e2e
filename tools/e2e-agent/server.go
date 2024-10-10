@@ -176,6 +176,10 @@ func handleRequests() {
 	//localPV
 	router.HandleFunc("/createhostpathdisk", CreateHostPathDisk).Methods("POST")
 	router.HandleFunc("/removehostpathdisk", RemoveHostPathDisk).Methods("POST")
+	//RDMA
+	router.HandleFunc("/listrdmadevice", ListRdmaDevice).Methods("POST")
+	router.HandleFunc("/createrdmadevice", CreateRdmaDevice).Methods("POST")
+	router.HandleFunc("/deleterdmadevice", DeleteRdmaDevice).Methods("POST")
 	log.Fatal(http.ListenAndServe(podIP+":"+restPort, router))
 }
 
