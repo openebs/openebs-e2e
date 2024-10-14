@@ -415,7 +415,17 @@ func UpdateNodeTaints(nodeName string, taintKey string) error {
 }
 
 func ListWorkerNode() ([]NodeLocation, error) {
-	return getNodeLocs()
+	workerNode := make([]NodeLocation, 0)
+	nodes, err := getNodeLocs()
+	if err != nil {
+		return workerNode, err
+	}
+	for _, node := range nodes {
+		if !node.K8sControlPlane {
+			workerNode = append(workerNode, node)
+		}
+	}
+	return workerNode, nil
 }
 
 // ListNodesWithoutNoScheduleTaint returns list of nodes which does not have NoSchedule taint

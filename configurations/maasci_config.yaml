@@ -6,4 +6,4 @@ configName: maasci
 grpcMandated: true
 deferredAssert: true
 beforeEachCheckAndRestart: true
-networkInterface: eth0
+networkInterface: ens1f0
