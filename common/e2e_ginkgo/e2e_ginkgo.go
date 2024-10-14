@@ -7,12 +7,15 @@ import (
 
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
+	"github.com/openebs/openebs-e2e/common/event"
 	"github.com/openebs/openebs-e2e/common/k8stest"
 
 	"github.com/openebs/openebs-e2e/common/loki"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+
+	"gopkg.in/yaml.v3"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -173,6 +176,32 @@ func afterEachCheckResources(canGenSupportBundle bool) error {
 			k8stest.GenerateSupportBundle(logsPath + "-AfterEach")
 		} else {
 			log.Log.Info("test case logs path was not set")
+		}
+	}
+	eventMessages, err := event.GetAllEventMessagesSymbolic()
+	if err != nil {
+		log.Log.Info("failed to retrieve events", "error", err)
+	} else {
+		yml, err := yaml.Marshal(eventMessages)
+		if err != nil {
+			log.Log.Info("failed to deserialise events", "error", err)
+		} else {
+			logsPath, err := common.GetTestCaseLogsPath()
+			if err != nil {
+				log.Log.Info("failed to retrieve logs path", "error", err)
+			} else {
+				err = os.MkdirAll(logsPath, 0755)
+				if err != nil {
+					log.Log.Info("Failed to create path", logsPath, err)
+				} else {
+					err = os.WriteFile(logsPath+"/events.yml", yml, 0644)
+					if err != nil {
+						log.Log.Info("failed to write", logsPath+"/events.yml", err)
+					} else {
+						log.Log.Info("events collected", "at", logsPath+"/events.yml")
+					}
+				}
+			}
 		}
 	}
 	common.ResetTestCaseLogsPath()

@@ -6,7 +6,10 @@ import (
 	"strings"
 
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
+	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"github.com/openebs/openebs-e2e/common/k8stest"
+
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // Version agnostic structure for obtaining the version string
@@ -473,4 +476,45 @@ func VerifyNvmePathEventMetadata(nvmePathEvent *EventMessage, uuid string) error
 	}
 
 	return nil
+}
+
+func GetAllEventMessagesSymbolic() ([]EventMessageSym, error) {
+	var eventsSym []EventMessageSym
+	var eventMessages []EventMessage
+	var eventContext EventContext
+	var err error
+
+	eventContext, err = NewEventContext(
+		e2e_config.GetConfig().Product.EventBusNatsSts,
+		e2e_config.GetConfig().Product.ProductNamespace,
+		e2e_config.GetConfig().Product.NatsPort,
+	)
+	if err != nil {
+		log.Log.Info("events: failed to create event context", "error", err)
+		return eventsSym, err
+	}
+	err = eventContext.Subscribe("events.>")
+	if err != nil {
+		log.Log.Info("events: subscribe all failed", "error", err)
+		return eventsSym, err
+	}
+	defer func() {
+		err := eventContext.UnsubscribeAll()
+		if err != nil {
+			log.Log.Info("events: failed to unsubscribeAll", "error", err)
+		}
+	}()
+
+	eventMessages, err = eventContext.GetAllEvents()
+	if err == nil {
+		for _, ev := range eventMessages {
+			es, err := ToSymbolic(&ev)
+			if err != nil {
+				log.Log.Info("failed to convert event struct", "error", err, "event", ev)
+				break
+			}
+			eventsSym = append(eventsSym, es)
+		}
+	}
+	return eventsSym, err
 }
