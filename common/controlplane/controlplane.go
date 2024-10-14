@@ -66,6 +66,7 @@ type ControlPlaneInterface interface {
 	GetMsvSize(uuid string) (int64, error)
 	SetVolumeMaxSnapshotCount(uuid string, maxSnapshotCount int32) error
 	GetMsvMaxSnapshotCount(uuid string) (int32, error)
+	GetMsvDeviceUri(uuid string) (string, error)
 
 	// Mayastor Node abstraction
 
@@ -299,6 +300,10 @@ func GetMsvTargetUuid(uuid string) (string, error) {
 
 func GetMsvSize(uuid string) (int64, error) {
 	return getControlPlane().GetMsvSize(uuid)
+}
+
+func GetMsvDeviceUri(uuid string) (string, error) {
+	return getControlPlane().GetMsvDeviceUri(uuid)
 }
 
 func SetVolumeMaxSnapshotCount(uuid string, maxSnapshotCount int32) error {

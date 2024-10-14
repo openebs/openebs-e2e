@@ -125,7 +125,7 @@ func UpgradeHelmChart(helmChart, namespace, releaseName string, values map[strin
 	setVals := strings.Join(vals, ",")
 	logf.Log.Info("executing helm upgrade ", "releaseName: ", releaseName, ", chart: ", helmChart, ", namespace: ", namespace, ", values: ", setVals)
 	// Define the Helm installation command.
-	cmd := exec.Command("helm", "upgrade", releaseName, helmChart, "-n", namespace, "--set", setVals)
+	cmd := exec.Command("helm", "upgrade", releaseName, helmChart, "-n", namespace, "--reuse-values", "--set", setVals)
 	// Execute the command.
 	output, err := cmd.CombinedOutput()
 	if err != nil {
