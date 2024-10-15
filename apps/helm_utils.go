@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"io/ioutil"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -161,7 +162,7 @@ func GetLatestHelmChartVersion(helmChart string) (Chart, error) {
 
 func UninstallHelmRelease(releaseName, namespace string) error {
 	// Define the Helm installation command.
-	cmd := exec.Command("helm", "uninstall", releaseName, "-n", namespace)
+	cmd := exec.Command("helm", "uninstall", releaseName, "-n", namespace, "-o", "yaml")
 	// Execute the command.
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -170,4 +171,36 @@ func UninstallHelmRelease(releaseName, namespace string) error {
 
 	return nil
 
+}
+
+func GetHelmValues(releaseName, namespace string, filePath string)  error {
+	// Define the Helm installation command.
+	cmd := exec.Command("helm", "get", "values", releaseName, "-n", namespace)
+	// Execute the command.
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to uninstall release %s with Helm: %v\n%s", releaseName, err, output)
+	}
+	// Write the output to a YAML file.
+	if err := ioutil.WriteFile(filePath, output, 0644); err != nil {
+		return fmt.Errorf("failed to write output to file %s: %v", filePath, err)
+	}
+	return nil
+}
+
+func UpgradeHelmChartfromValues(helmChart, namespace, releaseName string, values map[string]interface{}, filePath string, version string) error {
+	var vals []string
+	for k, v := range values {
+		vals = append(vals, fmt.Sprintf("%s=%v", k, v))
+	}
+	setVals := strings.Join(vals, ",")
+	logf.Log.Info("executing helm upgrade ", "releaseName: ", releaseName, ", chart: ", helmChart, ", namespace: ", namespace, ", old-values: ", filePath, ", version: ", version, ", values: ", setVals)
+	// Define the Helm installation command.
+	cmd := exec.Command("helm", "upgrade", releaseName, helmChart, "-n", namespace, "-f", filePath, "--version", version,"--set", setVals)
+	// Execute the command.
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to upgrade with Helm: %v\n%s", err, output)
+	}
+	return nil
 }
