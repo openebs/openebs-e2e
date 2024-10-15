@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-
+	"os"
+	"path/filepath"
+	
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -170,4 +172,53 @@ func UninstallHelmRelease(releaseName, namespace string) error {
 
 	return nil
 
+}
+
+// Get values for a release from helm command
+func HelmGetValues(releaseName string, namespace string)  ([]byte, error) {
+	// Define the Helm installation command
+	cmd := exec.Command("helm", "get", "values", releaseName, "-n", namespace)
+	// Execute the command
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return output,fmt.Errorf("failed to helm get values for release %s : %v\n%s", releaseName, err, output)
+	}
+	return output, nil
+}
+
+
+// Save values for a release from helm command to a yaml file
+func SaveHelmValues(releaseName string, namespace string, filePath string)  error {
+	output, err := HelmGetValues(releaseName, namespace)
+	if err != nil {
+        	return err
+    	}
+	dir := filepath.Dir(filePath)
+    	err = os.MkdirAll(dir, 0755) // Ensure intermediate directories are created
+    	if err != nil {
+        	return err
+    	}
+	// Write the output to a YAML file.
+	if err := os.WriteFile(filePath, output, 0644); err != nil {
+		return fmt.Errorf("failed to write output to file %s: %v", filePath, err)
+	}
+	return nil
+}
+
+// Upgrade a chart from a yaml file using helm command
+func HelmUpgradeChartfromYaml(helmChart string, namespace string, releaseName string, setValues map[string]interface{}, filePath string, version string) ([]byte, error) {
+	var vals []string
+	for k, v := range setValues {
+		vals = append(vals, fmt.Sprintf("%s=%v", k, v))
+	}
+	setVals := strings.Join(vals, ",")
+	logf.Log.Info("executing helm upgrade ", "releaseName: ", releaseName, ", chart: ", helmChart, ", namespace: ", namespace, ", old-values: ", filePath, ", version: ", version, ", values: ", setVals)
+	// Define the Helm upgrade command
+	cmd := exec.Command("helm", "upgrade", releaseName, helmChart, "-n", namespace, "-f", filePath, "--version", version,"--set", setVals)
+	// Execute the command
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return output,fmt.Errorf("failed to upgrade with Helm: %v\n%s", err, output)
+	}
+	return output, nil
 }
