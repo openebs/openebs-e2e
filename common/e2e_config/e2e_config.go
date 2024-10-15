@@ -138,6 +138,7 @@ type ProductSpec struct {
 	LvmEnginePluginDriverName         string            `yaml:"lvmEnginePluginDriverName"`
 	UmbrellaOpenebsHelmChartName      string            `yaml:"umbrellaOpenebsHelmChartName"`
 	UseUmbrellaOpenEBSChart           bool              `yaml:"useUmbrellaOpenEBSChart" env:"e2e_use_umbrella_openebs_chart" env-default:"false"`
+	DisableEngines                    []string          `yaml:"disableEngines"`
 	PrometheusNodeExporterServicePort int               `yaml:"prometheusNodeExporterServicePort" env-default:"10100"`
 	ZfsEnginePluginContainerName      string            `yaml:"zfsEnginePluginContainerName"`
 	ZfsEnginePluginDriverName         string            `yaml:"zfsEnginePluginDriverName"`
