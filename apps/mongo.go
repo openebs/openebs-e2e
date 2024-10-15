@@ -248,7 +248,7 @@ func (mb *mongoBuilder) Build() (MongoApp, error) {
 }
 
 func (mb *mongoBuilder) Upgrade(app *MongoApp) (MongoApp, error) {
-	err := UpgradeHelmChart(e2e_config.GetConfig().Product.MongoHelmRepo, mb.namespace, app.Mongo.ReleaseName, mb.values)
+	err := UpgradeHelmChartForValues(e2e_config.GetConfig().Product.MongoHelmRepo, mb.namespace, app.Mongo.ReleaseName, mb.values)
 	if err != nil {
 		return MongoApp{}, err
 	}
