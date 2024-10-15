@@ -187,3 +187,20 @@ func GetHelmValues(releaseName, namespace string, filePath string)  error {
 	}
 	return nil
 }
+
+func UpgradeHelmChartfromValues(helmChart, namespace, releaseName string, values map[string]interface{}, filePath string, version string) error {
+	var vals []string
+	for k, v := range values {
+		vals = append(vals, fmt.Sprintf("%s=%v", k, v))
+	}
+	setVals := strings.Join(vals, ",")
+	logf.Log.Info("executing helm upgrade ", "releaseName: ", releaseName, ", chart: ", helmChart, ", namespace: ", namespace, ", old-values: ", filePath, ", version: ", version, ", values: ", setVals)
+	// Define the Helm installation command.
+	cmd := exec.Command("helm", "upgrade", releaseName, helmChart, "-n", namespace, "-f", filePath, "--version", version,"--set", setVals)
+	// Execute the command.
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to upgrade with Helm: %v\n%s", err, output)
+	}
+	return nil
+}
