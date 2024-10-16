@@ -351,6 +351,15 @@ func getMsvSize(volName string) (int64, error) {
 	return size, err
 }
 
+func (cp CPv1) GetMsvDeviceUri(volName string) (string, error) {
+	var deviceUri string
+	msv, err := getMayastorCpVolume(volName)
+	if err == nil {
+		deviceUri = msv.State.Target.DeviceUri
+	}
+	return deviceUri, err
+}
+
 func (cp CPv1) SetVolumeMaxSnapshotCount(uuid string, maxSnapshotCount int32) error {
 	pluginpath := GetPluginPath()
 

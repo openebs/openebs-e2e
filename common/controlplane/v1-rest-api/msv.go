@@ -240,6 +240,17 @@ func (cp CPv1RestApi) GetMsvSize(uuid string) (int64, error) {
 	return msvSize, err
 }
 
+func (cp CPv1RestApi) GetMsvDeviceUri(uuid string) (string, error) {
+	vol, err, _ := cp.oa.getVolume(uuid)
+	var deviceUri string
+
+	if err == nil {
+		deviceUri = string(vol.State.Target.DeviceUri)
+	}
+
+	return deviceUri, err
+}
+
 func (cp CPv1RestApi) SetVolumeMaxSnapshotCount(uuid string, maxSnapshotCount int32) error {
 	err, _ := cp.oa.setVolumeMaxSnapshotCount(uuid, maxSnapshotCount)
 	return err
