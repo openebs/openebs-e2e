@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"sync"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -138,6 +139,7 @@ type ProductSpec struct {
 	LvmEnginePluginDriverName         string            `yaml:"lvmEnginePluginDriverName"`
 	UmbrellaOpenebsHelmChartName      string            `yaml:"umbrellaOpenebsHelmChartName"`
 	UseUmbrellaOpenEBSChart           bool              `yaml:"useUmbrellaOpenEBSChart" env:"e2e_use_umbrella_openebs_chart" env-default:"false"`
+	DisableLocalEngines           	  []string          `yaml:"disableLocalEngines"`
 	PrometheusNodeExporterServicePort int               `yaml:"prometheusNodeExporterServicePort" env-default:"10100"`
 	ZfsEnginePluginContainerName      string            `yaml:"zfsEnginePluginContainerName"`
 	ZfsEnginePluginDriverName         string            `yaml:"zfsEnginePluginDriverName"`
@@ -584,6 +586,7 @@ func GetConfig() E2EConfig {
 			if err != nil {
 				panic(fmt.Sprintf("%v", err))
 			}
+			updateDisableLocalEngine()
 		}
 
 		// MayastorRootDir is either set from the environment variable
@@ -646,6 +649,32 @@ func saveConfig() {
 	} else {
 		_, _ = fmt.Fprintf(os.Stderr, "Resolved config not written to %s\n%v\n", cfgUsedFile, err)
 	}
+}
+
+func updateDisableLocalEngine() {
+	e2eDisableLocalEngines := os.Getenv("e2e_disable_local_engines")
+        if e2eDisableLocalEngines != "" {
+            engines := strings.Split(e2eDisableLocalEngines, ",")
+	    for i, engine := range engines {
+        	engines[i] = strings.TrimSpace(engine)
+    	    }
+            e2eConfig.Product.DisableLocalEngines = appendUnique(e2eConfig.Product.DisableLocalEngines, engines)
+        }
+	saveConfig()
+}
+
+func appendUnique(slice []string, elements []string) []string {
+    existing := make(map[string]bool)
+    for _, el := range slice {
+        existing[el] = true
+    }
+    for _, el := range elements {
+        if !existing[el] {
+            slice = append(slice, el)
+            existing[el] = true
+        }
+    }
+    return slice
 }
 
 // SetControlPlane sets the control plane configuration if it is unset (i.e. empty) and writes it out if changed.
