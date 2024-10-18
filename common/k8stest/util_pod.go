@@ -386,10 +386,9 @@ func RestartPodByPrefix(prefix string) error {
 				return delErr
 			}
 			logf.Log.Info("Restarted the ", "pod ", pod.Name)
-			return nil
 		}
 	}
-	return fmt.Errorf("failed to restart the pod")
+	return nil
 }
 
 // CheckPodIsRunningByPrefix check pod is running by prefix name
