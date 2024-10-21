@@ -181,6 +181,8 @@ func afterEachCheckResources(canGenSupportBundle bool) error {
 	eventMessages, err := event.GetAllEventMessagesSymbolic()
 	if err != nil {
 		log.Log.Info("failed to retrieve events", "error", err)
+		// log the error -but do not fail the test case
+		err = nil
 	} else {
 		yml, err := yaml.Marshal(eventMessages)
 		if err != nil {
