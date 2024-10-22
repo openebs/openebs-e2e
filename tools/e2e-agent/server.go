@@ -66,6 +66,10 @@ type CmpPaths struct {
 	Path2 string `json:"path2"`
 }
 
+type NetworkInterface struct {
+	NetworkInterface string `json:"networkInterface"`
+}
+
 func homePage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Welcome home!\n")
 }
@@ -180,6 +184,8 @@ func handleRequests() {
 	router.HandleFunc("/listrdmadevice", ListRdmaDevice).Methods("POST")
 	router.HandleFunc("/createrdmadevice", CreateRdmaDevice).Methods("POST")
 	router.HandleFunc("/deleterdmadevice", DeleteRdmaDevice).Methods("POST")
+	router.HandleFunc("/enablenetworkinterface", EnableNetworkInterface).Methods("POST")
+	router.HandleFunc("/disablenetworkinterface", DisableNetworkInterface).Methods("POST")
 	log.Fatal(http.ListenAndServe(podIP+":"+restPort, router))
 }
 
@@ -1187,4 +1193,65 @@ func Cmp(w http.ResponseWriter, r *http.Request) {
 	}
 	klog.Info(string(output))
 	WrapResult(b64out, errCode, w)
+}
+
+// EnableNetworkInterface enable network interface
+func EnableNetworkInterface(w http.ResponseWriter, r *http.Request) {
+	var msg string
+	var iface NetworkInterface
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&iface); err != nil {
+		msg = fmt.Sprintf("failed to read JSON encoded data, Error: %s", err.Error())
+		klog.Error(msg)
+		WrapResult(msg, ErrJsonDecode, w)
+		return
+	}
+
+	if iface.NetworkInterface == "" {
+		msg = "no network interface name passed"
+		klog.Error(msg)
+		WrapResult(msg, UnprocessableEntityErrorCode, w)
+		return
+	}
+	klog.Info("enable network interface, data: %v", iface)
+
+	iFaceUpCommand := fmt.Sprintf("ifconfig %s up", iface.NetworkInterface)
+	output, err := bashLocal(iFaceUpCommand)
+	if err != nil {
+		msg = fmt.Sprintf("cannot enable network interface, Error %s", err.Error())
+		klog.Error(msg)
+		WrapResult(msg, ErrExecFailed, w)
+		return
+	}
+	WrapResult(string(output), ErrNone, w)
+}
+
+// DisableNetworkInterface disable network interface
+func DisableNetworkInterface(w http.ResponseWriter, r *http.Request) {
+	var msg string
+	var iface NetworkInterface
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&iface); err != nil {
+		msg = fmt.Sprintf("failed to read JSON encoded data, Error: %s", err.Error())
+		klog.Error(msg)
+		WrapResult(msg, ErrJsonDecode, w)
+		return
+	}
+	if iface.NetworkInterface == "" {
+		msg = "no interface name passed"
+		klog.Error(msg)
+		WrapResult(msg, UnprocessableEntityErrorCode, w)
+		return
+	}
+	klog.Info("disable network interface, data: %v", iface)
+
+	iFaceDownCommand := fmt.Sprintf("ifconfig %s down", iface.NetworkInterface)
+	output, err := bashLocal(iFaceDownCommand)
+	if err != nil {
+		msg = fmt.Sprintf("cannot disable network interface, Error %s", err.Error())
+		klog.Error(msg)
+		WrapResult(msg, ErrExecFailed, w)
+		return
+	}
+	WrapResult(string(output), ErrNone, w)
 }

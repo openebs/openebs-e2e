@@ -105,6 +105,10 @@ type Rdma struct {
 	InterfaceName string `json:"interfaceName"`
 }
 
+type NetworkInterface struct {
+	NetworkInterface string `json:"networkInterface"`
+}
+
 func sendRequest(reqType, url string, data interface{}) error {
 	_, err := sendRequestGetResponse(reqType, url, data, true)
 	return err
@@ -1215,6 +1219,54 @@ func DeleteRdmaDevice(serverAddr string, deeviceName string) (string, error) {
 	}
 	if e2eagenterrcode != ErrNone {
 		return out, fmt.Errorf("failed to delete rdma device, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("DeleteRdmaDevice succeeded", "output", out)
+	return out, err
+}
+
+// EnableNetworkInterface enable network interface
+func EnableNetworkInterface(serverAddr string, interfaceName string) (string, error) {
+	data := NetworkInterface{
+		NetworkInterface: interfaceName,
+	}
+	logf.Log.Info("Executing EnableNetworkInterface", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/enablenetworkinterface"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to enable network interface, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("EnableNetworkInterface succeeded", "output", out)
+	return out, err
+}
+
+// DisableNetworkInterface disable network interface
+func DisableNetworkInterface(serverAddr string, interfaceName string) (string, error) {
+	data := NetworkInterface{
+		NetworkInterface: interfaceName,
+	}
+	logf.Log.Info("Executing DisableNetworkInterface", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/disablenetworkinterface"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to disable network interface, errcode %d", e2eagenterrcode)
 	}
 	logf.Log.Info("DeleteRdmaDevice succeeded", "output", out)
 	return out, err

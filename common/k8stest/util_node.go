@@ -493,3 +493,39 @@ func CheckCsiNodeTopologyKeysPresent(nodeName string, driverName string, key []s
 	}
 	return true, nil
 }
+
+// enable network interface on node
+func EnableNetworkInterfaceOnNode(node string) error {
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	// get interface name
+	iface := e2e_config.GetConfig().NetworkInterface
+	// enable network interface
+	out, err := e2e_agent.EnableNetworkInterface(*nodeIp, iface)
+	if err != nil {
+		return err
+	}
+	logf.Log.Info("Enable network interface", "node", node, "output", out, "interface", iface)
+	return nil
+}
+
+// disable network interface on node
+func DisableNetworkInterfaceOnNode(node string) error {
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	// get interface name
+	iface := e2e_config.GetConfig().NetworkInterface
+	// enable network interface
+	out, err := e2e_agent.DisableNetworkInterface(*nodeIp, iface)
+	if err != nil {
+		return err
+	}
+	logf.Log.Info("Disable network interface", "node", node, "output", out, "interface", iface)
+	return nil
+}
