@@ -134,6 +134,9 @@ product:
     lvmEnginePluginDriverName: "local.csi.openebs.io"
     umbrellaOpenebsHelmChartName: "openebs"
     useUmbrellaOpenEBSChart: false
+    disableEngines:
+      - "lvm"
+      - "zfs"
     zfsEnginePluginContainerName: "openebs-zfs-plugin"
     zfsEnginePluginDriverName: "zfs.csi.openebs.io"
     zfsEngineControllerDeploymentName: "openebs-zfs-localpv-controller"
