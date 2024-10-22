@@ -74,6 +74,10 @@ func GetMsvSize(uuid string) (int64, error) {
 	return controlplane.GetMsvSize(uuid)
 }
 
+func GetMsvDeviceUri(uuid string) (string, error) {
+	return controlplane.GetMsvDeviceUri(uuid)
+}
+
 func GetMsvMaxSnapshotCount(uuid string) (int32, error) {
 	return controlplane.GetMsvMaxSnapshotCount(uuid)
 }
