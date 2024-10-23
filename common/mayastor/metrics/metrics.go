@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
 	"reflect"
 	"strconv"
@@ -122,19 +123,36 @@ func installPrometheus(namespace string) error {
 		return fmt.Errorf("failed to add prometheus helm repo: : Error: %v", err)
 	}
 
+	helmArgs := []string{
+		"install", "e2e-prometheus", "prometheus-community/kube-prometheus-stack",
+		"--set", "prometheus.prometheusSpec.serviceMonitorSelector.matchLabels=null",
+		"--set", "nodeExporter.enabled=false",
+		"--set", "prometheus.service.type=NodePort",
+		"--set", "alertmanager.enabled=false",
+		"--set", "grafana.enabled=false",
+		"-n", namespace,
+	}
+
 	// update helm prometheus repo
 	err = updatePrometheusHelmRepo()
 	if err != nil {
 		return fmt.Errorf("failed to update helm repo: Error: %v", err)
 	}
 
-	cmdString := "prometheus.prometheusSpec.serviceMonitorSelector.matchLabels=null,nodeExporter.enabled=false,prometheus.service.type=NodePort,alertmanager.enabled=false,grafana.enabled=false"
+	k8sRegistryMirror, k8sRegistryMirrorDefined := os.LookupEnv("e2e_k8s_registry_mirror")
+	if k8sRegistryMirrorDefined {
+		helmArgs = append(
+			helmArgs,
+			[]string{
+				"--set", "kube-state-metrics.image.registry=" + k8sRegistryMirror,
+				"--set", "prometheusOperator.admissionWebhooks.patch.image.registry=" + k8sRegistryMirror,
+			}...,
+		)
+	}
+
 	// install prometheus using helm
-	cmd := exec.Command(
-		"helm", "install", "e2e-prometheus", "prometheus-community/kube-prometheus-stack",
-		"--set", cmdString, "-n", namespace)
-	logf.Log.Info("About to execute: helm install e2e-prometheus prometheus-community/kube-prometheus-stack", " --set ",
-		cmdString, "namespace", namespace)
+	cmd := exec.Command("helm", helmArgs...)
+	logf.Log.Info("About to execute", "command", cmd)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to install prometheus using helm chart: namespace: %s Output: %s : Error: %v", namespace, out, err)
