@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	"os"
-	"path/filepath"
 	
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
