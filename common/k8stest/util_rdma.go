@@ -132,3 +132,107 @@ func IsVolumeAccessibleOverTcp(volUuid string) (bool, error) {
 	}
 	return false, nil
 }
+
+func RemoveRdmaDeviceOnNode(node string) error {
+	rdmaDeviceList, err := ListRdmaDevice(node)
+	if err != nil {
+		return err
+	}
+	if len(rdmaDeviceList) != 0 {
+		logf.Log.Info("RDMA device found", "node", node, "list", rdmaDeviceList)
+		//create rdma device
+		nodeIp, err := GetNodeIPAddress(node)
+		if err != nil {
+			return fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+		}
+		var iface, out string
+		for _, device := range rdmaDeviceList {
+			if device.IfName == RdmaDeviceName {
+				// get interface name
+				iface = e2e_config.GetConfig().NetworkInterface
+				out, err = e2e_agent.DeleteRdmaDevice(*nodeIp, RdmaDeviceName)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		if iface == "" {
+			return fmt.Errorf("rdma device %s not found", RdmaDeviceName)
+		}
+
+		logf.Log.Info("Device deleted", "node", node, "output", out, "interface", iface, "device", RdmaDeviceName)
+
+	}
+	return nil
+}
+
+func DisableRdmaOnNode(node string) error {
+	//disable rdma on the io-engine node
+	platformName := e2e_config.GetConfig().Platform.Name
+	if platformName == "Maas" {
+		nodeIp, err := GetNodeIPAddress(node)
+		if err != nil {
+			return fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+		}
+		// get interface name
+		iface := e2e_config.GetConfig().NetworkInterface
+		out, err := e2e_agent.DisableNetworkInterface(*nodeIp, iface)
+		if err != nil {
+			logf.Log.Info("failed to disable network interface", "platform", platformName, "node", node, "iface", iface, "output", out)
+			return err
+		}
+	} else if platformName == "Hetzner" {
+		err := RemoveRdmaDeviceOnNode(node)
+		if err != nil {
+			logf.Log.Info("failed to remove rdma device", "platform", platformName, "node", node, "device", RdmaDeviceName)
+			return err
+		}
+	} else {
+		return fmt.Errorf("unsupported platform")
+	}
+
+	return nil
+}
+
+func RemoveRdmaDeviceOnAllWorkerNodes() error {
+	workerNodes, err := ListWorkerNode()
+	if err != nil {
+		return err
+	}
+	logf.Log.Info("Worker", "Nodes", workerNodes)
+	for _, node := range workerNodes {
+		err := DisableRdmaOnNode(node.NodeName)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func EnableRdmaOnNode(node string) error {
+	//enable rdma on the io-engine node
+	platformName := e2e_config.GetConfig().Platform.Name
+	if platformName == "Maas" {
+		nodeIp, err := GetNodeIPAddress(node)
+		if err != nil {
+			return fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+		}
+		// get interface name
+		iface := e2e_config.GetConfig().NetworkInterface
+		out, err := e2e_agent.EnableNetworkInterface(*nodeIp, iface)
+		if err != nil {
+			logf.Log.Info("failed to enable network interface", "platform", platformName, "node", node, "iface", iface, "output", out)
+			return err
+		}
+	} else if platformName == "Hetzner" {
+		err := CreateRdmaDeviceOnNode(node)
+		if err != nil {
+			logf.Log.Info("failed to create rdma device", "platform", platformName, "node", node, "device", RdmaDeviceName)
+			return err
+		}
+	} else {
+		return fmt.Errorf("unsupported platform")
+	}
+
+	return nil
+}
