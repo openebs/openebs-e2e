@@ -100,3 +100,19 @@ func ResetTestCaseLogsPath() {
 	currentTestCase = ""
 	testcaseLogsPath = ""
 }
+
+// GetTestSuiteLogsPath get the path to the logs directory for the current test suite
+func GetTestSuiteLogsPath(testsuite string) (string, error) {
+	if len(testsuite) > 1 {
+		logRoot, ok := os.LookupEnv("e2etestlogdir")
+		if !ok {
+			logRoot = "/tmp/e2e/logs"
+		}
+		t0 := time.Now().UTC()
+		ts := fmt.Sprintf("%v%02d%02d%v%v%v", t0.Year(), t0.Month(), t0.Day(), t0.Hour(), t0.Minute(), t0.Second())
+		tsLogsPath := fmt.Sprintf("%s/%s/%s", logRoot, strings.Map(SanitizePathname, testsuite), ts)
+		return tsLogsPath, nil
+	} else {
+		return "", fmt.Errorf("zero length testsuite name")
+	}
+}

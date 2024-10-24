@@ -3,6 +3,7 @@ package e2e_ginkgo
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/openebs/openebs-e2e/common"
@@ -242,4 +243,18 @@ func AfterEachCheck() error {
 
 func AfterEachK8sCheck() error {
 	return k8stest.ResourceK8sCheck()
+}
+
+func BeforeSuiteFailed() {
+	testSpec := ginkgo.CurrentSpecReport()
+	leaf := testSpec.LeafNodeLocation.FileName
+	leaflets := strings.Split(leaf, "/")
+	if len(leaflets) > 1 {
+		logsPath, err := common.GetTestSuiteLogsPath(leaflets[len(leaflets)-2])
+		if err == nil {
+			k8stest.GenerateSupportBundle(logsPath)
+		} else {
+			log.Log.Info("test suite logs path was not set", "location", leaf)
+		}
+	}
 }
