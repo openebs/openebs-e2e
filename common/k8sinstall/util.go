@@ -228,7 +228,7 @@ func SetRdmaViaHelm(enableRdma bool, iface string, helmChart, helmRelease, helmV
 		"io_engine.target.nvmf.iface":        iface,
 	}
 
-	err := k8stest.UpgradeHelmChart(helmChart,
+	_, err := k8stest.UpgradeHelmChart(helmChart,
 		common.NSMayastor(),
 		helmRelease,
 		helmVersion,

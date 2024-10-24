@@ -8,7 +8,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func UpgradeHelmChart(helmChart, namespace, releaseName, version string, values map[string]interface{}) error {
+func UpgradeHelmChart(helmChart, namespace, releaseName, version string, values map[string]interface{}) ([]byte, error) {
 	var vals []string
 	for k, v := range values {
 		vals = append(vals, fmt.Sprintf("%s=%v", k, v))
@@ -20,7 +20,7 @@ func UpgradeHelmChart(helmChart, namespace, releaseName, version string, values 
 	// Execute the command.
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to upgrade with Helm: %v\n%s", err, output)
+		return output, fmt.Errorf("failed to upgrade with Helm: %v\n%s", err, output)
 	}
-	return nil
+	return output, nil
 }
