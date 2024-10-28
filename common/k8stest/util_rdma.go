@@ -83,8 +83,8 @@ func CreateRdmaDeviceOnAllIoEngineNodes() error {
 	if err != nil {
 		return err
 	}
-	logf.Log.Info("Worker", "Nodes", mayastorNodes.Items)
 	for _, node := range mayastorNodes.Items {
+		logf.Log.Info("Create rdma device", "Node", node.Name)
 		err := CreateRdmaDeviceOnNode(node.Name)
 		if err != nil {
 			return err
@@ -98,6 +98,7 @@ func GetVolumeProtocol(volUuid string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	logf.Log.Info("Volume URI", "volume", volUuid, "URI", deviceUri)
 	// deviceUri: nvmf+tcp://<some-random-string>
 	// Parse the device URI
 	u, err := url.Parse(deviceUri)
@@ -114,6 +115,7 @@ func IsVolumeAccessibleOverRdma(volUuid string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	logf.Log.Info("Volume URI", "volume", volUuid, "URI protocol", protocol)
 	if strings.Contains(protocol, "rdma") {
 		return true, nil
 	}
@@ -167,6 +169,7 @@ func RemoveRdmaDeviceOnNode(node string) error {
 }
 
 func DisableRdmaOnNode(node string) error {
+	logf.Log.Info("Disable rdma from IO engine node", "name", node)
 	//disable rdma on the io-engine node
 	//FIXME: figure out whether it's hardware RDMA device or software rdma device and disable RDMA device appropriately
 	platformName := e2e_config.GetConfig().Platform.Name
@@ -196,13 +199,30 @@ func DisableRdmaOnNode(node string) error {
 }
 
 func RemoveRdmaDeviceOnAllWorkerNodes() error {
-	workerNodes, err := ListWorkerNode()
+	workerNodes, err := ListIOEngineNodes()
 	if err != nil {
 		return err
 	}
-	logf.Log.Info("Worker", "Nodes", workerNodes)
-	for _, node := range workerNodes {
-		err := DisableRdmaOnNode(node.NodeName)
+	logf.Log.Info("Remove rdma from IO engine node")
+	for _, node := range workerNodes.Items {
+		logf.Log.Info("IO engine", "Node", node.Name)
+		err := DisableRdmaOnNode(node.Name)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func EnableRdmaDeviceOnAllWorkerNodes() error {
+	workerNodes, err := ListIOEngineNodes()
+	if err != nil {
+		return err
+	}
+	logf.Log.Info("Enable rdma from IO engine node")
+	for _, node := range workerNodes.Items {
+		logf.Log.Info("IO engine", "Node", node.Name)
+		err := EnableRdmaOnNode(node.Name)
 		if err != nil {
 			return err
 		}
@@ -211,6 +231,7 @@ func RemoveRdmaDeviceOnAllWorkerNodes() error {
 }
 
 func EnableRdmaOnNode(node string) error {
+	logf.Log.Info("Enable rdma from IO engine node", "name", node)
 	//enable rdma on the io-engine node
 	platformName := e2e_config.GetConfig().Platform.Name
 	//FIXME: figure out whether it's hardware RDMA device or software rdma device and disable RDMA device appropriately
