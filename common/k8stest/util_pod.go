@@ -744,24 +744,19 @@ func XfsCheck(nodeName string, deployName string, containerName string) (string,
 	return output, nil
 }
 
-var (
-	EngineLabel       = e2e_config.GetConfig().Product.EngineLabel
-	EngineLabelValue  = e2e_config.GetConfig().Product.EngineLabelValue
-	IoEnginePodRegexp = fmt.Sprintf("^%s-.....$", e2e_config.GetConfig().Product.IOEnginePodName)
-)
-
-// Prevent mayastor pod from running on the given node.
+// SuppressMayastorPodOnNode Prevent mayastor pod from running on the given node.
 func SuppressMayastorPodOnNode(nodeName string, timeout int) error {
 	logf.Log.Info("suppressing mayastor pod", "node", nodeName)
-	err := UnlabelNode(nodeName, EngineLabel)
+	err := UnlabelNode(nodeName, e2e_config.GetConfig().Product.EngineLabel)
 	if err != nil {
-		return fmt.Errorf("failed to remove label %s from node %s, error: %v", EngineLabel, nodeName, err)
+		return fmt.Errorf("failed to remove label %s from node %s, error: %v", e2e_config.GetConfig().Product.EngineLabel, nodeName, err)
 	}
+	IoEnginePodRegexp := fmt.Sprintf("^%s-.....$", e2e_config.GetConfig().Product.IOEnginePodName)
 	err = WaitForPodNotRunningOnNode(IoEnginePodRegexp, common.NSMayastor(), nodeName, timeout)
 	return err
 }
 
-// Allow mayastor pod to run on the given node.
+// UnsuppressMayastorPodOnNode Allow mayastor pod to run on the given node.
 func UnsuppressMayastorPodOnNode(nodeName string, timeout int) error {
 	// add the mayastor label to the node
 	logf.Log.Info("restoring mayastor pod", "node", nodeName)
@@ -769,8 +764,9 @@ func UnsuppressMayastorPodOnNode(nodeName string, timeout int) error {
 		e2e_config.GetConfig().Product.EngineLabel,
 		e2e_config.GetConfig().Product.EngineLabelValue)
 	if err != nil {
-		return fmt.Errorf("failed to add label %s to node %s, error: %v", EngineLabel, nodeName, err)
+		return fmt.Errorf("failed to add label %s to node %s, error: %v", e2e_config.GetConfig().Product.EngineLabelValue, nodeName, err)
 	}
+	IoEnginePodRegexp := fmt.Sprintf("^%s-.....$", e2e_config.GetConfig().Product.IOEnginePodName)
 	err = WaitForPodRunningOnNode(IoEnginePodRegexp, common.NSMayastor(), nodeName, timeout)
 	return err
 }
