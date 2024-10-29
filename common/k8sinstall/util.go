@@ -136,7 +136,7 @@ func ScaleLvmControllerViaHelm(expected_replica int32) (int32, error) {
 		"lvm-localpv.lvmController.replicas":  expected_replica,
 	}
 
-	err = apps.UpgradeHelmChart(e2eCfg.Product.OpenEBSHelmChartName,
+	err = apps.UpgradeHelmChartForValues(e2eCfg.Product.OpenEBSHelmChartName,
 		common.NSOpenEBS(),
 		e2eCfg.Product.OpenEBSHelmReleaseName,
 		values,
@@ -185,7 +185,7 @@ func ScaleZfsControllerViaHelm(expected_replica int32) (int32, error) {
 		"zfs-localpv.zfsController.replicas":  expected_replica,
 	}
 
-	err = apps.UpgradeHelmChart(e2eCfg.Product.OpenEBSHelmChartName,
+	err = apps.UpgradeHelmChartForValues(e2eCfg.Product.OpenEBSHelmChartName,
 		common.NSOpenEBS(),
 		e2eCfg.Product.OpenEBSHelmReleaseName,
 		values,
@@ -228,7 +228,7 @@ func SetRdmaViaHelm(enableRdma bool, iface string, helmChart, helmRelease, helmV
 		"io_engine.target.nvmf.iface":        iface,
 	}
 
-	err := k8stest.UpgradeHelmChart(helmChart,
+	_, err := k8stest.UpgradeHelmChart(helmChart,
 		common.NSMayastor(),
 		helmRelease,
 		helmVersion,

@@ -2,9 +2,13 @@ package apps
 
 import (
 	"encoding/json"
+	"bytes"
 	"fmt"
 	"os/exec"
 	"strings"
+	"os"
+	"path/filepath"
+	"github.com/openebs/openebs-e2e/common"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -117,7 +121,7 @@ func GetInstalledProductChartVersionViaHelm(namespace string) (string, error) {
 	return chartVersion, nil
 }
 
-func UpgradeHelmChart(helmChart, namespace, releaseName string, values map[string]interface{}) error {
+func UpgradeHelmChartForValues(helmChart, namespace, releaseName string, values map[string]interface{}) error {
 	var vals []string
 	for k, v := range values {
 		vals = append(vals, fmt.Sprintf("%s=%v", k, v))
@@ -170,4 +174,75 @@ func UninstallHelmRelease(releaseName, namespace string) error {
 
 	return nil
 
+}
+
+// Get values for a release from helm command
+// This step will be needed before performing helm upgrade step
+func HelmGetValues(releaseName string, namespace string)  ([]byte, error) {
+	// Define the Helm installation command
+	cmd := exec.Command("helm", "get", "values", releaseName, "-n", namespace)
+	// Execute the command
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return output,fmt.Errorf("failed to helm get values for release %s : %v\n%s", releaseName, err, output)
+	}
+	return output, nil
+}
+// Save values for a release from helm command to a yaml file
+// As an example "helm get values openebs -n openebs -o yaml > old-values.yaml"
+func SaveHelmValues(releaseName string, namespace string, filePath string)  error {
+	output, err := HelmGetValues(releaseName, namespace)
+	if err != nil {
+        	return err
+    	}
+	dir := filepath.Dir(filePath)
+    	err = os.MkdirAll(dir, 0755) // Ensure intermediate directories are created
+    	if err != nil {
+        	return err
+    	}
+	// Write the output to a YAML file.
+	if err := os.WriteFile(filePath, output, 0644); err != nil {
+		return fmt.Errorf("failed to write output to file %s: %v", filePath, err)
+	}
+	return nil
+}
+// Upgrade a chart from a yaml file using helm command
+// As an example "helm upgrade openebs openebs/openebs -n openebs -f old-values.yaml --version 4.1.1 \
+//   --set openebs-crds.csi.volumeSnapshots.enabled=false"
+func HelmUpgradeChartfromYaml(helmChart string, namespace string, releaseName string, setValues map[string]interface{}, filePath string, version string) (string, error) {
+	var vals []string
+	var setVals string
+	// Check if setValues is empty
+	if len(setValues) > 0 {
+		for k, v := range setValues {
+			vals = append(vals, fmt.Sprintf("%s=%v", k, v))
+		}
+		setVals = strings.Join(vals, ",")
+	}
+	
+	// Construct the base command
+	cmdArgs := []string{"-n", common.NSMayastor(), "upgrade", releaseName, helmChart, "-f", filePath, "--version", version}
+
+	// Append arguments based on conditions
+	if len(setValues) > 0 {
+		cmdArgs = append(cmdArgs, "--set", setVals)
+	}
+
+	// Create the command
+	cmd := exec.Command("helm", cmdArgs...)
+
+	// Print the command that will be executed
+	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
+
+	// Capture standard error output
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	// Run the command
+	err := cmd.Run()
+	if err != nil {
+		logf.Log.Info(stderr.String())
+		return stderr.String(), fmt.Errorf("helm failed to upgrade, err:%v", err)
+	}
+	return stderr.String(), nil
 }
