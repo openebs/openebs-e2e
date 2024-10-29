@@ -24,6 +24,18 @@ type RdmaDeviceNetworkInterface struct {
 	NetDevIndex   int    `json:"netdev_index"`
 }
 
+type PortInfo struct {
+	PCI     string `json:"pci"`
+	Type    string `json:"type"`
+	Netdev  string `json:"netdev"`
+	Flavour string `json:"flavour"`
+	Port    int    `json:"port"`
+}
+
+type PortMap struct {
+	Port map[string]PortInfo `json:"port"`
+}
+
 func ListRdmaDevice(node string) ([]RdmaDeviceNetworkInterface, error) {
 	var rdmaDeiceList []RdmaDeviceNetworkInterface
 	nodeIp, err := GetNodeIPAddress(node)
@@ -170,29 +182,33 @@ func RemoveRdmaDeviceOnNode(node string) error {
 
 func DisableRdmaOnNode(node string) error {
 	logf.Log.Info("Disable rdma from IO engine node", "name", node)
-	//disable rdma on the io-engine node
-	//FIXME: figure out whether it's hardware RDMA device or software rdma device and disable RDMA device appropriately
-	platformName := e2e_config.GetConfig().Platform.Name
-	if platformName == "Maas" {
+
+	iface := e2e_config.GetConfig().NetworkInterface
+	// get dev link port wrt to interface
+	rdmaDevName, err := GetDevLinkName(node, iface)
+	if err != nil {
+		return err
+	}
+
+	logf.Log.Info("rdma dev", "Name", rdmaDevName, "node", node)
+
+	if rdmaDevName != "" {
 		nodeIp, err := GetNodeIPAddress(node)
 		if err != nil {
 			return fmt.Errorf("failed to get node %s ip, error: %v", node, err)
 		}
-		// get interface name
-		iface := e2e_config.GetConfig().NetworkInterface
-		out, err := e2e_agent.DisableNetworkInterface(*nodeIp, iface)
+
+		out, err := e2e_agent.DisableDevLink(*nodeIp, rdmaDevName)
 		if err != nil {
-			logf.Log.Info("failed to disable network interface", "platform", platformName, "node", node, "iface", iface, "output", out)
-			return err
-		}
-	} else if platformName == "Hetzner" {
-		err := RemoveRdmaDeviceOnNode(node)
-		if err != nil {
-			logf.Log.Info("failed to remove rdma device", "platform", platformName, "node", node, "device", RdmaDeviceName)
+			logf.Log.Info("failed to disable rdma dev link", "node", node, "dev link", rdmaDevName, "output", out)
 			return err
 		}
 	} else {
-		return fmt.Errorf("unsupported platform")
+		err := RemoveRdmaDeviceOnNode(node)
+		if err != nil {
+			logf.Log.Info("failed to remove rdma device", "node", node, "device", RdmaDeviceName)
+			return err
+		}
 	}
 
 	return nil
@@ -231,31 +247,72 @@ func EnableRdmaDeviceOnAllWorkerNodes() error {
 }
 
 func EnableRdmaOnNode(node string) error {
-	logf.Log.Info("Enable rdma from IO engine node", "name", node)
-	//enable rdma on the io-engine node
-	platformName := e2e_config.GetConfig().Platform.Name
-	//FIXME: figure out whether it's hardware RDMA device or software rdma device and disable RDMA device appropriately
-	if platformName == "Maas" {
+	logf.Log.Info("Enable rdma on IO engine node", "name", node)
+	// get interface name
+	iface := e2e_config.GetConfig().NetworkInterface
+	// get dev link port wrt to interface
+	rdmaDevPortName, err := GetDevLinkName(node, iface)
+	if err != nil {
+		return err
+	}
+
+	if rdmaDevPortName != "" {
 		nodeIp, err := GetNodeIPAddress(node)
 		if err != nil {
 			return fmt.Errorf("failed to get node %s ip, error: %v", node, err)
 		}
-		// get interface name
-		iface := e2e_config.GetConfig().NetworkInterface
-		out, err := e2e_agent.EnableNetworkInterface(*nodeIp, iface)
+
+		out, err := e2e_agent.EnableDevLink(*nodeIp, rdmaDevPortName)
 		if err != nil {
-			logf.Log.Info("failed to enable network interface", "platform", platformName, "node", node, "iface", iface, "output", out)
-			return err
-		}
-	} else if platformName == "Hetzner" {
-		err := CreateRdmaDeviceOnNode(node)
-		if err != nil {
-			logf.Log.Info("failed to create rdma device", "platform", platformName, "node", node, "device", RdmaDeviceName)
+			logf.Log.Info("failed to enable rdma dev link", "node", node, "dev link", rdmaDevPortName, "output", out)
 			return err
 		}
 	} else {
-		return fmt.Errorf("unsupported platform")
+		err := CreateRdmaDeviceOnNode(node)
+		if err != nil {
+			logf.Log.Info("failed to create rdma device", "node", node, "device", RdmaDeviceName)
+			return err
+		}
 	}
 
 	return nil
+}
+
+func ListDevLink(node string) (PortMap, error) {
+	var devLink PortMap
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return devLink, fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	devLinkOut, err := agent.ListDevLink(*nodeIp)
+	if err != nil {
+		return devLink, fmt.Errorf("failed to list dev link on node %s , error: %v", node, err)
+	}
+	if devLinkOut == "" {
+		logf.Log.Info("Dev kink list failed with empty string", "output", devLinkOut)
+		return devLink, fmt.Errorf("failed to list dev link on node %s", node)
+	}
+	output := trimForJson(devLinkOut)
+	if err = json.Unmarshal([]byte(output), &devLink); err != nil {
+		logf.Log.Info("Failed to unmarshal dev link list", "output", output)
+		return devLink, fmt.Errorf("failed to unmarshal dev link list on node %s , output: %s,error: %v", node, output, err)
+	}
+	logf.Log.Info("Dev link", "node", node, "list", devLink)
+	return devLink, nil
+}
+
+func GetDevLinkName(node, iface string) (string, error) {
+	devLinkList, err := ListDevLink(node)
+	if err != nil {
+		return "", err
+	}
+	for key, val := range devLinkList.Port {
+		if val.Netdev == iface {
+			// dev link port will be like pci/0000:3b:00.0/65535
+			// dev link will be pci/0000:3b:00.0 by removing port
+			return key[:strings.LastIndex(key, "/")], nil
+		}
+	}
+	return "", nil
 }
