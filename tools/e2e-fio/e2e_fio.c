@@ -86,11 +86,12 @@ enum {
  * position of string in the array should match symbol position in enum
  */
 const char* filesize_keywords[] = {
-    "availblockspercent", "availblockslessby", "bytes"};
+    "availblockspercent", "availblockslessby", "bytes", "MiB"};
 enum {
     BLOCKS_PERCENT,
     BLOCKS_LESSBY,
     SIZE_BYTES,
+    SIZE_MIBIBYTES,
 };
 
 /* struct for linked list of child processes */
@@ -338,6 +339,11 @@ int do_makefile(const char **argv, int count) {
                     use_bytes = use_blocks * fs_stat.f_bsize;
                 break;
                 case SIZE_BYTES:
+                    use_blocks = (val + fs_stat.f_bsize - 1) / fs_stat.f_bsize;
+                    use_bytes = val;
+                break;
+                case SIZE_MIBIBYTES:
+                    val = val * (1024 * 1024);
                     use_blocks = (val + fs_stat.f_bsize - 1) / fs_stat.f_bsize;
                     use_bytes = val;
                 break;
@@ -911,11 +917,9 @@ int main(int argc, const char **argv)
                 perror("unlink  failed");
             }
             eff = eff->next;
-            printf("#### 1 %p %p %s\n", files_list, eff, files_list->filename);
             free(files_list->filename);
             free(files_list);
             files_list = eff;
-            printf("#### 1 %p %p\n", eff, files_list);
         }
     }
     printf("Exit value is %d\n", exitv);
