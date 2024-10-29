@@ -11,7 +11,7 @@
 # existing semantics.
 set -e
 IMAGE="openebs/e2e-fio"
-TAG="v3.37-e2e-0"
+TAG="v3.37-e2e-1"
 registry=""
 tag_as_latest=""
 
