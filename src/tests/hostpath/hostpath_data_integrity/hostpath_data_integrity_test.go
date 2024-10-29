@@ -24,6 +24,7 @@ func dataIntegrityTestTest(decor string, fstype common.FileSystemType) {
 	app := k8stest.FioApplication{
 		Decor:                   decor,
 		VolSizeMb:               1024,
+		FsMiB:                   768,
 		OpenEbsEngine:           common.Hostpath,
 		VolType:                 common.VolFileSystem,
 		FsType:                  fstype,
