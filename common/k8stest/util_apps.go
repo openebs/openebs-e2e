@@ -52,7 +52,7 @@ type FioApp struct {
 	// 0 -> default (lessby N blocks) unless FsMiB is non-zero
 	// > 0 < 100 percentage of available blocks used
 	FsPercent uint
-	// non-zero and FsPercent is 0 -> test file size in MiB
+	// FS test file size in MiB - only effective if FsPercent == 0
 	FsMiB                               uint
 	ReplicaCount                        int
 	Runtime                             uint
