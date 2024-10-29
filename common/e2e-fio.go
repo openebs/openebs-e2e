@@ -134,6 +134,7 @@ const (
 	FioFsAllocDefault      FioFsAllocation = iota
 	FioFsAllocLessByBlocks FioFsAllocation = iota
 	FioFsAllocPercentage   FioFsAllocation = iota
+	FioFsAllocMiB          FioFsAllocation = iota
 )
 
 type fioTarget struct {
@@ -463,6 +464,10 @@ func (e *E2eFioArgsBuilder) Build() ([]string, error) {
 			case FioFsAllocPercentage:
 				cmdLine = append(cmdLine, []string{
 					"makefile", tgt.device, tgt.fsFile, "availblockspercent", fmt.Sprintf("%d", tgt.fsAllocUnit), ";",
+				}...)
+			case FioFsAllocMiB:
+				cmdLine = append(cmdLine, []string{
+					"makefile", tgt.device, tgt.fsFile, "MiB", fmt.Sprintf("%d", tgt.fsAllocUnit), ";",
 				}...)
 			}
 		}

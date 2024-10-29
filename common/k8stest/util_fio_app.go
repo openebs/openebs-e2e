@@ -34,9 +34,11 @@ type FioApplication struct {
 	FsType        common.FileSystemType
 	OpenEbsEngine common.OpenEbsEngine
 	// FsPercent -> controls size of file allocated on FS
-	// 0 -> default (lessby N blocks)
+	// 0 -> default (lessby N blocks) unless FsMiB is non-zero.
 	// > 0 < 100 percentage of available blocks used
-	FsPercent                      uint
+	FsPercent uint
+	// non-zero and FsPercent is 0 -> test file size in MiB
+	FsMiB                          uint
 	Runtime                        uint
 	Loops                          int
 	AddFioArgs                     []string
@@ -132,7 +134,11 @@ func (dfa *FioApplication) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix 
 	if dfa.status.fioTargets == nil {
 		if dfa.VolType == common.VolFileSystem {
 			if dfa.FsPercent == 0 {
-				efab = efab.WithDefaultFile()
+				if dfa.FsMiB == 0 {
+					efab = efab.WithDefaultFile()
+				} else {
+					efab = efab.WithDefaultFileExt(common.FioFsAllocMiB, dfa.FsMiB)
+				}
 			} else {
 				if dfa.FsPercent > 100 {
 					return fmt.Errorf("invalid FsPercent value, valid range is 1 - 100")
