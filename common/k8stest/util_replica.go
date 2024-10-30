@@ -19,9 +19,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// var productName = e2e_config.GetConfig().Product.ProductName
-var nvmeControllerModel = e2e_config.GetConfig().Product.NvmeControllerModel
-
 // use the e2e-agent running on each non-nexus node:
 //
 //	for each non-nexus replica node
@@ -226,7 +223,7 @@ func getNvmeDevice(initiatorIP string, maxRetries int, targetNqn string) (bool, 
 						devicePath = deviceData.DevicePath
 						// For mayastor the ModelNumber would be Mayastor NVMe controller
 						// check if the device listed is mayastor nvme controlled device
-						if deviceData.ModelNumber != nvmeControllerModel {
+						if deviceData.ModelNumber != e2e_config.GetConfig().Product.NvmeControllerModel {
 							continue
 						}
 						if len(devicePath) > 5 {
@@ -520,7 +517,7 @@ func FsFreezeReplica(nodeName string) (string, error) {
 	for _, deviceData := range list["Devices"] {
 		// For mayastor the ModelNumber would be Mayastor NVMe controller
 		// check if the device listed is mayastor nvme controlled device
-		if deviceData.ModelNumber != nvmeControllerModel {
+		if deviceData.ModelNumber != e2e_config.GetConfig().Product.NvmeControllerModel {
 			continue
 		}
 		nvmeDevice = deviceData.DevicePath
@@ -565,7 +562,7 @@ func FsUnfreezeReplica(nodeName string) (string, error) {
 	for _, deviceData := range list["Devices"] {
 		// For mayastor the ModelNumber would be Mayastor NVMe controller
 		// check if the device listed is mayastor nvme controlled device
-		if deviceData.ModelNumber != nvmeControllerModel {
+		if deviceData.ModelNumber != e2e_config.GetConfig().Product.NvmeControllerModel {
 			continue
 		}
 		nvmeDevice = deviceData.DevicePath
