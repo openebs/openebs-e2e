@@ -13,9 +13,12 @@ import (
 
 // const ConfigDir = "../../configurations"
 // const PlatformConfigDir = "../../configurations/platforms/"
-var (
-	ConfigDir         = "/configurations"
-	PlatformConfigDir = "/configurations/platforms/"
+type configurationType int
+
+const (
+	baseCfg configurationType = iota
+	productCfg
+	platformCfg
 )
 
 type ConfigurationContext int
@@ -244,20 +247,45 @@ func SetContext(ctx ConfigurationContext) {
 	configContext = ctx
 }
 
-// This function is called early from junit and various bits have not been initialised yet
-// so we cannot use logf or Expect instead we use fmt.Print... and panic.
+// getConfigFilePath given a configuration filename search for its existence
+// in the expected locations
+//   - current directory
+//   - e2e_root_dir (if defined in environment)
+//   - openebs_e2e_root_dir (if defined in environment)
+//
+// Returns the fully qualified path to the file if found.
+// Note: if the config filename is a fully qualified path and the file exists
+// then that path will be returned
+func getConfigFilePath(filename string, cfgType configurationType) (string, error) {
+	var subPath = map[configurationType]string{
+		baseCfg:     "/configurations",
+		productCfg:  "/configurations/product",
+		platformCfg: "/configurations/platforms",
+	}
+
+	subDir := subPath[cfgType]
+	configFile := path.Clean(filename)
+	e2eRootDir, haveE2ERootDir := os.LookupEnv("e2e_root_dir")
+	openebsE2eRootDir, haveOpenebsE2eRootDir := os.LookupEnv("openebs_e2e_root_dir")
+	info, err := os.Stat(configFile)
+	if os.IsNotExist(err) && haveE2ERootDir {
+		configFile = path.Clean(e2eRootDir + subDir + "/" + filename)
+		info, err = os.Stat(configFile)
+	}
+	if os.IsNotExist(err) && haveOpenebsE2eRootDir {
+		configFile = path.Clean(openebsE2eRootDir + subDir + "/" + filename)
+		info, err = os.Stat(configFile)
+	}
+	if err == nil && info.IsDir() {
+		err = fmt.Errorf("%v is not a file", configFile)
+	}
+	return configFile, err
+}
+
+// GetConfig This function is called early from junit and various bits have not been initialised yet,
+// we cannot use logf or Expect instead we use fmt.Print... and panic.
 func GetConfig() E2EConfig {
 	once.Do(func() {
-		var err error
-		var info os.FileInfo
-		e2eRootDir, haveE2ERootDir := os.LookupEnv("e2e_root_dir")
-		openebsE2eRootDir, haveOpenebsE2eRootDir := os.LookupEnv("openebs_e2e_root_dir")
-		if configContext == E2eTesting {
-			if !haveOpenebsE2eRootDir {
-				panic("openebs_e2e_root environment variable not set")
-			}
-		}
-
 		// Initialise the configuration
 		_ = cleanenv.ReadEnv(&e2eConfig)
 		// We absorb the complexity of locating the configuration file here
@@ -271,19 +299,11 @@ func GetConfig() E2EConfig {
 				_, _ = fmt.Fprintln(os.Stderr, "	Use environment variable \"e2e_config_file\" to specify configuration file.")
 			}
 		} else {
-			var configFile string = path.Clean(e2eConfig.ConfigPaths.ConfigFile)
-			info, err = os.Stat(configFile)
-			if os.IsNotExist(err) {
-				configFile = path.Clean(openebsE2eRootDir + ConfigDir + "/" + e2eConfig.ConfigPaths.ConfigFile)
-				info, err = os.Stat(configFile)
-				if err != nil {
-					panic(fmt.Sprintf("Unable to access configuration file %v", configFile))
-				}
-				e2eConfig.ConfigPaths.ConfigFile = configFile
+			configFile, err := getConfigFilePath(e2eConfig.ConfigPaths.ConfigFile, baseCfg)
+			if err != nil {
+				panic(fmt.Sprintf("Unable to access configuration file %v, %v", e2eConfig.ConfigPaths.ConfigFile, err))
 			}
-			if info.IsDir() {
-				panic(fmt.Sprintf("%v is not a file", configFile))
-			}
+			e2eConfig.ConfigPaths.ConfigFile = configFile
 			_, _ = fmt.Fprintf(os.Stderr, "Using configuration file %s\n", configFile)
 			err = cleanenv.ReadConfig(configFile, &e2eConfig)
 			if err != nil {
@@ -297,44 +317,29 @@ func GetConfig() E2EConfig {
 				_, _ = fmt.Fprintln(os.Stderr, "	Use environment variable \"e2e_platform_config_file\" to specify platform configuration.")
 			}
 		} else {
-			var platformCfg string = path.Clean(e2eConfig.ConfigPaths.PlatformConfigFile)
-			info, err = os.Stat(platformCfg)
-			if os.IsNotExist(err) {
-				platformCfg = path.Clean(openebsE2eRootDir + PlatformConfigDir + "/" + e2eConfig.ConfigPaths.PlatformConfigFile)
-				info, err = os.Stat(platformCfg)
-				if err != nil {
-					panic(fmt.Sprintf("Unable to access platform configuration file %v", platformCfg))
-				}
-				e2eConfig.ConfigPaths.PlatformConfigFile = platformCfg
+			platformCfg, err := getConfigFilePath(e2eConfig.ConfigPaths.PlatformConfigFile, platformCfg)
+			if err != nil {
+				panic(fmt.Sprintf("Unable to access configuration file %v, %v", e2eConfig.ConfigPaths.PlatformConfigFile, err))
 			}
-			if info.IsDir() {
-				panic(fmt.Sprintf("%v is not a file", platformCfg))
-			}
+			e2eConfig.ConfigPaths.PlatformConfigFile = platformCfg
 			_, _ = fmt.Fprintf(os.Stderr, "Using platform configuration file %s\n", platformCfg)
 			err = cleanenv.ReadConfig(platformCfg, &e2eConfig)
 			if err != nil {
 				panic(fmt.Sprintf("%v", err))
 			}
 		}
+
 		if e2eConfig.ConfigPaths.ProductConfigFile == "" {
 			if configContext == E2eTesting {
 				_, _ = fmt.Fprintln(os.Stderr, "Product configuration file not specified, using defaults.")
 				_, _ = fmt.Fprintln(os.Stderr, "	Use environment variable \"e2e_product_config_file\" to specify product configuration.")
 			}
 		} else {
-			var productCfg string = path.Clean(e2eConfig.ConfigPaths.ProductConfigFile)
-			info, err = os.Stat(productCfg)
-			if os.IsNotExist(err) {
-				productCfg = path.Clean(e2eConfig.ConfigPaths.ProductConfigFile)
-				info, err = os.Stat(productCfg)
-				if err != nil {
-					panic(fmt.Sprintf("Unable to access product configuration file %v", productCfg))
-				}
-				e2eConfig.ConfigPaths.ProductConfigFile = productCfg
+			productCfg, err := getConfigFilePath(e2eConfig.ConfigPaths.ProductConfigFile, productCfg)
+			if err != nil {
+				panic(fmt.Sprintf("Unable to access configuration file %v, %v", e2eConfig.ConfigPaths.ProductConfigFile, err))
 			}
-			if info.IsDir() {
-				panic(fmt.Sprintf("%v is not a file", productCfg))
-			}
+			e2eConfig.ConfigPaths.ProductConfigFile = productCfg
 			_, _ = fmt.Fprintf(os.Stderr, "Using product configuration file %s\n", productCfg)
 			err = cleanenv.ReadConfig(productCfg, &e2eConfig)
 			if err != nil {
@@ -350,6 +355,7 @@ func GetConfig() E2EConfig {
 			}
 		}
 
+		e2eRootDir, haveE2ERootDir := os.LookupEnv("e2e_root_dir")
 		if configContext == E2eTesting {
 			artifactsDir := ""
 			// if e2e root dir was specified record this in the configuration
@@ -367,7 +373,7 @@ func GetConfig() E2EConfig {
 				// The session directory is required for install and uninstall tests
 				// create and use the default one.
 				e2eConfig.SessionDir = artifactsDir + "/sessions/default"
-				err = os.MkdirAll(e2eConfig.SessionDir, os.ModeDir|os.ModePerm)
+				err := os.MkdirAll(e2eConfig.SessionDir, os.ModeDir|os.ModePerm)
 				if err != nil {
 					panic(err)
 				}
