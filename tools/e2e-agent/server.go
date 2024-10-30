@@ -70,6 +70,10 @@ type NetworkInterface struct {
 	NetworkInterface string `json:"networkInterface"`
 }
 
+type DevLinkPort struct {
+	DevLinkPort string `json:"devLinkPort"`
+}
+
 func homePage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Welcome home!\n")
 }
@@ -186,6 +190,9 @@ func handleRequests() {
 	router.HandleFunc("/deleterdmadevice", DeleteRdmaDevice).Methods("POST")
 	router.HandleFunc("/enablenetworkinterface", EnableNetworkInterface).Methods("POST")
 	router.HandleFunc("/disablenetworkinterface", DisableNetworkInterface).Methods("POST")
+	router.HandleFunc("/enabledevlink", EnableDevLink).Methods("POST")
+	router.HandleFunc("/disabledevlink", DisableDevLink).Methods("POST")
+	router.HandleFunc("/listdevlink", ListDevLink).Methods("POST")
 	log.Fatal(http.ListenAndServe(podIP+":"+restPort, router))
 }
 

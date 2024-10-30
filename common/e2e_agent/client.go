@@ -109,6 +109,10 @@ type NetworkInterface struct {
 	NetworkInterface string `json:"networkInterface"`
 }
 
+type DevLinkPort struct {
+	DevLinkPort string `json:"devLinkPort"`
+}
+
 func sendRequest(reqType, url string, data interface{}) error {
 	_, err := sendRequestGetResponse(reqType, url, data, true)
 	return err
@@ -1269,5 +1273,75 @@ func DisableNetworkInterface(serverAddr string, interfaceName string) (string, e
 		return out, fmt.Errorf("failed to disable network interface, errcode %d", e2eagenterrcode)
 	}
 	logf.Log.Info("DeleteRdmaDevice succeeded", "output", out)
+	return out, err
+}
+
+// ListDevLink list dev link
+func ListDevLink(serverAddr string) (string, error) {
+	logf.Log.Info("Executing ListDevLink", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/listdevlink"
+	encodedresult, err := sendRequestGetResponse("POST", url, nil, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to list available dev link , errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("ListDevLink succeeded", "output", out)
+	return out, err
+}
+
+// EnableDevLink enable dev link
+func EnableDevLink(serverAddr string, devLinkPortName string) (string, error) {
+	data := DevLinkPort{
+		DevLinkPort: devLinkPortName,
+	}
+	logf.Log.Info("Executing EnableDevLink", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/enabledevlink"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to create rdma device, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("EnableDevLink succeeded", "output", out)
+	return out, err
+}
+
+// DisableDevLink disable dev link
+func DisableDevLink(serverAddr string, devLinkPortName string) (string, error) {
+	data := DevLinkPort{
+		DevLinkPort: devLinkPortName,
+	}
+	logf.Log.Info("Executing DisableDevLink", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/disabledevlink"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to disable dev link, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("DisableDevLink succeeded", "output", out)
 	return out, err
 }
