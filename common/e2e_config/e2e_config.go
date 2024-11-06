@@ -166,6 +166,8 @@ type E2EConfig struct {
 		MayastorNamespace string `yaml:"mayastorNamespace" env-default:"mayastor"`
 		// Some deployments use a different namespace
 		FilteredMayastorPodCheck int `yaml:"filteredMayastorPodCheck" env-default:"0"`
+		// data plane interface
+		IOEngineTargetNvmfIface string `yaml:"ioengineTargetNvmfIface" env-default:"" env:"e2e_ioengine_target_nvmf_iface"`
 	} `yaml:"platform"`
 	Product ProductSpec `yaml:"product"`
 
