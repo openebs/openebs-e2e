@@ -1,4 +1,4 @@
-# openebs-e2e
+# OpenEBS End-to-End Testing
 
 [![e2e tests](https://github.com/openebs/openebs-e2e/actions/workflows/e2e-test.yml/badge.svg)](https://github.com/openebs/openebs-e2e/actions/workflows/e2e-test.yml)
 [![Slack](https://img.shields.io/badge/chat-slack-ff1493.svg?style=flat-square)](https://kubernetes.slack.com/messages/openebs)
