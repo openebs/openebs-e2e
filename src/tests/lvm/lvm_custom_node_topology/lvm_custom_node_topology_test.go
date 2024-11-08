@@ -18,6 +18,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const allowedTopologyEnvVarName = "ALLOWED_TOPOLOGIES"
+
 var nodeConfig lvm.LvmNodesDevicePvVgConfig
 var appInstances []*k8stest.FioApplication
 var targetNode, key string
@@ -243,11 +245,13 @@ func customTopologyWfcTest(decor string, engine common.OpenEbsEngine, volType co
 	label := fmt.Sprintf("%s=%s", productConfig.LocalEngineComponentPodLabelKey,
 		productConfig.LvmEngineComponentDsPodLabelValue)
 
-	// Restart lvm daemonset pods after applying node label with key
-	// so that csinode kubernetes object for local.csi.openebs.io plugin driver picks
-	// that particular topology key for scheduling volume
-	err = k8stest.DeletePodsByLabel(label, common.NSOpenEBS())
-	Expect(err).To(BeNil(), "failed to restart lvm daemonset pods with label %s", label)
+	updatedEnvVarValue := fmt.Sprintf("kubernetes.io/hostname,%s", key)
+
+	// we have to set env in the daemonset yaml for lvm-local like this
+	// kubectl set env daemonset/openebs-lvm-localpv-node -n openebs ALLOWED_TOPOLOGIES=kubernetes.io/hostname,key
+	// this updation will automatically restart daemonset pods
+	_, err = k8stest.UpdateDemonsetContainerEnv(productConfig.LvmEngineDaemonSetName, productConfig.LvmEnginePluginContainerName, common.NSOpenEBS(), allowedTopologyEnvVarName, updatedEnvVarValue)
+	Expect(err).To(BeNil(), "failed to update env values")
 
 	// verify lvm daemonset to be ready
 	Eventually(func() bool {
