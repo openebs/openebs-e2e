@@ -1001,7 +1001,7 @@ func GenerateSupportBundle(testLogDir string) {
 	bashCmd := fmt.Sprintf("%s/e2e-cluster-dump.sh  --destdir '%s' --plugin '%s'",
 		locations.GetE2EScriptsPath(),
 		testLogDir,
-		mcpV1.GetPluginPath(),
+		mcpV1.GetMayastorPluginCmdString(),
 	)
 	logf.Log.Info("About to execute", "command", bashCmd)
 	cmd := exec.Command("bash", "-c", bashCmd)
@@ -1013,7 +1013,7 @@ func GenerateSupportBundle(testLogDir string) {
 		logf.Log.Info(out.String())
 	}
 	bashCmd = fmt.Sprintf("%s -n %s get volume-replica-topologies -o json > %s/%s",
-		mcpV1.GetPluginPath(),
+		mcpV1.GetMayastorPluginCmdString(),
 		common.NSMayastor(),
 		testLogDir,
 		"replica-topologies.json")
@@ -1024,7 +1024,7 @@ func GenerateSupportBundle(testLogDir string) {
 		logf.Log.Info("command failed", "error", err)
 		logf.Log.Info(out.String())
 	}
-	cmd = exec.Command(mcpV1.GetPluginPath(), "dump", "system", "-n", common.NSMayastor(), "-d", testLogDir)
+	cmd = mcpV1.GetMayastorPluginCmd("dump", "system", "-n", common.NSMayastor(), "-d", testLogDir)
 	logf.Log.Info("About to execute", "command", cmd)
 	err = cmd.Run()
 	if err != nil {

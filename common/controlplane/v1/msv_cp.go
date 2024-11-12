@@ -4,7 +4,6 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -23,11 +22,9 @@ func HasNotFoundRestJsonError(str string) bool {
 }
 
 func getMayastorCpVolume(uuid string) (*common.MayastorVolume, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "volume", uuid)
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "volume", uuid)
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {
@@ -46,11 +43,9 @@ func getMayastorCpVolume(uuid string) (*common.MayastorVolume, error) {
 }
 
 func listMayastorCpVolumes() ([]common.MayastorVolume, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "volumes")
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "volumes")
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {
@@ -67,11 +62,9 @@ func listMayastorCpVolumes() ([]common.MayastorVolume, error) {
 }
 
 func scaleMayastorVolume(uuid string, replicaCount int) error {
-	pluginpath := GetPluginPath()
-
 	var err error
 	var jsonInput []byte
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "scale", "volume", uuid, strconv.Itoa(replicaCount))
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "scale", "volume", uuid, strconv.Itoa(replicaCount))
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {
@@ -237,11 +230,9 @@ func (cp CPv1) ListMsvs() ([]common.MayastorVolume, error) {
 }
 
 func (cp CPv1) ListRestoredMsvs() ([]common.MayastorVolume, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "volumes", "--source", "snapshot")
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "volumes", "--source", "snapshot")
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {
@@ -361,11 +352,9 @@ func (cp CPv1) GetMsvDeviceUri(volName string) (string, error) {
 }
 
 func (cp CPv1) SetVolumeMaxSnapshotCount(uuid string, maxSnapshotCount int32) error {
-	pluginpath := GetPluginPath()
-
 	var err error
 	var jsonInput []byte
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "set", "volume", uuid, "max-snapshots", strconv.Itoa(int(maxSnapshotCount)))
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "set", "volume", uuid, "max-snapshots", strconv.Itoa(int(maxSnapshotCount)))
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {

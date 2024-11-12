@@ -62,7 +62,7 @@ type ProductSpec struct {
 	IOEnginePodLabelValue             string            `yaml:"ioEnginePodLabelValue" env-default:"io-engine"`
 	IOEnginePodName                   string            `yaml:"ioEnginePodName"`
 	JaegersCrdName                    string            `yaml:"jaegersCrdName" env-default:"jaegers.jaegertracing.io"`
-	KubectlPluginName                 string            `yaml:"kubectlPluginName" env-default:"kubectl-mayastor"`
+	KubectlPluginName                 string            `yaml:"kubectlPluginName" env-default:"kubectl-mayastor" env:"e2e_kc_plugin"`
 	KubectlPluginPort                 int               `yaml:"kubectlPluginPort" env-default:"30011"`
 	LogConfigResources                []string          `yaml:"logConfigResources"`
 	LogDumpCsiAttacherName            string            `yaml:"logDumpCsiAttacherName" env-default:"csi-attacher"`

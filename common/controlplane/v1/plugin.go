@@ -60,3 +60,24 @@ func CheckPluginError(jsonInput []byte, err error) error {
 	}
 	return err
 }
+
+// GetMayastorPluginCmd return an exec cmd object setup to invoke the plugin
+// for the mayastor IOEngine
+func GetMayastorPluginCmd(arg ...string) *exec.Cmd {
+	binPath := GetPluginPath()
+	if e2e_config.GetConfig().Product.KubectlPluginName != "kubectl-mayastor" {
+		return exec.Command(binPath, append([]string{"mayastor"}, arg...)...)
+	}
+	return exec.Command(binPath, arg...)
+}
+
+// GetMayastorPluginCmdString return a string which can be supplied to
+// shell commands to invoke the plugin for the mayastor IOEngine
+// deprecated: use GetMayastorPluginCmd in preference
+func GetMayastorPluginCmdString() string {
+	binPath := GetPluginPath()
+	if e2e_config.GetConfig().Product.KubectlPluginName != "kubectl-mayastor" {
+		return binPath + " " + "mayastor "
+	}
+	return binPath
+}
