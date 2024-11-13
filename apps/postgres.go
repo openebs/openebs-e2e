@@ -219,11 +219,11 @@ func (pb *postgresBuilder) WithPgBench() *postgresBuilder {
 }
 
 func (pb *postgresBuilder) Create() (PostgresApp, error) {
-	var latest Chart
+	var latest k8stest.Chart
 	var err error
 
 	if pb.helmVersion == "" {
-		latest, err = GetLatestHelmChartVersion(e2e_config.GetConfig().Product.PostgresHelmRepo)
+		latest, err = k8stest.GetLatestHelmChartVersion(e2e_config.GetConfig().Product.PostgresHelmRepo)
 		if err != nil {
 			logf.Log.Error(err, "switching to default bitnami/postgresql chart version", "defaultChart", e2e_config.GetConfig().Product.PostgresDefaultChartVersion)
 			pb.helmVersion = e2e_config.GetConfig().Product.PostgresDefaultChartVersion
@@ -267,12 +267,12 @@ func (pb *postgresBuilder) Create() (PostgresApp, error) {
 }
 
 func (pb *postgresBuilder) Install() error {
-	err := AddHelmRepository(e2e_config.GetConfig().Product.PostgresHelmRepoName, e2e_config.GetConfig().Product.PostgresHelmRepoUrl)
+	err := k8stest.AddHelmRepository(e2e_config.GetConfig().Product.PostgresHelmRepoName, e2e_config.GetConfig().Product.PostgresHelmRepoUrl)
 	if err != nil {
 		return err
 	}
 
-	err = InstallHelmChart(e2e_config.GetConfig().Product.PostgresHelmRepo, pb.helmVersion, pb.namespace, pb.releaseName, pb.values)
+	err = k8stest.InstallHelmChart(e2e_config.GetConfig().Product.PostgresHelmRepo, pb.helmVersion, pb.namespace, pb.releaseName, pb.values)
 	if err != nil {
 		return err
 	}
