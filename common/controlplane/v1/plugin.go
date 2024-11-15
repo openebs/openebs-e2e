@@ -3,12 +3,19 @@ package v1
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 )
 
 func GetPluginPath() string {
+	// Use kubectl plugin path in preference
+	if e2e_config.GetConfig().KubectlPluginPath != "" {
+		return e2e_config.GetConfig().KubectlPluginPath
+	}
+	// path to kubectl plugin is not specified, fall back
+	// to using plugin directory and configured plugin file name
 	if e2e_config.GetConfig().KubectlPluginDir == "" {
 		panic("unspecified location of kubectl plugin")
 	}
@@ -65,7 +72,8 @@ func CheckPluginError(jsonInput []byte, err error) error {
 // for the mayastor IOEngine
 func GetMayastorPluginCmd(arg ...string) *exec.Cmd {
 	binPath := GetPluginPath()
-	if e2e_config.GetConfig().Product.KubectlPluginName != "kubectl-mayastor" {
+	//	if e2e_config.GetConfig().Product.KubectlPluginName != "kubectl-mayastor" {
+	if filepath.Base(binPath) != "kubectl-mayastor" {
 		return exec.Command(binPath, append([]string{"mayastor"}, arg...)...)
 	}
 	return exec.Command(binPath, arg...)
@@ -75,9 +83,6 @@ func GetMayastorPluginCmd(arg ...string) *exec.Cmd {
 // shell commands to invoke the plugin for the mayastor IOEngine
 // deprecated: use GetMayastorPluginCmd in preference
 func GetMayastorPluginCmdString() string {
-	binPath := GetPluginPath()
-	if e2e_config.GetConfig().Product.KubectlPluginName != "kubectl-mayastor" {
-		return binPath + " " + "mayastor "
-	}
-	return binPath
+	cmd := GetMayastorPluginCmd()
+	return fmt.Sprintf("%v ", cmd)
 }
