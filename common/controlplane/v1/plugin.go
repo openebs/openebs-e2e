@@ -78,11 +78,3 @@ func GetMayastorPluginCmd(arg ...string) *exec.Cmd {
 	}
 	return exec.Command(binPath, arg...)
 }
-
-// GetMayastorPluginCmdString return a string which can be supplied to
-// shell commands to invoke the plugin for the mayastor IOEngine
-// deprecated: use GetMayastorPluginCmd in preference
-func GetMayastorPluginCmdString() string {
-	cmd := GetMayastorPluginCmd()
-	return fmt.Sprintf("%v ", cmd)
-}
