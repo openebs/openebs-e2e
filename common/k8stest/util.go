@@ -1044,7 +1044,7 @@ func GenerateInstallSupportBundle() {
 	// create support bundle in a directory specific for the current test case
 	testLogDir := fmt.Sprintf("%s/%s/%s", logDir, strings.Map(common.SanitizePathname, "install"), ts)
 	// run e2e-cluster-dump.sh first - it will make the test log directory if it does not exist
-	bashCmd := fmt.Sprintf("%s/e2e-cluster-dump.sh  --clusteronly --destdir '%s'",
+	bashCmd := fmt.Sprintf("%s/e2e-cluster-dump.sh --destdir '%s'",
 		locations.GetE2EScriptsPath(),
 		testLogDir,
 	)
