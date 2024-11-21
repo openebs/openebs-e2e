@@ -155,8 +155,10 @@ function kubectlEmitLogs {
 #   with the name of the pod and container.
 function emitPodContainerLogs {
     ns=$1
-    destdir=$2
+    destdir="$2/podlogs/$ns"
     podname=$3
+
+    mkdir -p $destdir
 
     if [ -z "$podname" ] || [ -z "$ns" ]; then
         echo "ERROR calling emitPodContainerLogs"
@@ -207,6 +209,10 @@ function getLogs {
 
     if [ "$podlogs" -ne 0 ]; then
         getPodLogs default "$dest"
+    fi
+
+    if [ "$podlogs" -ne 0 ]; then
+        getPodLogs mayastor "$dest"
     fi
 
     if [ -n "$dest" ];
