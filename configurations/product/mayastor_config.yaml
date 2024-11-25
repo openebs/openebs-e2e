@@ -141,4 +141,5 @@ product:
     zfsEnginePluginDriverName: "zfs.csi.openebs.io"
     zfsEngineControllerDeploymentName: "openebs-zfs-localpv-controller"
     zfsEngineLeaseName: "external-resizer-zfs-csi-openebs-io"
+    mayastorCsiControllerLogLevel: "trace"
 
