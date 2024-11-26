@@ -4,7 +4,6 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/openebs/openebs-e2e/common"
@@ -31,11 +30,9 @@ type msnState struct {
 }
 
 func GetMayastorCpNode(nodeName string) (*MayastorCpNode, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "node", nodeName)
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "node", nodeName)
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {
@@ -54,11 +51,9 @@ func GetMayastorCpNode(nodeName string) (*MayastorCpNode, error) {
 }
 
 func ListMayastorCpNodes() ([]MayastorCpNode, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "nodes")
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "nodes")
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {
@@ -137,7 +132,6 @@ func (cp CPv1) GetMsNodeStatus(nodeName string) (string, error) {
 
 // UpdateNodeLabel adds or remove labels from nodes
 func (cp CPv1) UpdateNodeLabel(nodeName string, labelKey, labelValue string) error {
-	pluginPath := GetPluginPath()
 	args := []string{"label", "node", nodeName}
 
 	// Check if a label value is provided
@@ -149,7 +143,7 @@ func (cp CPv1) UpdateNodeLabel(nodeName string, labelKey, labelValue string) err
 		args = append(args, fmt.Sprintf("%s-", labelKey))
 	}
 
-	cmd := exec.Command(pluginPath, args...)
+	cmd := GetMayastorPluginCmd(args...)
 
 	// Print the command that will be executed
 	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))

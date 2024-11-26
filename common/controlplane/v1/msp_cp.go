@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 
 	"github.com/openebs/openebs-e2e/common"
 
@@ -41,11 +40,9 @@ func (cp CPv1) CreatePoolOnInstall() bool {
 }
 
 func GetMayastorCpPool(name string) (*MayastorCpPool, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "pool", name)
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "pool", name)
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {
@@ -65,11 +62,9 @@ func GetMayastorCpPool(name string) (*MayastorCpPool, error) {
 }
 
 func ListMayastorCpPools() ([]MayastorCpPool, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "pools")
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "pools")
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {

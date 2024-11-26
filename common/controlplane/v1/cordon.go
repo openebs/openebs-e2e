@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/openebs/openebs-e2e/common"
@@ -49,8 +48,7 @@ type NodeCordonState struct {
 
 func (cp CPv1) CordonNode(nodeName string, cordonLabel string) error {
 	logf.Log.Info("Executing cordon node command", "node", nodeName, "cordon label", cordonLabel)
-	kubectlPlugin := GetPluginPath()
-	cmd := exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "cordon", "node", nodeName, cordonLabel)
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "cordon", "node", nodeName, cordonLabel)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
@@ -64,8 +62,7 @@ func (cp CPv1) CordonNode(nodeName string, cordonLabel string) error {
 
 func (cp CPv1) GetCordonNodeLabels(nodeName string) ([]string, error) {
 	logf.Log.Info("Executing command to get cordon node labels", "node", nodeName)
-	pluginPath := GetPluginPath()
-	cmd := exec.Command(pluginPath, "-n", common.NSMayastor(), "get", "node", nodeName, "-ojson")
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "get", "node", nodeName, "-ojson")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
@@ -97,8 +94,7 @@ func (cp CPv1) GetCordonNodeLabels(nodeName string) ([]string, error) {
 
 func (cp CPv1) UnCordonNode(nodeName string, cordonLabel string) error {
 	logf.Log.Info("Executing uncordon node command", "node", nodeName, "cordon label", cordonLabel)
-	kubectlPlugin := GetPluginPath()
-	cmd := exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "uncordon", "node", nodeName, cordonLabel)
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "uncordon", "node", nodeName, cordonLabel)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()

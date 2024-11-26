@@ -62,7 +62,7 @@ type ProductSpec struct {
 	IOEnginePodLabelValue             string            `yaml:"ioEnginePodLabelValue" env-default:"io-engine"`
 	IOEnginePodName                   string            `yaml:"ioEnginePodName"`
 	JaegersCrdName                    string            `yaml:"jaegersCrdName" env-default:"jaegers.jaegertracing.io"`
-	KubectlPluginName                 string            `yaml:"kubectlPluginName" env-default:"kubectl-mayastor"`
+	KubectlPluginName                 string            `yaml:"kubectlPluginName" env-default:"kubectl-mayastor" env:"e2e_kc_plugin"`
 	KubectlPluginPort                 int               `yaml:"kubectlPluginPort" env-default:"30011"`
 	LogConfigResources                []string          `yaml:"logConfigResources"`
 	LogDumpCsiAttacherName            string            `yaml:"logDumpCsiAttacherName" env-default:"csi-attacher"`
@@ -191,6 +191,7 @@ type E2EConfig struct {
 	OpenEbsE2eRootDir string `yaml:"openEbsE2eRootDir" env:"openebs_e2e_root_dir"`
 	SessionDir        string `yaml:"sessionDir" env:"e2e_session_dir"`
 	MayastorVersion   string `yaml:"mayastorVersion" env:"e2e_mayastor_version"`
+	KubectlPluginPath string `yaml:"kubectlPluginPath" env:"e2e_kubectl_plugin_path"`
 	KubectlPluginDir  string `yaml:"kubectlPluginDir" env:"e2e_kubectl_plugin_dir"`
 	MaasOauthApiToken string `yaml:"maasOauthApiToken" env:"e2e_maas_api_token"`
 	MaasEndpoint      string `yaml:"maasEndpoint" env:"e2e_maas_endpoint"`

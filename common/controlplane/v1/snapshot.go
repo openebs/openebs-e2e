@@ -3,17 +3,14 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
 
 	"github.com/openebs/openebs-e2e/common"
 )
 
 func (cp CPv1) GetSnapshots() ([]common.SnapshotSchema, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "volume-snapshots")
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "volume-snapshots")
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {
@@ -30,12 +27,10 @@ func (cp CPv1) GetSnapshots() ([]common.SnapshotSchema, error) {
 }
 
 func (cp CPv1) GetSnapshot(snapshotId string) (common.SnapshotSchema, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
 	var response []common.SnapshotSchema
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "volume-snapshots", "--snapshot", snapshotId)
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "volume-snapshots", "--snapshot", snapshotId)
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {
@@ -57,12 +52,10 @@ func (cp CPv1) GetSnapshot(snapshotId string) (common.SnapshotSchema, error) {
 }
 
 func (cp CPv1) GetVolumeSnapshot(volUuid string, snapshotId string) (common.SnapshotSchema, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
 	var response []common.SnapshotSchema
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "volume-snapshots", "--volume", volUuid, "--snapshot", snapshotId)
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "volume-snapshots", "--volume", volUuid, "--snapshot", snapshotId)
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {
@@ -83,11 +76,9 @@ func (cp CPv1) GetVolumeSnapshot(volUuid string, snapshotId string) (common.Snap
 }
 
 func (cp CPv1) GetVolumeSnapshots(volUuid string) ([]common.SnapshotSchema, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "volume-snapshots", "--volume", volUuid)
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "volume-snapshots", "--volume", volUuid)
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {
@@ -104,11 +95,9 @@ func (cp CPv1) GetVolumeSnapshots(volUuid string) ([]common.SnapshotSchema, erro
 }
 
 func (cp CPv1) GetVolumeSnapshotTopology() ([]common.SnapshotSchema, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "volume-snapshot-topology")
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "volume-snapshot-topology")
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {
@@ -125,12 +114,10 @@ func (cp CPv1) GetVolumeSnapshotTopology() ([]common.SnapshotSchema, error) {
 }
 
 func (cp CPv1) GetPerSnapshotVolumeSnapshotTopology(snapshotId string) (common.SnapshotSchema, error) {
-	pluginpath := GetPluginPath()
-
 	var jsonInput []byte
 	var err error
 	var response []common.SnapshotSchema
-	cmd := exec.Command(pluginpath, "-n", common.NSMayastor(), "-ojson", "get", "volume-snapshot-topology", "--snapshot", snapshotId)
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "volume-snapshot-topology", "--snapshot", snapshotId)
 	jsonInput, err = cmd.CombinedOutput()
 	err = CheckPluginError(jsonInput, err)
 	if err != nil {

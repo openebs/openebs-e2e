@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"math/rand"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -164,8 +163,7 @@ func GetPodsWithLoggingLabel() ([]coreV1.Pod, error) {
 }
 
 func SystemDump() (string, error) {
-	bp := v1.GetPluginPath()
-	cmd := exec.Command(bp, "dump", "system", "-n", common.NSMayastor(), "-d", TmpDir)
+	cmd := v1.GetMayastorPluginCmd("dump", "system", "-n", common.NSMayastor(), "-d", TmpDir)
 	start := time.Now()
 	logf.Log.Info("Collecting system log dump starts", "namespace", common.NSMayastor(), "start_time", start)
 	err := cmd.Run()
