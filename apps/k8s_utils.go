@@ -9,6 +9,18 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const (
+	Standalone  Architecture = "standalone"
+	Replicaset  Architecture = "replicaset"
+	Replication Architecture = "replication"
+)
+
+type Architecture string
+
+func (a Architecture) String() string {
+	return string(a)
+}
+
 func CreateStorageClass(mb *mongoBuilder) (string, error) {
 	var err error
 	var poolsInCluster []common.MayastorPool

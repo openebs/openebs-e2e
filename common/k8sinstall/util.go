@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openebs/openebs-e2e/apps"
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"github.com/openebs/openebs-e2e/common/k8stest"
@@ -60,17 +59,17 @@ func installTheProduct() error {
 	// Helm repository is up-to-date with the latest charts. By removing and re-adding the repository, we make
 	// sure that the subsequent Helm commands (like `helm install`) interact with the correct and current version
 	// of the repository.
-	err = apps.RemoveHelmRepository(e2e_config.GetConfig().Product.OpenEBSHelmRepoName, e2e_config.GetConfig().Product.OpenEBSHelmRepoUrl)
+	err = k8stest.RemoveHelmRepository(e2e_config.GetConfig().Product.OpenEBSHelmRepoName, e2e_config.GetConfig().Product.OpenEBSHelmRepoUrl)
 	if err != nil {
 		logf.Log.Info("failed to remove helm repository")
 	}
 
-	err = apps.AddHelmRepository(e2e_config.GetConfig().Product.OpenEBSHelmRepoName, e2e_config.GetConfig().Product.OpenEBSHelmRepoUrl)
+	err = k8stest.AddHelmRepository(e2e_config.GetConfig().Product.OpenEBSHelmRepoName, e2e_config.GetConfig().Product.OpenEBSHelmRepoUrl)
 	if err != nil {
 		logf.Log.Info("failed to add helm repository")
 	}
 
-	err = apps.UpdateHelmRepository(e2e_config.GetConfig().Product.OpenEBSHelmRepoName)
+	err = k8stest.UpdateHelmRepository(e2e_config.GetConfig().Product.OpenEBSHelmRepoName)
 	if err != nil {
 		logf.Log.Info("failed to update helm repository")
 	}
@@ -136,7 +135,7 @@ func ScaleLvmControllerViaHelm(expected_replica int32) (int32, error) {
 		"lvm-localpv.lvmController.replicas":  expected_replica,
 	}
 
-	err = apps.UpgradeHelmChartForValues(e2eCfg.Product.OpenEBSHelmChartName,
+	err = k8stest.UpgradeHelmChartForValues(e2eCfg.Product.OpenEBSHelmChartName,
 		common.NSOpenEBS(),
 		e2eCfg.Product.OpenEBSHelmReleaseName,
 		values,
@@ -185,7 +184,7 @@ func ScaleZfsControllerViaHelm(expected_replica int32) (int32, error) {
 		"zfs-localpv.zfsController.replicas":  expected_replica,
 	}
 
-	err = apps.UpgradeHelmChartForValues(e2eCfg.Product.OpenEBSHelmChartName,
+	err = k8stest.UpgradeHelmChartForValues(e2eCfg.Product.OpenEBSHelmChartName,
 		common.NSOpenEBS(),
 		e2eCfg.Product.OpenEBSHelmReleaseName,
 		values,
