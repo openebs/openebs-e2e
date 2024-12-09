@@ -20,6 +20,7 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -769,4 +770,44 @@ func UnsuppressMayastorPodOnNode(nodeName string, timeout int) error {
 	IoEnginePodRegexp := fmt.Sprintf("^%s-.....$", e2e_config.GetConfig().Product.IOEnginePodName)
 	err = WaitForPodRunningOnNode(IoEnginePodRegexp, common.NSMayastor(), nodeName, timeout)
 	return err
+}
+
+func CheckPodExists(podName string, namespace string) (bool, error) {
+	// Fetch the pod using the GetPod function
+	podAPI := gTestEnv.KubeInt.CoreV1().Pods
+	_, err := podAPI(namespace).Get(context.TODO(), podName, metaV1.GetOptions{})
+	if err != nil {
+		// If the error indicates that the pod is not found, it has been deleted successfully
+		if k8serrors.IsNotFound(err) {
+			return false, nil
+		}
+		// If it's another error, return it
+		return false, fmt.Errorf("failed to check if pod %s in namespace %s is present, error: %v", podName, namespace, err)
+	}
+	return true, nil
+}
+
+func WaitForPodDeletion(podName string, namespace string, podDeletionTimeoutSecs time.Duration) (bool, error) {
+
+	startTime := time.Now()
+
+	for {
+		exists, err := CheckPodExists(podName, namespace)
+		if err != nil {
+			return false, err
+		}
+		if !exists {
+			return true, nil
+		}
+
+		// If the timeout is reached, exit the loop
+		if time.Since(startTime) >= podDeletionTimeoutSecs {
+			break
+		}
+		// Sleep for a short interval before retrying
+		time.Sleep(1 * time.Second)
+	}
+
+	// If the pod still exists after the timeout, return false
+	return false, fmt.Errorf("timeout reached: pod %s in namespace %s was not deleted within %v", podName, namespace, podDeletionTimeoutSecs)
 }
