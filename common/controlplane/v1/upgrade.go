@@ -30,6 +30,13 @@ const (
 func (cp CPv1) Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) (string, error) {
 	kubectlPlugin := GetPluginPath()
 
+	pluginVersion, err := GetPluginVersion()
+	if err != nil {
+		return "", fmt.Errorf("failed to get plugin version, err:%v", err)
+	}
+
+	pluginVersion = strings.TrimSpace(pluginVersion)
+
 	CIRegistry, ok := os.LookupEnv("CI_REGISTRY")
 	if !ok {
 		return "", fmt.Errorf("environment variable CI_REGISTRY is not defined")
@@ -40,8 +47,16 @@ func (cp CPv1) Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeede
 
 	// Append arguments based on conditions
 	if isUpgradingToUnstableBranch {
-		cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
+		// for plugin version with rc tag i.e. release candidate
+		// upgrade job images are not present in ci-registry, they are in
+		// docker hub. so for those tags we dont need to add --registry flag.
+		if strings.Contains(pluginVersion, "-rc") {
+			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
+		} else {
+			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
+		}
 	}
+
 	if isPartialRebuildDisableNeeded {
 		cmdArgs = append(cmdArgs, "--set", string(DisablePartialRebuild))
 	}
@@ -57,7 +72,7 @@ func (cp CPv1) Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeede
 	cmd.Stderr = &stderr
 
 	// Run the command
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		logf.Log.Info(stderr.String())
 		return stderr.String(), fmt.Errorf("plugin failed to upgrade, err:%v", err)
@@ -76,6 +91,13 @@ func (cp CPv1) UpgradeWithSkipDataPlaneRestart(isUpgradingToUnstableBranch, isPa
 
 	kubectlPlugin := GetPluginPath()
 
+	pluginVersion, err := GetPluginVersion()
+	if err != nil {
+		return fmt.Errorf("failed to get plugin version, err:%v", err)
+	}
+
+	pluginVersion = strings.TrimSpace(pluginVersion)
+
 	CIRegistry, ok := os.LookupEnv("CI_REGISTRY")
 	if !ok {
 		return fmt.Errorf("environment varianble CI_REGISTRY is not defined")
@@ -86,7 +108,14 @@ func (cp CPv1) UpgradeWithSkipDataPlaneRestart(isUpgradingToUnstableBranch, isPa
 
 	// Append arguments based on conditions
 	if isUpgradingToUnstableBranch {
-		cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
+		// for plugin version with rc tag i.e. release candidate
+		// upgrade job images are not present in ci-registry, they are in
+		// docker hub. so for those tags we dont need to add --registry flag.
+		if strings.Contains(pluginVersion, "-rc") {
+			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
+		} else {
+			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
+		}
 	}
 	if isPartialRebuildDisableNeeded {
 		cmdArgs = append(cmdArgs, "--set", string(DisablePartialRebuild))
@@ -98,7 +127,7 @@ func (cp CPv1) UpgradeWithSkipDataPlaneRestart(isUpgradingToUnstableBranch, isPa
 	// Print the command that will be executed
 	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
 
-	_, err := cmd.Output()
+	_, err = cmd.Output()
 
 	if err != nil {
 		return fmt.Errorf("plugin failed to upgrade when skip data plane restart flag is passsed , error %v", err)
@@ -115,6 +144,13 @@ func (cp CPv1) UpgradeWithSkipSingleReplicaValidation(isUpgradingToUnstableBranc
 
 	kubectlPlugin := GetPluginPath()
 
+	pluginVersion, err := GetPluginVersion()
+	if err != nil {
+		return fmt.Errorf("failed to get plugin version, err:%v", err)
+	}
+
+	pluginVersion = strings.TrimSpace(pluginVersion)
+
 	CIRegistry, ok := os.LookupEnv("CI_REGISTRY")
 	if !ok {
 		return fmt.Errorf("environment varianble CI_REGISTRY is not defined")
@@ -125,7 +161,14 @@ func (cp CPv1) UpgradeWithSkipSingleReplicaValidation(isUpgradingToUnstableBranc
 
 	// Append arguments based on conditions
 	if isUpgradingToUnstableBranch {
-		cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
+		// for plugin version with rc tag i.e. release candidate
+		// upgrade job images are not present in ci-registry, they are in
+		// docker hub. so for those tags we dont need to add --registry flag.
+		if strings.Contains(pluginVersion, "-rc") {
+			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
+		} else {
+			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
+		}
 	}
 	if isPartialRebuildDisableNeeded {
 		cmdArgs = append(cmdArgs, "--set", string(DisablePartialRebuild))
@@ -137,7 +180,7 @@ func (cp CPv1) UpgradeWithSkipSingleReplicaValidation(isUpgradingToUnstableBranc
 	// Print the command that will be executed
 	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
 
-	_, err := cmd.Output()
+	_, err = cmd.Output()
 
 	if err != nil {
 		return fmt.Errorf("plugin failed to upgrade when skip single replica volume flag is passsed , error %v", err)
@@ -153,6 +196,13 @@ func (cp CPv1) UpgradeWithSkipSingleReplicaValidation(isUpgradingToUnstableBranc
 func (cp CPv1) UpgradeWithSkipReplicaRebuild(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) error {
 	kubectlPlugin := GetPluginPath()
 
+	pluginVersion, err := GetPluginVersion()
+	if err != nil {
+		return fmt.Errorf("failed to get plugin version, err:%v", err)
+	}
+
+	pluginVersion = strings.TrimSpace(pluginVersion)
+
 	CIRegistry, ok := os.LookupEnv("CI_REGISTRY")
 	if !ok {
 		return fmt.Errorf("environment varianble CI_REGISTRY is not defined")
@@ -163,7 +213,14 @@ func (cp CPv1) UpgradeWithSkipReplicaRebuild(isUpgradingToUnstableBranch, isPart
 
 	// Append arguments based on conditions
 	if isUpgradingToUnstableBranch {
-		cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
+		// for plugin version with rc tag i.e. release candidate
+		// upgrade job images are not present in ci-registry, they are in
+		// docker hub. so for those tags we dont need to add --registry flag.
+		if strings.Contains(pluginVersion, "-rc") {
+			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
+		} else {
+			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
+		}
 	}
 	if isPartialRebuildDisableNeeded {
 		cmdArgs = append(cmdArgs, "--set", string(DisablePartialRebuild))
@@ -175,7 +232,7 @@ func (cp CPv1) UpgradeWithSkipReplicaRebuild(isUpgradingToUnstableBranch, isPart
 	// Print the command that will be executed
 	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
 
-	_, err := cmd.Output()
+	_, err = cmd.Output()
 
 	if err != nil {
 		return fmt.Errorf("plugin failed to upgrade with --skip-rebuild-replica flag , error %v", err)
@@ -189,6 +246,13 @@ func (cp CPv1) UpgradeWithSkipReplicaRebuild(isUpgradingToUnstableBranch, isPart
 func (cp CPv1) UpgradeWithSkipCordonNodeValidation(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) error {
 	kubectlPlugin := GetPluginPath()
 
+	pluginVersion, err := GetPluginVersion()
+	if err != nil {
+		return fmt.Errorf("failed to get plugin version, err:%v", err)
+	}
+
+	pluginVersion = strings.TrimSpace(pluginVersion)
+
 	CIRegistry, ok := os.LookupEnv("CI_REGISTRY")
 	if !ok {
 		return fmt.Errorf("environment varianble CI_REGISTRY is not defined")
@@ -199,11 +263,16 @@ func (cp CPv1) UpgradeWithSkipCordonNodeValidation(isUpgradingToUnstableBranch, 
 
 	// Append arguments based on conditions
 	if isUpgradingToUnstableBranch {
-		cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
-		if isPartialRebuildDisableNeeded {
-			cmdArgs = append(cmdArgs, "--set", string(DisablePartialRebuild))
+		// for plugin version with rc tag i.e. release candidate
+		// upgrade job images are not present in ci-registry, they are in
+		// docker hub. so for those tags we dont need to add --registry flag.
+		if strings.Contains(pluginVersion, "-rc") {
+			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
+		} else {
+			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
 		}
-	} else if isPartialRebuildDisableNeeded {
+	}
+	if isPartialRebuildDisableNeeded {
 		cmdArgs = append(cmdArgs, "--set", string(DisablePartialRebuild))
 	}
 
@@ -213,7 +282,7 @@ func (cp CPv1) UpgradeWithSkipCordonNodeValidation(isUpgradingToUnstableBranch, 
 	// Print the command that will be executed
 	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
 
-	_, err := cmd.Output()
+	_, err = cmd.Output()
 
 	if err != nil {
 		return fmt.Errorf("plugin failed to upgrade with skip cordon node validation flag, error %v", err)

@@ -332,6 +332,7 @@ func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
 	// regex will work for both tags, with and without starting v
 	tagRegexForDevelopBranch := `v?[0-9]+\.[0-9]+\.[0-9]+-0-main-unstable(-[0-9]+){6}-0`
 	tagRegexForPreReleaseTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-0-release-unstable(-[0-9]+){6}-0`
+	tagRegexForReleaseCandidateTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+`
 	tagRegexForReleaseBranch := `v?[0-9]+\.[0-9]+\.[0-9]`
 
 	// Construct a new regular expression by surrounding tagRegex with parentheses and appending "+0)"
@@ -340,6 +341,7 @@ func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
 	pluginVersionOutputFormatRegexForDevelopBranch := fmt.Sprintf(`\(%s\+0\)`, tagRegexForDevelopBranch)
 	pluginVersionOutputFormatRegexForPreReleaseTesting := fmt.Sprintf(`\(%s\+0\)`, tagRegexForPreReleaseTesting)
 	pluginVersionOutputFormatRegexForReleaseBranch := fmt.Sprintf(`\(%s\+0\)`, tagRegexForReleaseBranch)
+	pluginVersionOutputFormatRegexForReleaseCandidateTesting := fmt.Sprintf(`\(%s\+0\)`, tagRegexForReleaseCandidateTesting)
 
 	// Create a regular expression object for the plugin version format regex for develop branch
 	pluginRegexDevelopBranch, err := regexp.Compile(pluginVersionOutputFormatRegexForDevelopBranch)
@@ -359,10 +361,16 @@ func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
 		return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 	}
 
+	// Create a regular expression object for the plugin version format regex for release branch
+	pluginRegexReleaseCandidateTesting, err := regexp.Compile(pluginVersionOutputFormatRegexForReleaseCandidateTesting)
+	if err != nil {
+		return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
+	}
+
 	// Match plugin version with regular expressions
 	// for develop branch and pre-release testing, version should be
 	// considered as unstable and will need --allow-unstable flag
-	if pluginRegexDevelopBranch.MatchString(pluginVersion) || pluginRegexPreReleaseTesting.MatchString(pluginVersion) {
+	if pluginRegexDevelopBranch.MatchString(pluginVersion) || pluginRegexPreReleaseTesting.MatchString(pluginVersion) || pluginRegexReleaseCandidateTesting.MatchString(pluginVersion) {
 		return pluginVersion, true, nil
 	}
 
