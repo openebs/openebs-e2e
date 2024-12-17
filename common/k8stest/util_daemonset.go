@@ -3,11 +3,13 @@ package k8stest
 import (
 	"context"
 	"fmt"
+	"time"
 
 	appsV1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func ListDaemonSet(namespace string) (v1.DaemonSetList, error) {
@@ -108,4 +110,56 @@ func UpdateDemonsetContainerAllEnv(daemonsetName string, containerName string, n
 			err)
 	}
 	return nil
+}
+
+func WaitForDaemonsetReady(dsName string, namespace string, sleepTime int, duration int) bool {
+	ready := false
+	count := (duration + sleepTime - 1) / sleepTime
+
+	logf.Log.Info("DaemonsetReadyCheck", "Daemonet", dsName, "namespace", namespace)
+	for ix := 0; ix < count && !ready; ix++ {
+		time.Sleep(time.Duration(sleepTime) * time.Second)
+
+		ready = DaemonSetReady(dsName, namespace)
+		logf.Log.Info("DaemonSetReady: ", "daemonset", dsName, "ready", ready)
+	}
+
+	if !ready {
+		logf.Log.Info("Daemonset not ready", "Daemonset", dsName, "namespace", namespace)
+		return false
+	}
+
+	dsPodList, err := ListPodsByPrefix(namespace, dsName)
+	if err != nil {
+		logf.Log.Info("Failed to list pods with daemonset prefix", "daemonset", dsName, "error", err)
+		return false
+	}
+	for _, pod := range dsPodList {
+		// verify pod running
+		err := WaitForPodRunning(pod.Name, namespace, duration)
+		if err != nil {
+			logf.Log.Info("Pod not ready", "Pod name", pod.Name, "namespace", namespace)
+			return false
+		}
+
+	}
+	return ready
+}
+
+func DaemonSetReady(daemonName string, namespace string) bool {
+	daemon, err := gTestEnv.KubeInt.AppsV1().DaemonSets(namespace).Get(
+		context.TODO(),
+		daemonName,
+		metaV1.GetOptions{},
+	)
+	if err != nil {
+		logf.Log.Info("Failed to get daemonset", "error", err)
+		return false
+	}
+
+	status := daemon.Status
+	logf.Log.Info("DaemonSet "+daemonName, "status", status)
+	return status.DesiredNumberScheduled == status.CurrentNumberScheduled &&
+		status.DesiredNumberScheduled == status.NumberReady &&
+		status.DesiredNumberScheduled == status.NumberAvailable
 }
