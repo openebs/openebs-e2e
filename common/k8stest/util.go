@@ -380,24 +380,6 @@ func DeploymentReady(deploymentName, namespace string) bool {
 	return false
 }
 
-func DaemonSetReady(daemonName string, namespace string) bool {
-	daemon, err := gTestEnv.KubeInt.AppsV1().DaemonSets(namespace).Get(
-		context.TODO(),
-		daemonName,
-		metaV1.GetOptions{},
-	)
-	if err != nil {
-		logf.Log.Info("Failed to get daemonset", "error", err)
-		return false
-	}
-
-	status := daemon.Status
-	logf.Log.Info("DaemonSet "+daemonName, "status", status)
-	return status.DesiredNumberScheduled == status.CurrentNumberScheduled &&
-		status.DesiredNumberScheduled == status.NumberReady &&
-		status.DesiredNumberScheduled == status.NumberAvailable
-}
-
 func ControlPlaneReady(sleepTime int, duration int) bool {
 	ready := false
 	count := (duration + sleepTime - 1) / sleepTime
@@ -1885,4 +1867,39 @@ func WaitForDeploymentToMatchExpectedState(deployName string, namespace string, 
 		time.Sleep(timeSleepSecs * time.Second)
 	}
 	return false, err
+}
+
+// SizeToBytes return size in bytes, input can be string like 10 GiB , 512 MiB
+func SizeToBytes(capacity string) (uint64, error) {
+	// Map for unit multipliers
+	unitMultipliers := map[string]float64{
+		"KiB": 1024,
+		"MiB": math.Pow(1024, 2),
+		"GiB": math.Pow(1024, 3),
+		"TiB": math.Pow(1024, 4),
+		"PiB": math.Pow(1024, 5),
+	}
+
+	// Split capacity into value and unit
+	parts := strings.Fields(capacity)
+	if len(parts) != 2 {
+		return 0, fmt.Errorf("invalid size string format")
+	}
+
+	// Parse the numeric value
+	value, err := strconv.ParseFloat(parts[0], 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid numeric value in size: %v", err)
+	}
+
+	// Get the multiplier for the unit
+	unit := parts[1]
+	multiplier, exists := unitMultipliers[unit]
+	if !exists {
+		return 0, fmt.Errorf("invalid or unsupported unit: %s", unit)
+	}
+
+	// Calculate bytes
+	bytes := value * multiplier
+	return uint64(bytes), nil
 }
