@@ -222,9 +222,16 @@ func ScaleZfsControllerViaHelm(expected_replica int32) (int32, error) {
 
 // SetRdmaViaHelm enable and disable RDMA
 func SetRdmaViaHelm(enableRdma bool, iface string, helmChart, helmRelease, helmVersion string) error {
-	values := map[string]interface{}{
-		"io_engine.target.nvmf.rdma.enabled": enableRdma,
-		"io_engine.target.nvmf.iface":        iface,
+
+	var values map[string]interface{}
+	prefix := "io_engine.target.nvmf"
+	if e2e_config.GetConfig().Product.UseUmbrellaOpenEBSChart {
+		prefix = fmt.Sprintf("%s.%s", e2e_config.GetConfig().Product.ChartName, prefix)
+	}
+
+	values = map[string]interface{}{
+		prefix + ".rdma.enabled": enableRdma,
+		prefix + ".iface":        iface,
 	}
 
 	_, err := k8stest.UpgradeHelmChart(helmChart,
