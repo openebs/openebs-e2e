@@ -111,7 +111,7 @@ func GetVolumeProtocol(volUuid string) (string, error) {
 		return "", err
 	}
 	logf.Log.Info("Volume URI", "volume", volUuid, "URI", deviceUri)
-	// deviceUri: nvmf+tcp://<some-random-string>
+	// deviceUri: nvmf://<some-random-string>
 	// Parse the device URI
 	u, err := url.Parse(deviceUri)
 	if err != nil {
@@ -121,13 +121,13 @@ func GetVolumeProtocol(volUuid string) (string, error) {
 }
 
 // IsVolumeAccessibleOverRdma return true if volume device uri scheme contains rdma
-// if volume is accessible over rdma then device uri will be like nvmf+tcp+rdma://<some-random-string>
+// if volume is accessible over rdma then device uri will be like nvmf+rdma://<some-random-string>
 func IsVolumeAccessibleOverRdma(volUuid string) (bool, error) {
 	protocol, err := GetVolumeProtocol(volUuid)
 	if err != nil {
 		return false, err
 	}
-	logf.Log.Info("Volume URI", "volume", volUuid, "URI protocol", protocol)
+	logf.Log.Info("Volume ", "name", volUuid, "URI protocol", protocol)
 	if strings.Contains(protocol, "rdma") {
 		return true, nil
 	}
@@ -135,13 +135,14 @@ func IsVolumeAccessibleOverRdma(volUuid string) (bool, error) {
 }
 
 // IsVolumeAccessibleOverTcp return true if volume device uri scheme contains tcp and not rdma
-// if volume is accessible over rdma then device uri will be like nvmf+tcp://<some-random-string>
+// if volume is accessible over rdma then device uri will be like nvmf://<some-random-string>
 func IsVolumeAccessibleOverTcp(volUuid string) (bool, error) {
 	protocol, err := GetVolumeProtocol(volUuid)
 	if err != nil {
 		return false, err
 	}
-	if !strings.Contains(protocol, "rdma") && strings.Contains(protocol, "tcp") {
+	logf.Log.Info("Volume", "name", volUuid, "URI protocol", protocol)
+	if !strings.Contains(protocol, "rdma") && strings.Contains(protocol, "nvmf") {
 		return true, nil
 	}
 	return false, nil
