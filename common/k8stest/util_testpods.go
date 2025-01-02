@@ -1218,3 +1218,69 @@ func GetMayastorPodNameonNodeByPrefix(prefix string, nodeName string) (string, e
 	}
 	return "", fmt.Errorf("failed to get mayastor pod with prefix %s on node %s", prefix, nodeName)
 }
+
+// GetCsiNodePodNameOnNodeByPrefix return csi node pod on a node with a given prefix
+func GetPodNameOnNodeByPrefix(podPrefix, nodeName, namespace string) (string, error) {
+	podApi := gTestEnv.KubeInt.CoreV1().Pods
+	pods, err := podApi(namespace).List(context.TODO(), metaV1.ListOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to list pod in %s namespace, error: %v", common.NSMayastor(), err)
+	}
+	for _, pod := range pods.Items {
+		if strings.HasPrefix(pod.Name, podPrefix) {
+			if pod.Spec.NodeName == nodeName {
+				return pod.Name, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("failed to get mayastor pod with prefix %s on node %s", podPrefix, nodeName)
+}
+
+func restartCsiNodePodsOnNode(nodeName string) error {
+	podApi := gTestEnv.KubeInt.CoreV1().Pods
+
+	podName, err := GetPodNameOnNodeByPrefix(e2e_config.GetConfig().Product.CsiDaemonsetName, nodeName, common.NSMayastor())
+
+	if err == nil {
+		logf.Log.Info("Restarting", "pod", podName)
+		time.Sleep(1 * time.Second)
+
+		delErr := podApi(common.NSMayastor()).Delete(context.TODO(), podName, metaV1.DeleteOptions{})
+		if delErr != nil {
+			logf.Log.Info("Failed to delete", "pod", podName, "error", delErr)
+			err = delErr
+		} else {
+			logf.Log.Info("Deleted", "pod", podName)
+		}
+	}
+	return err
+}
+
+// RestartCsiNodePodOnNode restart csi node pod scheduled on a given node and wait for mayastor pods and pool readiness
+func RestartCsiNodePodOnNode(nodeName string, readyTOSecs int, poolsTOSecs int) error {
+	ready := false
+
+	err := restartCsiNodePodsOnNode(nodeName)
+	if err != nil {
+		logf.Log.Info("Warning: RestartMayastorPodsOnNode failed", "error", err)
+	}
+
+	ready, err = MayastorReady(10, readyTOSecs)
+	if err != nil {
+		return fmt.Errorf("failure waiting for mayastor to be ready %v", err)
+	}
+	if !ready {
+		return fmt.Errorf("mayastor is not ready after deleting all pods")
+	}
+
+	const sleepTime = 10
+	for ix := 0; ix < (poolsTOSecs+sleepTime-1)/sleepTime; ix++ {
+		time.Sleep(sleepTime * time.Second)
+		err = custom_resources.CheckAllMsPoolsAreOnline()
+		if err == nil {
+			break
+		}
+	}
+
+	return err
+}

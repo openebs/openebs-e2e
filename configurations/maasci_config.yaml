@@ -7,3 +7,5 @@ grpcMandated: true
 deferredAssert: true
 beforeEachCheckAndRestart: true
 networkInterface: ens1f0
+disabledRdmaDevices:
+  - "ens1f1"

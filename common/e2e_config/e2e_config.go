@@ -42,7 +42,7 @@ type ProductSpec struct {
 	CpuCount                          string            `yaml:"cpuCount" env-default:"2"`
 	CrdGroupName                      string            `yaml:"crdGroupName" env-default:"openebs.io"`
 	CrdPoolsResourceName              string            `yaml:"crdPoolsResourceName" env-default:"mayastorpools"`
-	CsiDaemonsetName                  string            `yaml:"csiDaemonsetName" env-default:"mayastor-csi"`
+	CsiDaemonsetName                  string            `yaml:"csiDaemonsetName" env-default:"mayastor-csi-node"`
 	CsiNodeServiceAppLabel            string            `yaml:"csiNodeServiceAppLabel" env-default:"csi-node"`
 	CsiNodeServiceDaemonset           string            `yaml:"csiNodeServiceDaemonset" env-default:"mayastor-csi-node"`
 	CsiNodeContainerName              string            `yaml:"csiNodeContainerName" env-default:"csi-node"`
@@ -241,7 +241,8 @@ type E2EConfig struct {
 
 	IOEngineNvmeTimeout int `yaml:"ioEngineNvmeTimeout" env-default:"0"`
 
-	// Individual Test parameters
+	// disable rdma device over list of interface
+	DisabledRdmaDevices []string `yaml:"disabledRdmaDevices"`
 }
 
 var once sync.Once
