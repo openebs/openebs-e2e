@@ -208,7 +208,7 @@ type E2EConfig struct {
 	InstallLoki                  bool   `yaml:"installLoki" env-default:"true" env:"install_loki"`
 	InstallHaModeEtcd            bool   `yaml:"installHaModeEtcd" env-default:"false" env:"e2e_etcd_ha_mode"`
 	LokiStatefulsetOnControlNode bool   `yaml:"lokiOnControlNode" env-default:"true" env:"loki_on_control_node"`
-	E2eFioImage                  string `yaml:"e2eFioImage" env-default:"openebs/e2e-fio:v3.38-e2e-0" env:"e2e_fio_image"`
+	E2eFioImage                  string `yaml:"e2eFioImage" env-default:"openebs/e2e-fio:v3.38-e2e-1" env:"e2e_fio_image"`
 	SetSafeMountAlways           bool   `yaml:"setSafeMountAlways" env-default:"false" env:"safe_mount_always"`
 	// This is an advisory setting for individual tests
 	// If set to true - typically during test development - tests with multiple 'It' clauses should defer asserts till after

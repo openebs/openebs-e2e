@@ -1,6 +1,11 @@
-# Mayastor E2E fio test pod
+# Mayastor E2E fio test pod image
 ## Introduction
-Derived from `dmonakhov/alpine-fio`
+This image is derived from `alpine`
+
+It includes fio, which is invoked by the wrapper program `e2e_fio`
+
+e2e_fio is written in C to facilitate low level control and to keep the size small.
+Reduced size makes it possible to run more instances of the test pod with a given memory constraint.
 
 ### Command line options
  * `sleep <sleep seconds> ;`
@@ -40,8 +45,6 @@ Derived from `dmonakhov/alpine-fio`
 Thus allows developer to exec a shell on the pod and examine the pod.
 
 Execution will only complete after all forked processes (if any) have completed as well as inline sleep and signal generation actions.
-
-For legacy compatibility where implicit start of a new option is detected
 
 ### Exit value
  * If `exitv` is specified that is *always* returned.
