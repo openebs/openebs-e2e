@@ -181,12 +181,11 @@ func RemoveRdmaDeviceOnNode(node string) error {
 	return nil
 }
 
-func DisableRdmaOnNode(node string) error {
+func DisableRdmaOnNode(node string, networkInterface string) error {
 	logf.Log.Info("Disable rdma from IO engine node", "name", node)
 
-	iface := e2e_config.GetConfig().NetworkInterface
 	// get dev link port wrt to interface
-	rdmaDevName, err := GetDevLinkName(node, iface)
+	rdmaDevName, err := GetDevLinkName(node, networkInterface)
 	if err != nil {
 		return err
 	}
@@ -212,7 +211,9 @@ func DisableRdmaOnNode(node string) error {
 		}
 	}
 
-	return nil
+	// Restart csi node pod on the node
+	return RestartCsiNodePodOnNode(node, 240, 120)
+
 }
 
 func RemoveRdmaDeviceOnAllWorkerNodes() error {
@@ -223,7 +224,7 @@ func RemoveRdmaDeviceOnAllWorkerNodes() error {
 	logf.Log.Info("Remove rdma from IO engine node")
 	for _, node := range workerNodes.Items {
 		logf.Log.Info("IO engine", "Node", node.Name)
-		err := DisableRdmaOnNode(node.Name)
+		err := DisableRdmaOnNode(node.Name, e2e_config.GetConfig().NetworkInterface)
 		if err != nil {
 			return err
 		}
@@ -239,7 +240,7 @@ func EnableRdmaDeviceOnAllWorkerNodes() error {
 	logf.Log.Info("Enable rdma from IO engine node")
 	for _, node := range workerNodes.Items {
 		logf.Log.Info("IO engine", "Node", node.Name)
-		err := EnableRdmaOnNode(node.Name)
+		err := EnableRdmaOnNode(node.Name, e2e_config.GetConfig().NetworkInterface)
 		if err != nil {
 			return err
 		}
@@ -247,12 +248,11 @@ func EnableRdmaDeviceOnAllWorkerNodes() error {
 	return nil
 }
 
-func EnableRdmaOnNode(node string) error {
+func EnableRdmaOnNode(node string, networkInterface string) error {
 	logf.Log.Info("Enable rdma on IO engine node", "name", node)
-	// get interface name
-	iface := e2e_config.GetConfig().NetworkInterface
+
 	// get dev link port wrt to interface
-	rdmaDevPortName, err := GetDevLinkName(node, iface)
+	rdmaDevPortName, err := GetDevLinkName(node, networkInterface)
 	if err != nil {
 		return err
 	}
@@ -316,4 +316,56 @@ func GetDevLinkName(node, iface string) (string, error) {
 		}
 	}
 	return "", nil
+}
+
+// DisableConfiguredDisabledRdmaDevicesOnAllMayastorNodes disable rdma devices which are configured in platform config
+// on all mayastor nodes. If no rdma devices are configured then it will return without doing anything.
+// In some cases, multiple rdma devices are configured in cluster, so it should be disabled all the devices on nodes
+func DisableConfiguredDisabledRdmaDevicesOnAllMayastorNodes() error {
+	ifaceList := e2e_config.GetConfig().DisabledRdmaDevices
+	if len(ifaceList) == 0 {
+		logf.Log.Info("No rdma devices configured which needs to be disabled")
+		return nil
+	}
+	workerNodes, err := ListIOEngineNodes()
+	if err != nil {
+		return err
+	}
+	for _, node := range workerNodes.Items {
+		logf.Log.Info("Disable rdma device", "Node", node.Name)
+		for _, iface := range ifaceList {
+			err := DisableRdmaOnNode(node.Name, iface)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+	return nil
+}
+
+// RestoreConfiguredDisabledRdmaDevicesOnAllMayastorNodes enable rdma devices which are configured in platform config
+// on all mayastor nodes. If no rdma devices are configured then it will return without doing anything.
+// In some cases, multiple rdma devices are configured in cluster were disabled, so it should be enabled all the devices on nodes
+func RestoreConfiguredDisabledRdmaDevicesOnAllMayastorNodes() error {
+	ifaceList := e2e_config.GetConfig().DisabledRdmaDevices
+	if len(ifaceList) == 0 {
+		logf.Log.Info("No rdma devices configured which needs to be restored")
+		return nil
+	}
+	workerNodes, err := ListIOEngineNodes()
+	if err != nil {
+		return err
+	}
+	for _, node := range workerNodes.Items {
+		logf.Log.Info("Enable rdma device", "Node", node.Name)
+		for _, iface := range ifaceList {
+			err := EnableRdmaOnNode(node.Name, iface)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+	return nil
 }
