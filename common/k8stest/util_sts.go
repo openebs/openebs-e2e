@@ -452,3 +452,60 @@ func StsExists(statefulSetName string, namespace string) (bool, error) {
 	}
 	return false, err
 }
+
+func GetSts(statefulSetName string, namespace string) (*appsv1.StatefulSet, error) {
+	sts, err := gTestEnv.KubeInt.AppsV1().StatefulSets(namespace).Get(
+		context.TODO(),
+		statefulSetName,
+		metaV1.GetOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get statefulset %s in namespace %s: %v", statefulSetName, namespace, err)
+	}
+	return sts, nil
+}
+
+func ListSts(namespace string) ([]appsv1.StatefulSet, error) {
+	stsList, err := gTestEnv.KubeInt.AppsV1().StatefulSets(namespace).List(
+		context.TODO(),
+		metaV1.ListOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list statefulsets in namespace %s: %v", namespace, err)
+	}
+	return stsList.Items, nil
+}
+
+func GetStsPodNames(statefulSetName string, namespace string) ([]string, error) {
+	// Get the StatefulSet to ensure it exists
+	_, err := GetSts(statefulSetName, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get statefulset %s in namespace %s: %v", statefulSetName, namespace, err)
+	}
+
+	// List all pods in the namespace
+	podList, err := ListPod(namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pods in namespace %s: %v", namespace, err)
+	}
+
+	// Filter pods based on owner references
+	var podNames []string
+	for _, pod := range podList.Items {
+		for _, owner := range pod.OwnerReferences {
+			// Check if the owner is the target StatefulSet
+			if owner.Kind == "StatefulSet" && owner.Name == statefulSetName {
+				podNames = append(podNames, pod.Name)
+				break
+			}
+		}
+	}
+
+	// If no pods were found, return a specific error
+	if len(podNames) == 0 {
+		return nil, fmt.Errorf("no pods found for statefulset %s in namespace %s", statefulSetName, namespace)
+	}
+
+	// Return the list of pod names
+	return podNames, nil
+}
