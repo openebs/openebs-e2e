@@ -16,15 +16,20 @@
 #include "liveness.h"
 #include "e2e_fio_version.h"
 
+// Global variables
 const char *workspace_path = "./workspace";
 char session_id[128+1];
-
-
-int parse_cmds(const char* arg);
-static liveness_context liveness_ctx;
 unsigned post_op_sleep = 0;
 
+// Static variables
+static liveness_context liveness_ctx;
+
+// forward declarations
+int string_to_keyword_type(const char* arg);
+
+// String utility functions
 // convert whole strings to unsigned integer or fail
+// wrapper around strtoul, returns boolean
 bool strtounsigned(const char* chars, unsigned *p_val) {
     char *end;
     *p_val = '\0';
@@ -34,6 +39,7 @@ bool strtounsigned(const char* chars, unsigned *p_val) {
 }
 
 // convert whole strings to long integer or fail
+// wrapper around strtol - returns boolean
 bool strtolong(const char* chars, long *p_val) {
     char *end;
     *p_val = 0;
@@ -51,12 +57,13 @@ bool strtosize_t(const char* chars, size_t *p_val) {
     return *end == 0;
 }
 
+#define ASSERT_CONCAT_(a, b) a##b
+#define ASSERT_CONCAT(a, b) ASSERT_CONCAT_(a, b)
+#define ct_assert(e) enum { ASSERT_CONCAT(assert_line_, __LINE__) = 1/(!!(e)) }
 
-#define NOT_A_KEYWORD   -1
-#define KW_EOL          -2
 /*
  * array of key words and matching enum.
- * position of string in the array should match symbol position in enum
+ * the position of string in the array should match symbol position in enum
  */
 const char* cmd_keywords[] = {
     "--", "---", "&&", ";",
@@ -72,14 +79,24 @@ enum {
     KW_SLEEP,
     KW_SEGFAULT,
     KW_SIGTERM,
-    KW_MAKEFILE,
+    KW_CREATEFILE,
     KW_EXITV,
     KW_LIVENESS,
+
     KW_ZEROFILL,
     KW_SESSION_ID,
     KW_POST_OP_SLEEP,
     KW_FILESIZE,
+
+    // these enum values do not have associated strings
+    // and must be placed at the end of the ENUM
+    // NOT_A_KEYWORD must be the first of these enum values
+    // see the ct_assert statement below
+    NOT_A_KEYWORD,
+    KW_EOL,
 };
+
+ct_assert((sizeof(cmd_keywords)/sizeof(cmd_keywords[0])) == NOT_A_KEYWORD);
 
 /*
  *  array of file size key words and matching enum
@@ -119,7 +136,6 @@ typedef struct e2e_fio_files {
     struct e2e_fio_files* next;
     char* filename;
 } e2e_fio_files;
-
 
 /* head of the linked list of child processes */
 static e2e_process* proc_list = NULL;
@@ -165,7 +181,8 @@ int start_proc(e2e_process* proc_ptr ) {
 }
 
 /*
- * parse command line arguments,
+ * setup and fork target process
+ * argv[..] the target process command line
  *  - create an e2e_process struct,
  *  - append the process struct to the global list of e2e processes
  */
@@ -241,23 +258,24 @@ void kill_procs(int signal) {
 
 
 /*
+ * Create a file of specified size, typically for fio on filesystems
  * argv[0] = path
  * argv[1] = relative path to file (from argv[0])
  * argv[2] = <"availblockspercent" || "availblockslessby" || "bytes">
- * argv[3] = positive integer string; 0-100 for "availblockspercent", unbounded for "availblockslessby" and "bytes"
+ * argv[3] = positive integer string; 0-100 for "availblockspercent", unbounded for "availblockslessby", "bytes" and "MiB"
  */
-int do_makefile(const char **argv, int count) {
+int do_createfile(const char **argv, int count) {
     const char *argstrs[4];
     int indx;
 
-    puts("MAKE FILE");
+    puts("CREATE FILE");
     if (count != 4) {
         puts("ERROR: invalid argument count");
         return 1;
     }
 
     for(indx=0; indx < sizeof(argstrs)/sizeof(argstrs[0]); ++indx, ++argv) {
-        if (*argv == NULL || parse_cmds(*argv) != NOT_A_KEYWORD || 0 == strlen(*argv)) {
+        if (*argv == NULL || string_to_keyword_type(*argv) != NOT_A_KEYWORD || 0 == strlen(*argv)) {
             printf("ERROR:argument missing %d for makefile command\n", indx);
             return 1;
         }
@@ -307,7 +325,7 @@ int do_makefile(const char **argv, int count) {
             return 1;
         }
         sprintf(fsfile, "%s/%s", fspath, file_rel_path);
-        printf("unlinking fio file %s\n", fsfile);
+        printf("unlinking file %s\n", fsfile);
         if (unlink(fsfile) != 0) {
             perror("unlink failed");
         }
@@ -376,6 +394,7 @@ int do_makefile(const char **argv, int count) {
 }
 
 /*
+ * fill file or device blocks with 0's
  * argv[0] = filepath / device path
  */
 int do_zerofill(const char **argv, int count) {
@@ -419,6 +438,10 @@ int do_zerofill(const char **argv, int count) {
     return rv;
 }
 
+/*
+ * sleep for specified number of seconds, before parsing (and executing the next command)
+ * argv[0] = unsigned integer string
+ */
 int do_sleep(const char **argv, int count) {
     puts("SLEEP");
     if (count == 1 ) {
@@ -437,6 +460,11 @@ int do_sleep(const char **argv, int count) {
     return 1;
 }
 
+/*
+ * setup to sleep for specified number of seconds, after all operations have completed
+ * this is different for do_sleep which is synchronous
+ * argv[0] = unsigned integer string
+ */
 int do_post_op_sleep(const char **argv, int count) {
     puts("POST OP SLEEP");
     if (count == 1 ) {
@@ -454,6 +482,7 @@ int do_post_op_sleep(const char **argv, int count) {
 }
 
 /*
+ * Print the size of a file or device as a JSON fragment
  * argv[0] = path to file/device
  */
 int do_filesize(const char **argv, int count) {
@@ -467,7 +496,7 @@ int do_filesize(const char **argv, int count) {
     }
 
     for(indx=0; indx < sizeof(argstrs)/sizeof(argstrs[0]); ++indx, ++argv) {
-        if (*argv == NULL || parse_cmds(*argv) != NOT_A_KEYWORD || 0 == strlen(*argv)) {
+        if (*argv == NULL || string_to_keyword_type(*argv) != NOT_A_KEYWORD || 0 == strlen(*argv)) {
             printf("ERROR:argument missing %d for filesize command\n", indx);
             return 1;
         }
@@ -480,6 +509,7 @@ int do_filesize(const char **argv, int count) {
         if ( fd >= 0) {
             off_t fdsize = lseek(fd, 0, SEEK_END);
             close(fd);
+            // emit json fragment for console scanners to parse
             printf("\nJSON{\"fio_target_size\": %ld, \"path\": \"%s\"}\n", fdsize, filepath);
             return 0;
         }
@@ -488,6 +518,9 @@ int do_filesize(const char **argv, int count) {
 }
 
 
+/*
+ *  signal generator function to generate a segfault
+ */
 void generate_segfault(void) {
     kill_procs(SIGKILL);
     sleep(1);
@@ -496,6 +529,10 @@ void generate_segfault(void) {
     raise(SIGSEGV);
 }
 
+/*
+ * Setup to generate a segfault after a defined number of seconds
+ * argv[0] = unsigned integer string
+ */
 int do_segfault(const char **argv, int count) {
     struct timespec ts;
     unsigned sleep_time;
@@ -526,6 +563,9 @@ int do_segfault(const char **argv, int count) {
     return 0;
 }
 
+/*
+ *  signal generator function to generate a sigterm
+ */
 static void send_sigterm(void) {
     puts("sending SIGTERM to all processes now!");
     fflush(stdout);
@@ -564,6 +604,10 @@ static void send_sigterm(void) {
     }
 }
 
+/*
+ * Setup to generate a sigterm after a defined number of seconds
+ * argv[0] = unsigned integer string
+ */
 int do_sigterm(const char **argv, int count) {
     unsigned sleep_time;
     struct timespec ts;
@@ -594,6 +638,12 @@ int do_sigterm(const char **argv, int count) {
     return 0;
 }
 
+/*
+ * setup liveness checks - IO is possible to file/device
+ * argv[0] target file/device
+ * argv[1] read poll interval in seconds (unsigned integer string)
+ * argv[2] timeout value in seconds ( long integer string )
+ */
 int do_liveness(const char **argv, int count) {
     int retv = 1;
     unsigned read_interval;
@@ -613,6 +663,10 @@ int do_liveness(const char **argv, int count) {
     return retv;
 }
 
+/*
+ * setup session ID
+ * argv[0] session id string
+ */
 int do_session_id(const char **argv, int count) {
     int retv = 1;
 
@@ -719,7 +773,8 @@ void print_procs() {
 }
 
 
-int parse_cmds(const char* arg) {
+// given a string return the keyword type value, not a keyword or end of line tokens
+int string_to_keyword_type(const char* arg) {
     if ( arg == NULL )
         return KW_EOL;
 
@@ -731,10 +786,10 @@ int parse_cmds(const char* arg) {
     return NOT_A_KEYWORD;
 }
 
-int process_args(int token, const char **args, int count, bool wait, int *p_exitv) {
-    puts("------------------");
+int process_command(int command, const char **args, int count, bool wait, int *p_exitv) {
+    puts("-- command ----------------");
     args[count] = NULL;
-    switch (token) {
+    switch (command) {
         case KW_SLEEP:
             return do_sleep(args, count);
         case KW_SEGFAULT:
@@ -743,8 +798,8 @@ int process_args(int token, const char **args, int count, bool wait, int *p_exit
             return do_sigterm(args, count);
         case KW_LIVENESS:
             return do_liveness(args, count);
-        case KW_MAKEFILE:
-            return do_makefile(args, count);
+        case KW_CREATEFILE:
+            return do_createfile(args, count);
         case KW_ZEROFILL:
             return do_zerofill(args, count);
         case KW_SESSION_ID:
@@ -809,14 +864,17 @@ int main(int argc, const char **argv)
         return -1;
     }
 
+    // skip over argv[0] which is the path to this executable
     ++argv;
     idx = 0;
     wait = false;
+    // scan the command line arguments and parse into actions
     do {
-        int t = parse_cmds(*argv);
+        int t = string_to_keyword_type(*argv);
         if (token == NOT_A_KEYWORD) {
-            /* not parsing a command,
-             * so expect a token and start parsing command or ignore
+            /* not collecting command arguments,
+             * so expect a command keyword,
+             * if not a command keyword ignore
              */
             switch(t) {
                 /* start parsing */
@@ -833,7 +891,7 @@ int main(int argc, const char **argv)
                 case KW_SEGFAULT:
                 case KW_SIGTERM:
                 case KW_LIVENESS:
-                case KW_MAKEFILE:
+                case KW_CREATEFILE:
                 case KW_ZEROFILL:
                 case KW_SESSION_ID:
                 case KW_FILESIZE:
@@ -861,17 +919,20 @@ int main(int argc, const char **argv)
                 case KW_TASK_START: /* "---" */
                 case KW_FIO_IMPLICIT: /* "--" */
                     --argv;
+                    // fall through to end of command processing
                 /* end of this command */
                 case KW_TASK_WAIT: /* "&&" */
                 case KW_TASK_END: /* ";" */
                 case KW_EOL:
                     if ( t == KW_TASK_WAIT) { wait = true; }
                     if ( t == KW_TASK_END) { wait = false; }
-                    parse_return_value = process_args(token, args, idx, wait, &exitv);
+                    // end of this command, process it
+                    parse_return_value = process_command(token, args, idx, wait, &exitv);
                     fflush(stdout);
+                    // reset to start scanning for the next command
                     token = NOT_A_KEYWORD;
                     break;
-                /* command argument */
+                /* command argument, collect it for processing */
                 case NOT_A_KEYWORD:
                     args[idx] = *argv;
                     ++idx;
@@ -881,9 +942,11 @@ int main(int argc, const char **argv)
                     return 252;
             }
         }
+        // dis-continue parsing if process_command failed
     } while(*argv != NULL && ++argv && parse_return_value == 0);
     free(args);
 
+    /* start liveness check threads */
     start_liveness_checks(liveness_ctx);
     /* wait for forked processes to complete */
     procs_exitv = wait_procs();
@@ -898,6 +961,7 @@ int main(int argc, const char **argv)
         }
     }
 
+    // archive workspace for post mortem analysis
     if (strlen(session_id) > 0) {
         char cmd[512];
         puts("------------------");
@@ -909,6 +973,7 @@ int main(int argc, const char **argv)
 //    fflush(stdout);
 //    system("sync");
     {
+        // clean up - remove any files created
         while (files_list != NULL) {
             e2e_fio_files* eff = files_list;
             printf("unlinking %s\n", eff->filename);
@@ -923,6 +988,7 @@ int main(int argc, const char **argv)
         }
     }
     printf("Exit value is %d\n", exitv);
+    // emit json fragment for console scanners
     printf("\nJSON{\"exit_value\": %d, \"elapsed_seconds\" : %ld}\n", exitv, time(NULL) - start);
     system("date");
     if (post_op_sleep != 0) {
