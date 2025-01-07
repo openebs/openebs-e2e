@@ -12,7 +12,11 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const RdmaDeviceName = "rxe0"
+const (
+	RdmaDeviceName = "rxe0"
+	TcpProtocol    = "tcp"
+	RdmaProtocol   = "rdma"
+)
 
 type RdmaDeviceNetworkInterface struct {
 	IfIndex       int    `json:"ifindex"`
@@ -368,4 +372,26 @@ func RestoreConfiguredDisabledRdmaDevicesOnAllMayastorNodes() error {
 
 	}
 	return nil
+}
+
+// IsVolumeConnectedOverSpecifiedProtocol return true if volume is connected over specified protocol
+// by checking nvme list subsystem live path protocol for specified volume
+func IsVolumeConnectedOverSpecifiedProtocol(volUuid, initiatorNode, protocol string) (bool, error) {
+	// get node IP
+	nodeIp, err := GetNodeIPAddress(initiatorNode)
+	if err != nil {
+		return false, fmt.Errorf("failed to get node IP for node %s, error: %v", initiatorNode, err)
+	} else if *nodeIp == "" {
+		return false, fmt.Errorf("node IP for node %s not found", initiatorNode)
+	}
+	logf.Log.Info("Node IP", "node", initiatorNode, "IP", *nodeIp)
+	logf.Log.Info("volume connection entry in nvme sub system", "expected protocol", protocol)
+	nvmeListSubsysProtocol, err := GetNvmeListSubsystemVolumeEntryLivePathProtocol(*nodeIp, volUuid)
+	if err != nil {
+		return false, fmt.Errorf("failed to get nvme list subsystem live path protocol for volume %s on node %s, error: %v", volUuid, initiatorNode, err)
+	} else if nvmeListSubsysProtocol == "" {
+		return false, fmt.Errorf("nvme list subsystem live path protocol for volume %s on node %s not found", volUuid, initiatorNode)
+	}
+	logf.Log.Info("Volume connection protocol", "volume", volUuid, "protocol", nvmeListSubsysProtocol)
+	return true, nil
 }
