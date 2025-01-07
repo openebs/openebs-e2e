@@ -1037,3 +1037,60 @@ func CheckReplicaComparisonPossible(volUuid string, volName string, volType comm
 
 	return err
 }
+
+// GetNvmeListSubSys returns the list of nvme subsystems on the initiator node
+func GetNvmeListSubSys(initiatorNodeIP string) (map[string][]nvmeListSubsystemEntry, error) {
+	subSysList := make(map[string][]nvmeListSubsystemEntry)
+	output, err := agent.NvmeListSubSys(initiatorNodeIP)
+	if output == "" || err != nil {
+		logf.Log.Info("nvme list-subsys failed", "output", output, "err", err)
+		return nil, err
+	} else {
+		output = trimForJson(output)
+		if err = json.Unmarshal([]byte(output), &subSysList); err != nil {
+			logf.Log.Info("Failed to unmarshal target", "error", err)
+			return nil, err
+		}
+	}
+	return subSysList, nil
+}
+
+// GetNvmeListSubsystemVolumeEntryLivePath returns the live path of the volume entry in the subsystem
+func GetNvmeListSubsystemVolumeEntryLivePath(initiatorNodeIP string, volumeUuid string) (map[string]string, error) {
+	subSysPath := make(map[string]string)
+	subSysList, err := GetNvmeListSubSys(initiatorNodeIP)
+	if err != nil {
+		logf.Log.Info("nvme list-subsys failed", "err", err)
+		return subSysPath, err
+	}
+	for _, subSys := range subSysList["Subsystems"] {
+		if strings.Contains(subSys.NQN, volumeUuid) {
+			for _, path := range subSys.Paths {
+				if path["State"] == "live" {
+					subSysPath = path
+					break
+				}
+			}
+		}
+	}
+	return subSysPath, nil
+}
+
+// GetNvmeListSubsystemVolumeEntryLivePathProtocol returns the transport protocol of the volume entry in the subsystem
+func GetNvmeListSubsystemVolumeEntryLivePathProtocol(initiatorNodeIP string, volumeUuid string) (string, error) {
+	subSysLivePath, err := GetNvmeListSubsystemVolumeEntryLivePath(initiatorNodeIP, volumeUuid)
+	if err != nil {
+		logf.Log.Info("failed to get live nvme sub sys path",
+			"initiatorNodeIP", initiatorNodeIP,
+			"volumeUuid", volumeUuid,
+			"err", err)
+		return "", err
+	}
+	logf.Log.Info("Volume sub system live path",
+		"volumeUuid", volumeUuid,
+		"subSysLivePath", subSysLivePath)
+	if subSysLivePath["Transport"] == "" {
+		return "", fmt.Errorf("failed to get live nvme sub sys path transport for volume %s with initiatorNodeIP %s", volumeUuid, initiatorNodeIP)
+	}
+	return subSysLivePath["Transport"], nil
+}
