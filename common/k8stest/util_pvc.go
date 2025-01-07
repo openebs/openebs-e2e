@@ -540,12 +540,17 @@ func CheckForPVs() (bool, error) {
 	return foundResources, err
 }
 
+// CreatePvc
 func CreatePvc(createOpts *coreV1.PersistentVolumeClaim, errBuf *error, uuid *string, wg *sync.WaitGroup) {
 	// Create the PVC.
 	pvc, err := gTestEnv.KubeInt.CoreV1().PersistentVolumeClaims(createOpts.ObjectMeta.Namespace).Create(context.TODO(), createOpts, metaV1.CreateOptions{})
 	*errBuf = err
-	if pvc != nil {
-		*uuid = string(pvc.UID)
+	if err == nil {
+		if pvc != nil {
+			*uuid = string(pvc.UID)
+		} else {
+			*errBuf = fmt.Errorf("pvc create return nil pvc")
+		}
 	}
 	wg.Done()
 }

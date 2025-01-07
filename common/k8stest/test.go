@@ -174,6 +174,7 @@ func ResourceCheck(waitForPools bool) error {
 	} else {
 		if msvs != nil {
 			if len(msvs) != 0 {
+				logf.Log.Info("ResourceCheck: found", "msvs", msvs)
 				errs.Accumulate(fmt.Errorf("found MayastorVolumes"))
 			}
 		} else {
@@ -310,4 +311,84 @@ func ResourceK8sCheck() error {
 	}
 
 	return errs.GetError()
+}
+
+// VerifyMayastorResourceUsageIsZero returns true if mayastor resource usage is 0
+// if resource values cannot be established returns false
+func VerifyMayastorResourceUsageIsZero() bool {
+	var errs = common.ErrorAccumulator{}
+	var mspUsage, poolUsage uint64
+	allPoolsOnline := false
+	msvCount := -1
+	nexusCount := -1
+	nvmeControllerCount := -1
+	replicaCount := -1
+
+	msvs, err := ListMsvs()
+	if err != nil {
+		errs.Accumulate(err)
+	} else {
+		if msvs != nil {
+			msvCount = len(msvs)
+		} else {
+			logf.Log.Info("Listing MSVs returned nil array")
+		}
+	}
+
+	err = custom_resources.CheckAllMsPoolsAreOnline()
+	if err != nil {
+		errs.Accumulate(err)
+	} else {
+		allPoolsOnline = true
+	}
+
+	mspUsage, err = getMspUsage()
+	if err != nil {
+		errs.Accumulate(err)
+	}
+
+	// gRPC calls can only be executed successfully is the e2e-agent daemonSet has been deployed successfully.
+	if mayastorclient.CanConnect() {
+		// check pools
+		{
+			poolUsage, err = GetPoolUsageInCluster()
+			if err != nil {
+				errs.Accumulate(err)
+			}
+		}
+		// check nexuses
+		{
+			nexuses, err := ListNexusesInCluster()
+			if err != nil {
+				errs.Accumulate(err)
+			} else {
+				nexusCount = len(nexuses)
+			}
+		}
+		// check replicas
+		{
+			replicas, err := ListReplicasInCluster()
+			if err != nil {
+				errs.Accumulate(err)
+			} else {
+				replicaCount = len(replicas)
+			}
+		}
+		// check nvmeControllers
+		{
+			nvmeControllers, err := ListNvmeControllersInCluster()
+			if err != nil {
+				errs.Accumulate(err)
+			} else {
+				nvmeControllerCount = len(nvmeControllers)
+			}
+		}
+	} else {
+		errs.Accumulate(fmt.Errorf("gRPC calls to mayastor are not enabled, all checks cannot be run"))
+	}
+	if errs.GetError() != nil {
+		logf.Log.Info("VerifyMayastorResourceUsageIsZero: ", "errors", errs.GetError())
+	}
+	logf.Log.Info("VerifyMayastorResourceUsageIsZero: ", "allPoolsOnline", allPoolsOnline, "mspUsage", mspUsage, "poolUsage", poolUsage, "msvCount", msvCount, "nexusCount", nexusCount, "nvmeControllerCount", nvmeControllerCount, "replicaCount", replicaCount)
+	return allPoolsOnline && mspUsage == 0 && poolUsage == 0 && msvCount == 0 && nexusCount == 0 && nvmeControllerCount == 0 && replicaCount == 0 && errs.GetError() == nil
 }

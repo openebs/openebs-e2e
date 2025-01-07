@@ -358,7 +358,7 @@ var reCompileOnce sync.Once
 var reFioLog *regexp.Regexp = nil
 var reFioCritical *regexp.Regexp = nil
 
-func ScanFioPodLogs(pod v1.Pod, synopsisIn *common.E2eFioPodLogSynopsis) *common.E2eFioPodLogSynopsis {
+func ScanFioPodLogs(pod v1.Pod, synopsisIn *common.E2eFioPodLogSynopsis, waitSecs int) *common.E2eFioPodLogSynopsis {
 	var podLogSynopsis *common.E2eFioPodLogSynopsis
 	if synopsisIn != nil {
 		podLogSynopsis = synopsisIn
@@ -383,14 +383,28 @@ func ScanFioPodLogs(pod v1.Pod, synopsisIn *common.E2eFioPodLogSynopsis) *common
 			logf.Log.Info("WARNING failed to compile regular expression for fio critical failure search")
 		}
 	})
+	podApi := gTestEnv.KubeInt.CoreV1().Pods
 	for _, container := range pod.Spec.Containers {
 		opts := v1.PodLogOptions{}
 		opts.Follow = true
 		opts.Container = container.Name
+		{
+			podCheck, podCheckErr := podApi(pod.Namespace).Get(context.TODO(), pod.Name, metaV1.GetOptions{})
+			for ix := 0; podCheck.Status.Phase == coreV1.PodPending && ix < waitSecs && podCheckErr == nil; ix++ {
+				time.Sleep(time.Second * 1)
+				podCheck, podCheckErr = podApi(pod.Namespace).Get(context.TODO(), pod.Name, metaV1.GetOptions{})
+			}
+			if podCheckErr != nil {
+				podLogSynopsis.Err = podCheckErr
+				logf.Log.Info("Failed check pod status != pending", "pod", pod.Name, "err", podCheckErr)
+				return podLogSynopsis
+			}
+			pod = *podCheck
+		}
 		podLogs, err := gTestEnv.KubeInt.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &opts).Stream(context.TODO())
 		if err != nil {
 			podLogSynopsis.Err = err
-			logf.Log.Info("Failed to stream logs for", "pod", pod, "err", err)
+			logf.Log.Info("Failed to stream logs for", "pod", pod.Name, "pod.Status", pod.Status.Phase, "err", err)
 			return podLogSynopsis
 		}
 		reader := bufio.NewScanner(podLogs)
@@ -403,15 +417,15 @@ func ScanFioPodLogs(pod v1.Pod, synopsisIn *common.E2eFioPodLogSynopsis) *common
 				podLogSynopsis.CriticalFailure = true
 			}
 			if strings.HasPrefix(line, "JSON") {
-				jsondata := line[4:]
+				jsonData := line[4:]
 				fTSize := common.FioTargetSizeRecord{}
 				fExit := common.FioExitRecord{}
-				ju_err := json.Unmarshal([]byte(jsondata), &fTSize)
-				if ju_err == nil && fTSize.Size != nil {
+				juErr := json.Unmarshal([]byte(jsonData), &fTSize)
+				if juErr == nil && fTSize.Size != nil {
 					podLogSynopsis.JsonRecords.TargetSizes = append(podLogSynopsis.JsonRecords.TargetSizes, fTSize)
 				}
-				ju_err = json.Unmarshal([]byte(jsondata), &fExit)
-				if ju_err == nil && fExit.ExitValue != nil {
+				juErr = json.Unmarshal([]byte(jsonData), &fExit)
+				if juErr == nil && fExit.ExitValue != nil {
 					podLogSynopsis.JsonRecords.ExitValues = append(podLogSynopsis.JsonRecords.ExitValues, fExit)
 				}
 			}
@@ -428,7 +442,7 @@ func ScanFioPodLogsByName(podName string, nameSpace string) (*common.E2eFioPodLo
 	if err != nil {
 		return podLogSynopsis, err
 	}
-	return ScanFioPodLogs(*pod, nil), nil
+	return ScanFioPodLogs(*pod, nil, 60), nil
 }
 
 // MonitorE2EFioPod launches a go thread to stream fio pod log output and scan that stream
@@ -441,7 +455,7 @@ func MonitorE2EFioPod(podName string, nameSpace string) (*common.E2eFioPodOutput
 		return nil, err
 	}
 	go func(synopsis *common.E2eFioPodLogSynopsis, pod v1.Pod) {
-		ScanFioPodLogs(pod, synopsis)
+		ScanFioPodLogs(pod, synopsis, 10000)
 		podOut.Completed = true
 	}(&podOut.Synopsis, *pod)
 	podOut.PodName = podName
@@ -461,7 +475,7 @@ func CheckFioPodCompleted(podName string, nameSpace string) (coreV1.PodPhase, *c
 			if !containerStatus.Ready {
 				if containerStatus.State.Terminated != nil &&
 					containerStatus.State.Terminated.Reason == "Completed" {
-					podLogSynopsis = ScanFioPodLogs(*pod, nil)
+					podLogSynopsis = ScanFioPodLogs(*pod, nil, 60)
 					if containerStatus.State.Terminated.ExitCode == 0 {
 						return coreV1.PodSucceeded, podLogSynopsis, podLogSynopsis.Err
 					} else {
@@ -473,7 +487,7 @@ func CheckFioPodCompleted(podName string, nameSpace string) (coreV1.PodPhase, *c
 	}
 	if podLogSynopsis == nil || podLogSynopsis.Err != nil {
 		if pod.Status.Phase != coreV1.PodRunning && pod.Status.Phase != coreV1.PodPending {
-			podLogSynopsis = ScanFioPodLogs(*pod, nil)
+			podLogSynopsis = ScanFioPodLogs(*pod, nil, 60)
 		} else {
 			podLogSynopsis = &common.E2eFioPodLogSynopsis{}
 		}
