@@ -108,6 +108,51 @@ func (replicaTopologyChildState ReplicaTopologyChildState) String() string {
 	}
 }
 
+type DiskPoolCrState int
+
+const (
+	DiskPoolCrCreated     DiskPoolCrState = iota
+	DiskPoolCrCreating    DiskPoolCrState = iota
+	DiskPoolCrTerminating DiskPoolCrState = iota
+)
+
+func (poolCrState DiskPoolCrState) String() string {
+	switch poolCrState {
+	case DiskPoolCrCreated:
+		return "Created"
+	case DiskPoolCrCreating:
+		return "Creating"
+	case DiskPoolCrTerminating:
+		return "Terminating"
+	default:
+		return ""
+	}
+}
+
+type DiskPoolStatus int
+
+const (
+	DiskPoolOnline   DiskPoolStatus = iota
+	DiskPoolUnknown  DiskPoolStatus = iota
+	DiskPoolDegraded DiskPoolStatus = iota
+	DiskPoolFaulted  DiskPoolStatus = iota
+)
+
+func (poolStatus DiskPoolStatus) String() string {
+	switch poolStatus {
+	case DiskPoolOnline:
+		return "Online"
+	case DiskPoolUnknown:
+		return "Unknown"
+	case DiskPoolDegraded:
+		return "Degraded"
+	case DiskPoolFaulted:
+		return "Faulted"
+	default:
+		return ""
+	}
+}
+
 type AllowVolumeExpansion int
 
 const (
