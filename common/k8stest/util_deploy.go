@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openebs/openebs-e2e/common"
 	errors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
@@ -477,4 +478,62 @@ func VerifyDeploymentReadyReplicaCount(name, namespace string, expectedReplicas 
 		return true, nil
 	}
 	return false, nil
+}
+
+// AddNodeSelectorToDeployments add kubernetes.io/hostname as node selector to deployment if deployment pod
+// is scheduled to given node and verify deployment pod get scheduled on given node after adding node selector
+func AddNodeSelectorToDeployments(deployments []string, cpNode, namespace string) error {
+
+	//reschedule control plane components to nexus node
+	err := ScheduleDeploymentsOnNode(deployments, cpNode, namespace)
+	if err != nil {
+		return err
+	}
+
+	// list all deployment label
+	depAppLabel := make([]string, 0)
+	for _, deployName := range deployments {
+		dep, err := GetDeployment(deployName, namespace)
+		if err != nil {
+			return fmt.Errorf("failed to get deployment %s in namespace %s , error: %v", deployName, namespace, err)
+		}
+		if dep.Spec.Template.GetObjectMeta().GetLabels()["app"] != "" {
+			depAppLabel = append(depAppLabel, dep.Spec.Template.GetObjectMeta().GetLabels()["app"])
+		}
+	}
+
+	//verify pods on node
+	return VerifyPodsOnNode(depAppLabel, cpNode, namespace)
+}
+
+// ScheduleDeploymentsOnNode add kubernetes.io/hostname as node selector to deployment if deployment pod
+// is scheduled to given node
+func ScheduleDeploymentsOnNode(deployments []string, nodeName string, namespace string) error {
+	// add node selector to deployments
+	var errs common.ErrorAccumulator
+	for _, deploy := range deployments {
+		isPresent, _ := PodPresentOnNode(deploy, namespace, nodeName)
+		if !isPresent {
+			logf.Log.Info("Adding node selector", "deployment", deploy, "namespace", namespace, "node", nodeName)
+			err := ApplyNodeSelectorToDeployment(deploy, namespace, "kubernetes.io/hostname", nodeName)
+			if err != nil {
+				errs.Accumulate(err)
+			}
+		}
+	}
+	return errs.GetError()
+}
+
+// RemoveNodeSelectorFromDeployments remove  node selector from  deployment if any
+func RemoveNodeSelectorFromDeployments(deployments []string, namespace string) error {
+	// remove node selector from  deployments
+	var errs common.ErrorAccumulator
+	for _, deploy := range deployments {
+		logf.Log.Info("Removing node selector", "deployment", deploy, "namespace", namespace)
+		err := RemoveAllNodeSelectorsFromDeployment(deploy, namespace)
+		if err != nil {
+			errs.Accumulate(err)
+		}
+	}
+	return errs.GetError()
 }
