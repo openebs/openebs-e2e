@@ -39,7 +39,7 @@ const (
 	DefRebuildTimeoutSecs            = 600  // in seconds
 	sleepTime                        = 3    // in seconds
 	// FioRunTime                       = 1800 // in seconds
-	toLocalpvProvisionerImage = "3.5.0"
+	toLocalpvProvisionerImage = "4.1.4"
 )
 
 // DisablePartialRebuildUpgradeVersions contains list of product
