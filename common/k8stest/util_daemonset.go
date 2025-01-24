@@ -27,6 +27,11 @@ func UpdateDaemonSet(ds appsV1.DaemonSet, namespace string) (v1.DaemonSet, error
 	return *daemonSet, dserr
 }
 
+func DeleteDaemonSet(name, namespace string) error {
+	err := gTestEnv.KubeInt.AppsV1().DaemonSets(namespace).Delete(context.TODO(), name, metaV1.DeleteOptions{})
+	return err
+}
+
 // update daemonset container env
 func UpdateDemonsetContainerEnv(daemonsetName string, containerName string, namespace string, envName string, envValue string) ([]coreV1.EnvVar, error) {
 	var old_env []coreV1.EnvVar
@@ -144,6 +149,42 @@ func WaitForDaemonsetReady(dsName string, namespace string, sleepTime int, durat
 
 	}
 	return ready
+}
+
+func DeleteDaemonsetAndWaitPodDeletion(dsName string, namespace string, sleepTime int, duration time.Duration) bool {
+
+	ds, err := GetDaemonSet(dsName, namespace)
+	if err != nil {
+		logf.Log.Info("Failed to get daemonset", "daemonset", dsName, "namespace", namespace, "error", err)
+		return false
+	}
+
+	dsPodList, err := ListPodsByPrefix(ds.Namespace, ds.Name)
+	if err != nil {
+		logf.Log.Info("Failed to list pods with daemonset prefix", "daemonset", dsName, "error", err)
+		return false
+	}
+
+	err = DeleteDaemonSet(dsName, namespace)
+	if err != nil {
+		logf.Log.Info("Failed to delete daemonset", "daemonset", dsName, "namespace", namespace, "error", err)
+		return false
+	}
+
+	for _, pod := range dsPodList {
+		// verify pod running
+		isPodDeleted, err := WaitForPodDeletion(pod.Name, namespace, duration)
+		if err != nil {
+			logf.Log.Info("failed to verify pod not deletion", "Pod name", pod.Name, "namespace", namespace, "error", err)
+			return false
+		}
+		if !isPodDeleted {
+			logf.Log.Info("Pod not deleted", "Pod name", pod.Name, "namespace", namespace)
+			return isPodDeleted
+		}
+
+	}
+	return true
 }
 
 func DaemonSetReady(daemonName string, namespace string) bool {
