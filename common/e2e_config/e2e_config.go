@@ -148,6 +148,8 @@ type ProductSpec struct {
 	ZfsEngineControllerDeploymentName string            `yaml:"zfsEngineControllerDeploymentName"`
 	ZfsEngineLeaseName                string            `yaml:"zfsEngineLeaseName"`
 	MayastorCsiControllerLogLevel     string            `yaml:"mayastorCsiControllerLogLevel" env-default:"debug"`
+	CloudProvider                     string            `yaml:"cloudProvider"`
+	VeleroClientVersion               string            `yaml:"veleroClientVersion"`
 }
 
 // E2EConfig is an application configuration structure
