@@ -127,6 +127,13 @@ func initialise() {
 			fnInitialise func(*rest.Config, bool) (crtypes.DiskPoolFunctions, error)
 		}{
 			{
+				description: "v1beta3",
+				version: extCRDVersion{
+					"v1beta3", false, "v1beta3",
+				},
+				fnInitialise: v1beta2Ifc.Initialise,
+			},
+			{
 				description: "v1beta2",
 				version: extCRDVersion{
 					"v1beta2", false, "v1beta2",
@@ -169,7 +176,7 @@ func initialise() {
 	)
 }
 
-var crdVersionOrder = []string{"v1beta2", "v1beta1", "v1alpha1Ext", "v1alpha1"}
+var crdVersionOrder = []string{"v1beta3", "v1beta2", "v1beta1", "v1alpha1Ext", "v1alpha1"}
 
 func getDspFuncs() crtypes.DiskPoolFunctions {
 	if selectedDspFuncs != nil {
