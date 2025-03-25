@@ -1,11 +1,13 @@
 syntax = "proto3";
 
-option go_package = "github.com/openebs/mayastor-api/protobuf/v1";
+option go_package = "github.com/openebs/mayastor-dependencies/apis/io-engine/protobuf/v1";
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
 import "common.proto";
+import "pool.proto";
+
 package mayastor.v1;
 
 service ReplicaRpc {
@@ -18,6 +20,13 @@ service ReplicaRpc {
   rpc ShareReplica (ShareReplicaRequest) returns (Replica) {}
   rpc UnshareReplica (UnshareReplicaRequest) returns (Replica) {}
   rpc ResizeReplica (ResizeReplicaRequest) returns (Replica) {}
+  rpc SetReplicaEntityId (SetReplicaEntityIdRequest) returns (Replica) {}
+}
+
+// Request struct to set the entity_id of the replica, If not already set.
+message SetReplicaEntityIdRequest {
+  string uuid = 1;  // Uuid of the replica.
+  string entity_id = 2; // Entity which owns the replica.
 }
 
 // Replica space usage
@@ -47,6 +56,10 @@ message Replica {
   bool is_snapshot = 11; // true: snapshot false: normal replica
   bool is_clone = 12; // true: clone replica from snapshot, false: normal replica
   optional string snapshot_uuid = 13; // snapshot uuid from which the clone replica is created
+  optional string entity_id = 14; // entity which owns the replica, if any
+  mayastor.v1.PoolType pooltype = 15; // type of the pool (eg: lvm, lvs)
+  // Is the replica encrypted.
+  optional bool encrypted = 16;
 }
 
 message CreateReplicaRequest {
@@ -57,6 +70,7 @@ message CreateReplicaRequest {
   bool thin = 5;    // thin provisioning
   ShareProtocol share = 6;  // protocol to expose the replica over
   repeated string allowed_hosts = 7; // host (nqn's) which are allowed to connect to the target.
+  optional string entity_id = 8; // entity which owns the replica, if any
 }
 
 // Destroy replica arguments.
@@ -99,6 +113,7 @@ message ListReplicaOptions {
   google.protobuf.StringValue uuid = 3; // list the replica with the uuid if provided
   google.protobuf.StringValue pooluuid = 4; // list the replicas on the provided pool, by uuid
   Query query = 5; // list replica based on Query value
+  repeated mayastor.v1.PoolType pooltypes = 6; // types of the pool (eg: lvm, lvs), or all
 
   /// Query used for getting specific types of replicas. These are mutually exclusive, ex. a snapshot cannot be clone.
   message Query {
