@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"github.com/openebs/openebs-e2e/common/k8stest"
@@ -102,9 +101,9 @@ func (zfsDevicePoolConfig *ZfsNodesDevicePoolConfig) ConfigureZfsNodesWithDevice
 	return nil
 }
 
-func SetupZfsNodes(poolName string, size int64) (ZfsNodesDevicePoolConfig, error) {
+func SetupZfsNodes(poolName string, size int64, namespace string) (ZfsNodesDevicePoolConfig, error) {
 	var zfsNodeConfig ZfsNodesDevicePoolConfig
-	workerNodes, err := ListZfsNode(common.NSOpenEBS())
+	workerNodes, err := ListZfsNode(namespace)
 	if err != nil {
 		return zfsNodeConfig, fmt.Errorf("failed to list zfs worker nodes, error: %v", err)
 	}

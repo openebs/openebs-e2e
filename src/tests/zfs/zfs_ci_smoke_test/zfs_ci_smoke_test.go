@@ -57,7 +57,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred(), "failed to setup test environment in BeforeSuite : SetupTestEnv %v", err)
 
 	//setup nodes with zfs pool
-	nodeConfig, err = zfs.SetupZfsNodes("zfspv-pool", 10737418240)
+	nodeConfig, err = zfs.SetupZfsNodes("zfspv-pool", 10737418240, common.NSOpenEBS())
 	Expect(err).ToNot(HaveOccurred(), "failed to setup zfs pool")
 
 })
