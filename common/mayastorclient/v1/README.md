@@ -1,6 +1,6 @@
 To generate the client code using nix shell
 1. Edit the proto file and add the line
-    * `option go_package = "github.com/openebs/mayastor-api/protobuf/v1";`
+    * `option go_package = "github.com/openebs/mayastor-dependencies/apis/io-engine/protobuf/v1";`
 
 2. run below command to update dependency
 	`nix-shell -p protoc-gen-go-grpc protobuf protoc-gen-go`
