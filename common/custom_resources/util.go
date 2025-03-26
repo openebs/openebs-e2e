@@ -16,6 +16,7 @@ import (
 	v1alpha1ExtIfc "github.com/openebs/openebs-e2e/common/custom_resources/v1alpha1Ext"
 	v1beta1Ifc "github.com/openebs/openebs-e2e/common/custom_resources/v1beta1"
 	v1beta2Ifc "github.com/openebs/openebs-e2e/common/custom_resources/v1beta2"
+	v1beta3Ifc "github.com/openebs/openebs-e2e/common/custom_resources/v1beta3"
 
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -131,7 +132,7 @@ func initialise() {
 				version: extCRDVersion{
 					"v1beta3", false, "v1beta3",
 				},
-				fnInitialise: v1beta2Ifc.Initialise,
+				fnInitialise: v1beta3Ifc.Initialise,
 			},
 			{
 				description: "v1beta2",
