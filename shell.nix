@@ -19,6 +19,7 @@ mkShell {
     e2fsprogs
     envsubst # for e2e tests
     gdb
+    glibc
     go
     golangci-lint
     google-cloud-sdk
