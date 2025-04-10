@@ -21,12 +21,16 @@ type DiskPool interface {
 	SetSpecNode(node string) (DiskPool, error)
 	GetCRStatus() string
 	GetPoolStatus() string
+	GetSpecEncryptionSecret() string
+	SetSpecEncryptionSecret(secretName string) (DiskPool, error)
+	IsPoolEncrypted() bool
 }
 
 // DiskPoolFunctions interface to implement support for a DiskPool CRD version
 type DiskPoolFunctions interface {
 	CreateMsPool(poolName string, node string, disks []string) (DiskPool, error)
 	CreateMsPoolWithTopologySpec(poolName string, node string, disks []string, labels map[string]string) (DiskPool, error)
+	CreateMsPoolWithEncryption(poolName string, node string, disks []string, encryptionSecretName string) (DiskPool, error)
 	GetMsPool(poolName string) (DiskPool, error)
 	DeleteMsPool(poolName string) error
 	ListMsPoolCrs() ([]DiskPool, error)

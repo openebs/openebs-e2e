@@ -239,3 +239,19 @@ func IsExtended(jsProps map[string]apiExtV1.JSONSchemaProps) bool {
 	}
 	return extended
 }
+
+func (ifc v1alpha1ExtIfc) CreateMsPoolWithEncryption(poolName string, node string, disks []string, encryptionSecretName string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("not implemented encrypted pool in v1alpha1Ext"))
+}
+
+func (p v1alpha1ExtDSP) SetSpecEncryptionSecret(secretName string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("not implemented encrypted pool in v1alpha1Ext"))
+}
+
+func (p v1alpha1ExtDSP) GetSpecEncryptionSecret() string {
+	panic(fmt.Errorf("not implemented encrypted pool in v1alpha1Ext"))
+}
+
+func (p v1alpha1ExtDSP) IsPoolEncrypted() bool {
+	return false
+}

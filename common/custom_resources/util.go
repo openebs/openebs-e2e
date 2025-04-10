@@ -240,6 +240,10 @@ func ListMsPools() ([]crtypes.DiskPool, error) {
 	return getDspFuncs().ListMsPoolCrs()
 }
 
+func CreateMsPoolWithEncryption(poolName string, node string, disks []string, secretName string) (crtypes.DiskPool, error) {
+	return getDspFuncs().CreateMsPoolWithEncryption(poolName, node, disks, secretName)
+}
+
 // CheckAllMsPoolsAreOnline checks if all mayastor pools are online
 func CheckAllMsPoolsAreOnline() error {
 	initialise()
