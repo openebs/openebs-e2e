@@ -6,10 +6,23 @@ type Topology struct {
 	Labelled map[string]string `json:"labelled,omitempty"`
 }
 
+type Secret struct {
+	Name string `json:"name,omitempty"`
+}
+
+type Source struct {
+	Secret Secret `json:"secret,omitempty"`
+}
+
+type EncryptionConfig struct {
+	Source Source `json:"source,omitempty"`
+}
+
 type DiskPoolSpec struct {
-	Disks    []string  `json:"disks"`
-	Node     string    `json:"node"`
-	Topology *Topology `json:"topology,omitempty"`
+	Disks            []string          `json:"disks"`
+	Node             string            `json:"node"`
+	Topology         *Topology         `json:"topology,omitempty"`
+	EncryptionConfig *EncryptionConfig `json:"encryptionConfig,omitempty"`
 }
 
 type DiskPoolStatus struct {
@@ -18,6 +31,7 @@ type DiskPoolStatus struct {
 	Used       uint64 `json:"used"`
 	CRStatus   string `json:"cr_state"`
 	PoolStatus string `json:"pool_status"`
+	Encrypted  bool   `json:"encrypted"`
 }
 
 type DiskPool struct {

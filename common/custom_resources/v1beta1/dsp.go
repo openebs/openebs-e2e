@@ -204,3 +204,19 @@ func (ifc v1beta1Ifc) ListMsPoolCrs() ([]crtypes.DiskPool, error) {
 	}
 	return poolCrs, nil
 }
+
+func (ifc v1beta1Ifc) CreateMsPoolWithEncryption(poolName string, node string, disks []string, encryptionSecretName string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("not implemented encrypted pool in v1beta1"))
+}
+
+func (p v1beta1DSP) SetSpecEncryptionSecret(secretName string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("not implemented encrypted pool in v1beta1"))
+}
+
+func (p v1beta1DSP) GetSpecEncryptionSecret() string {
+	panic(fmt.Errorf("not implemented encrypted pool in v1beta1"))
+}
+
+func (p v1beta1DSP) IsPoolEncrypted() bool {
+	return false
+}
