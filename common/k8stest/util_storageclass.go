@@ -192,6 +192,15 @@ func (b *ScBuilder) WithProtocol(value common.ShareProto) *ScBuilder {
 	return b
 }
 
+// WithEncrypted sets the encrypted parameter of storageclass with provided argument.
+func (b *ScBuilder) WithEncryption(value bool) *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScEncrypted)] = strconv.FormatBool(value)
+	return b
+}
+
 // WithCloneFsIdAsVolumeId sets the cloneFsIdAsVolumeId parameter of storageclass with provided argument.
 func (b *ScBuilder) WithCloneFsIdAsVolumeId(value common.CloneFsIdAsVolumeIdType) *ScBuilder {
 	if b.sc.object.Parameters == nil {

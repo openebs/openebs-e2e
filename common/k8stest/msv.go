@@ -54,6 +54,10 @@ func IsMsvPublished(uuid string) bool {
 	return controlplane.IsMsvPublished(uuid)
 }
 
+func IsMsvEncrypted(uuid string) bool {
+	return controlplane.IsMsvEncrypted(uuid)
+}
+
 func IsMsvDeleted(uuid string) bool {
 	return controlplane.IsMsvDeleted(uuid)
 }

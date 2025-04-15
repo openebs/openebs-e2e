@@ -43,6 +43,7 @@ const ScThinProvisioning = "thin"
 const ScStsAffinityGroup = "stsAffinityGroup"
 const ScCloneFsIdAsVolumeId = "cloneFsIdAsVolumeId"
 const ScMaxSnapshots = "maxSnapshots"
+const ScEncrypted = "encrypted"
 
 // LVM
 const ScLvmShared = "shared"

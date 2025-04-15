@@ -254,14 +254,16 @@ type MsvSpec struct {
 	NumSnapshots  int32         `json:"num_snapshots"`
 	ContentSource ContentSource `json:"content_source"`
 	MaxSnapshots  int32         `json:"max_snapshots"`
+	Encrypted     bool          `json:"encrypted"`
 }
 
 type Policy struct {
 	Self_heal bool `json:"self_heal"`
 }
 type SpecTarget struct {
-	Protocol string `json:"protocol"`
-	Node     string `json:"node"`
+	Protocol      string          `json:"protocol"`
+	Node          string          `json:"node"`
+	FrontendNodes []FrontendNodes `json:"frontend_nodes"`
 }
 
 type Topology struct {
@@ -300,6 +302,7 @@ type MsvState struct {
 	Uuid            string          `json:"uuid"`
 	ReplicaTopology ReplicaTopology `json:"replica_topology"`
 	Usage           Usage           `json:"usage"`
+	Health          Health          `json:"health"`
 }
 
 type ReplicaTopology map[string]Replica
@@ -325,6 +328,8 @@ type Replica struct {
 	State       string       `json:"state"`
 	ChildStatus string       `json:"child-status"`
 	Usage       ReplicaUsage `json:"usage"`
+	Health      Health       `json:"health"`
+	Encrypted   bool         `json:"encrypted"`
 }
 
 type StateTarget struct {
@@ -342,6 +347,20 @@ type TargetChild struct {
 	State           string `json:"state"`
 	Uri             string `json:"uri"`
 	RebuildProgress *int32 `json:"rebuildProgress"`
+}
+
+type FrontendNodes struct {
+	Name string `json:"name"`
+	Nqn  string `json:"nqn"`
+}
+
+type Health struct {
+	CleanShutdown         bool  `json:"cleanShutdown"`
+	HealthyReplicas       int32 `json:"healthyReplicas"`
+	CleanReplicas         int32 `json:"cleanReplicas"`
+	OnlineHealthyReplicas int32 `json:"onlineHealthyReplicas"`
+	OnlineCleanReplicas   int32 `json:"onlineCleanReplicas"`
+	LiveHealthyReplicas   int32 `json:"liveHealthyReplicas"`
 }
 
 type Usage struct {

@@ -137,6 +137,14 @@ func IsMayastorVolumeDeleted(uuid string) bool {
 	return false
 }
 
+func IsMayastorVolumeEncrypted(uuid string) bool {
+	msv, err := getMayastorCpVolume(uuid)
+	if err == nil {
+		return msv.Spec.Encrypted
+	}
+	return false
+}
+
 func CheckForMayastorVolumes() (bool, error) {
 	logf.Log.Info("CheckForMayastorVolumes")
 	foundResources := false
@@ -331,6 +339,10 @@ func (cp CPv1) GetMsvTargetNode(volName string) (string, error) {
 
 func (cp CPv1) GetMsvSize(uuid string) (int64, error) {
 	return getMsvSize(uuid)
+}
+
+func (cp CPv1) IsMsvEncrypted(uuid string) bool {
+	return IsMayastorVolumeEncrypted(uuid)
 }
 
 func getMsvSize(volName string) (int64, error) {

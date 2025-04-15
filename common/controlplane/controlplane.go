@@ -67,6 +67,7 @@ type ControlPlaneInterface interface {
 	SetVolumeMaxSnapshotCount(uuid string, maxSnapshotCount int32) error
 	GetMsvMaxSnapshotCount(uuid string) (int32, error)
 	GetMsvDeviceUri(uuid string) (string, error)
+	IsMsvEncrypted(uuid string) bool
 
 	// Mayastor Node abstraction
 
@@ -276,6 +277,10 @@ func GetMsvNexusState(uuid string) (string, error) {
 
 func IsMsvPublished(uuid string) bool {
 	return getControlPlane().IsMsvPublished(uuid)
+}
+
+func IsMsvEncrypted(uuid string) bool {
+	return getControlPlane().IsMsvEncrypted(uuid)
 }
 
 func IsMsvDeleted(uuid string) bool {
