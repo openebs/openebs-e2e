@@ -201,6 +201,10 @@ func (cp CPv1RestApi) IsMsvPublished(uuid string) bool {
 	return false
 }
 
+func (cp CPv1RestApi) IsMsvEncrypted(uuid string) bool {
+	panic(fmt.Errorf("not implemented REST api for checking msv encryption"))
+}
+
 func (cp CPv1RestApi) IsMsvDeleted(uuid string) bool {
 	_, err, responseStatusCode := cp.oa.getVolume(uuid)
 	return err != nil && responseStatusCode == 404
