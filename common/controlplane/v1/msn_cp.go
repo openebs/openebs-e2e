@@ -4,9 +4,10 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
-
 	"github.com/openebs/openebs-e2e/common"
+	"os/exec"
+	"path/filepath"
+	"strings"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -132,7 +133,19 @@ func (cp CPv1) GetMsNodeStatus(nodeName string) (string, error) {
 
 // UpdateNodeLabel adds or remove labels from nodes
 func (cp CPv1) UpdateNodeLabel(nodeName string, labelKey, labelValue string) error {
-	args := []string{"label", "node", nodeName}
+	args := []string{"label", "node"}
+
+	// Need to set namespace for kubectl-openebs
+	binPath := GetPluginPath()
+	if filepath.Base(binPath) != "kubectl-mayastor" {
+
+		// Set the desired namespace
+		if err := exec.Command("kubectl", "config", "set-context", "--current", "--namespace", common.NSMayastor()).Run(); err != nil {
+			return fmt.Errorf("failed to set target namespace %s: %v", common.NSMayastor(), err)
+		}
+	}
+
+	args = append(args, nodeName)
 
 	// Check if a label value is provided
 	if labelValue != "" {
@@ -143,14 +156,29 @@ func (cp CPv1) UpdateNodeLabel(nodeName string, labelKey, labelValue string) err
 		args = append(args, fmt.Sprintf("%s-", labelKey))
 	}
 
-	cmd := GetMayastorPluginCmd(args...)
+	// Remove any random characters using trimspace
+	trimmedArgs := make([]string, len(args))
+
+	for i, s := range args {
+		trimmedArgs[i] = strings.TrimSpace(s)
+	}
+	cmd := GetMayastorPluginCmd(trimmedArgs...)
 
 	// Print the command that will be executed
 	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
 
-	if err := cmd.Run(); err != nil {
+	if output, err := cmd.CombinedOutput(); err != nil {
 		// Print the error message if the command fails
+		logf.Log.Info("Error found", "Error Snip", string(output))
+		// Restore original namespace before returning
+		_ = exec.Command("kubectl", "config", "set-context", "--current", "--namespace", "").Run()
 		return fmt.Errorf("plugin failed to update node label %s: %v", nodeName, err)
 	}
+
+	// Restore the original namespace
+	if err := exec.Command("kubectl", "config", "set-context", "--current", "--namespace", "").Run(); err != nil {
+		return fmt.Errorf("failed to restore original namespace %s: %v", "", err)
+	}
+
 	return nil
 }
