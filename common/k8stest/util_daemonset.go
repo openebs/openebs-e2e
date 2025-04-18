@@ -151,6 +151,49 @@ func WaitForDaemonsetReady(dsName string, namespace string, sleepTime int, durat
 	return ready
 }
 
+func WaitForDaemonsetLatestPodReady(dsName string, namespace string, sleepTime int, duration int) bool {
+	ready := false
+	count := (duration + sleepTime - 1) / sleepTime
+
+	logf.Log.Info("DaemonSetReadyCheck", "DaemonSet", dsName, "namespace", namespace)
+	for ix := 0; ix < count && !ready; ix++ {
+		time.Sleep(time.Duration(sleepTime) * time.Second)
+
+		ready = DaemonSetReady(dsName, namespace)
+		logf.Log.Info("DaemonSetReady: ", "DaemonSet", dsName, "ready", ready)
+	}
+
+	if !ready {
+		logf.Log.Info("DaemonSet not ready", "DaemonSet", dsName, "namespace", namespace)
+		return false
+	}
+
+	// sleep for 60 seconds before checking the pods state because daemonset restart and new pod will be created
+	// and previous pod will be deleted
+	logf.Log.Info("DaemonSet pod restarting, sleep for 60 seconds")
+	time.Sleep(60 * time.Second)
+	// get the daemonset pods
+	dsPodList, err := ListPodsByPrefixSortedByCreationTimeStamp(namespace, dsName)
+	if err != nil {
+		logf.Log.Info("Failed to list pods with daemonset prefix", "DaemonSet", dsName, "error", err)
+		return false
+	}
+	logf.Log.Info("DaemonSet", "pod count", len(dsPodList))
+
+	// get the latest pod
+	latestPod := dsPodList[len(dsPodList)-1]
+	fmt.Println("Latest pod:", latestPod.Name)
+
+	// verify pod running
+	err = WaitForPodRunning(latestPod.Name, namespace, duration)
+	if err != nil {
+		logf.Log.Info("Pod not ready", "Pod name", latestPod.Name, "namespace", namespace)
+		return false
+	}
+
+	return ready
+}
+
 func DeleteDaemonsetAndWaitPodDeletion(dsName string, namespace string, sleepTime int, duration time.Duration) bool {
 
 	ds, err := GetDaemonSet(dsName, namespace)
