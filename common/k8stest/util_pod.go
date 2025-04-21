@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -563,6 +564,24 @@ func ListPodsByPrefix(ns string, prefix string) ([]coreV1.Pod, error) {
 	if err != nil {
 		return nil, errors.New("failed to list pods")
 	}
+	for _, pod := range podList.Items {
+		if strings.HasPrefix(pod.Name, prefix) {
+			pods = append(pods, pod)
+		}
+	}
+	return pods, nil
+}
+
+func ListPodsByPrefixSortedByCreationTimeStamp(ns string, prefix string) ([]coreV1.Pod, error) {
+	var pods []coreV1.Pod
+	podList, err := gTestEnv.KubeInt.CoreV1().Pods(ns).List(context.TODO(), metaV1.ListOptions{})
+	if err != nil {
+		return nil, errors.New("failed to list pods")
+	}
+	// Sort pods by creation timestamp (ascending: oldest -> newest)
+	sort.Slice(podList.Items, func(i, j int) bool {
+		return podList.Items[i].CreationTimestamp.Time.Before(podList.Items[j].CreationTimestamp.Time)
+	})
 	for _, pod := range podList.Items {
 		if strings.HasPrefix(pod.Name, prefix) {
 			pods = append(pods, pod)
