@@ -180,6 +180,10 @@ func WaitForDaemonsetLatestPodReady(dsName string, namespace string, sleepTime i
 	}
 	logf.Log.Info("DaemonSet", "pod count", len(dsPodList))
 
+	if len(dsPodList) == 0 {
+		logf.Log.Info("No pods found with daemonset prefix", "DaemonSet", dsName)
+		return false
+	}
 	// get the latest pod
 	latestPod := dsPodList[len(dsPodList)-1]
 	fmt.Println("Latest pod:", latestPod.Name)
