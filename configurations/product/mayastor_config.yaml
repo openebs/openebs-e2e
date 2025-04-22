@@ -103,7 +103,7 @@ product:
     statsService: "mayastor-obs-callhome-stats"
     upgradePodLabelValue: "upgrade"
     diskPoolAPIVersionMap:
-      develop: "openebs.io/v1beta2"
+      develop: "openebs.io/v1beta3"
       2.0.0: "openebs.io/v1alpha1"
       2.0.1: "openebs.io/v1alpha1"
       2.1.0: "openebs.io/v1alpha1"
