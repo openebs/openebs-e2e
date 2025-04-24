@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"path/filepath"
 
 	"github.com/openebs/openebs-e2e/common"
 
@@ -132,7 +133,14 @@ func (cp CPv1) GetMsNodeStatus(nodeName string) (string, error) {
 
 // UpdateNodeLabel adds or remove labels from nodes
 func (cp CPv1) UpdateNodeLabel(nodeName string, labelKey, labelValue string) error {
-	args := []string{"label", "node", nodeName}
+	args := []string{"label", "node"}
+
+	// Need to set namespace for kubectl-openebs
+	binPath := GetPluginPath()
+	if filepath.Base(binPath) != "kubectl-mayastor" {
+		args = append(args, "-n", common.NSMayastor())
+	}
+	args = append(args, nodeName)
 
 	// Check if a label value is provided
 	if labelValue != "" {
