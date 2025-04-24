@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/openebs/openebs-e2e/common"
-	"os/exec"
+	//"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -139,10 +139,11 @@ func (cp CPv1) UpdateNodeLabel(nodeName string, labelKey, labelValue string) err
 	binPath := GetPluginPath()
 	if filepath.Base(binPath) != "kubectl-mayastor" {
 
+		args = append(args, "-n", common.NSMayastor())
 		// Set the desired namespace
-		if err := exec.Command("kubectl", "config", "set-context", "--current", "--namespace", common.NSMayastor()).Run(); err != nil {
-			return fmt.Errorf("failed to set target namespace %s: %v", common.NSMayastor(), err)
-		}
+		//if err := exec.Command("kubectl", "config", "set-context", "--current", "--namespace", common.NSMayastor()).Run(); err != nil {
+		//	return fmt.Errorf("failed to set target namespace %s: %v", common.NSMayastor(), err)
+		//}
 	}
 
 	args = append(args, nodeName)
@@ -171,14 +172,14 @@ func (cp CPv1) UpdateNodeLabel(nodeName string, labelKey, labelValue string) err
 		// Print the error message if the command fails
 		logf.Log.Info("Error found", "Error Snip", string(output))
 		// Restore original namespace before returning
-		_ = exec.Command("kubectl", "config", "set-context", "--current", "--namespace", "").Run()
-		return fmt.Errorf("plugin failed to update node label %s: %v", nodeName, err)
+		//_ = exec.Command("kubectl", "config", "set-context", "--current", "--namespace", "").Run()
+		//return fmt.Errorf("plugin failed to update node label %s: %v", nodeName, err)
 	}
 
 	// Restore the original namespace
-	if err := exec.Command("kubectl", "config", "set-context", "--current", "--namespace", "").Run(); err != nil {
-		return fmt.Errorf("failed to restore original namespace %s: %v", "", err)
-	}
+	//if err := exec.Command("kubectl", "config", "set-context", "--current", "--namespace", "").Run(); err != nil {
+		//return fmt.Errorf("failed to restore original namespace %s: %v", "", err)
+	//}
 
 	return nil
 }
