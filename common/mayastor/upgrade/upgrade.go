@@ -2,6 +2,7 @@ package upgrade
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -319,6 +320,44 @@ func PostUpgradeWaitForRebuildCompletion(volUuid string) error {
 // unstable tag with --allow-unstable flag. otherwise it will proceed
 // with normal upgrade without any flag.
 func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
+
+	binPath := mcpV1.GetPluginPath()
+	if filepath.Base(binPath) != "kubectl-mayastor" {
+		pluginVersion, err := mcpV1.GetPluginVersion()
+		if err != nil {
+			return "", false, fmt.Errorf("failed to get plugin version, err:%v", err)
+		}
+		pluginVersion = strings.TrimSpace(pluginVersion)
+		logf.Log.Info("kubectl", "plugin", filepath.Base(binPath), "version", pluginVersion)
+
+		tagRegexForDevelopBranch := `v?[0-9]+\.[0-9]+\.[0-9]+\+[0-9]+`
+		tagRegexForReleaseBranch := `v?[0-9]+\.[0-9]+\.[0-9]+\+0`
+
+		// Create a regular expression object for the plugin version format regex for develop branch
+		pluginRegexDevelopBranch, err := regexp.Compile(tagRegexForDevelopBranch)
+		if err != nil {
+			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
+		}
+
+		// Create a regular expression object for the plugin version format regex for release branch
+		pluginRegexReleaseBranch, err := regexp.Compile(tagRegexForReleaseBranch)
+		if err != nil {
+			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
+		}
+
+		// Match plugin version with regular expressions
+		// for develop branch and pre-release testing, version should be
+		// considered as unstable and will need --allow-unstable flag
+		if pluginRegexDevelopBranch.MatchString(pluginVersion) {
+			return pluginVersion, true, nil
+		}
+
+		// for released versions it should run without any flags
+		if pluginRegexReleaseBranch.MatchString(pluginVersion) {
+			return pluginVersion, false, nil
+		}
+
+	}
 
 	pluginVersion, err := mcpV1.GetPluginVersion()
 	if err != nil {
