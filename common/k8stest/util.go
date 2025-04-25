@@ -480,6 +480,111 @@ func MayastorReady(sleepTime int, duration int) (bool, error) {
 	return ready, err
 }
 
+// MayastorReadyWithException checks if the product installation is ready
+// with exception for excluded deployments, daemonsets and statefulsets
+func MayastorReadyWithException(sleepTime int, duration int, excludedList []string) (bool, error) {
+	logf.Log.Info("MayastorReady", "sleepTime", sleepTime, "duration", duration)
+	var ready bool
+	var err error
+	count := (duration + sleepTime - 1) / sleepTime
+	ready, err = readyCheckWithException(common.NSMayastor(), true, excludedList)
+	// variable to throttle verbosity
+	verboseTick := int(math.Max(1, 10/float64(sleepTime)))
+	for ix := 1; ix <= count && !ready; ix++ {
+		time.Sleep(time.Duration(sleepTime) * time.Second)
+		ready, err = readyCheckWithException(common.NSMayastor(), ix%verboseTick == 0, excludedList)
+	}
+	logf.Log.Info("MayastorReady", "ready", ready, "error", err)
+	if !ready {
+		logf.Log.Info("MayastorReady", "ready", ready, "error", err)
+		return ready, err
+	}
+
+	var podReady bool
+	// check for all pods to be running
+	for ix := 1; ix <= 30 && !podReady; ix++ {
+		time.Sleep(time.Duration(sleepTime) * time.Second)
+		podReady, err = PodReadyCheckWithExceptionList(common.NSMayastor(), excludedList)
+	}
+	logf.Log.Info("MayastorPodReady", "podReady", podReady, "error", err)
+	return ready, err
+}
+
+// ControlPlaneReadyWithException checks if the product installation is ready
+// with exception for excluded deployments, daemonsets and statefulsets
+func ControlPlaneReadyWithException(sleepTime int, duration int, excludedList []string) bool {
+	ready := false
+	count := (duration + sleepTime - 1) / sleepTime
+
+	if controlplane.MajorVersion() < 1 {
+		logf.Log.Info("unsupported control plane", "version", controlplane.MajorVersion())
+		return ready
+	}
+	nonControlPlaneComponents := []string{
+		e2e_config.GetConfig().Product.DaemonsetName,
+		e2e_config.GetConfig().Product.CsiDaemonsetName,
+	}
+
+	logf.Log.Info("ControlPlaneReady: ", "count", count, "sleepTime", sleepTime)
+	for ix := 0; ix < count && !ready; ix++ {
+		time.Sleep(time.Duration(sleepTime) * time.Second)
+		deployments, err := gTestEnv.KubeInt.AppsV1().Deployments(common.NSMayastor()).List(context.TODO(), metaV1.ListOptions{})
+		if err != nil {
+			continue
+		}
+		daemonsets, err := gTestEnv.KubeInt.AppsV1().DaemonSets(common.NSMayastor()).List(context.TODO(), metaV1.ListOptions{})
+		if err != nil {
+			continue
+		}
+		statefulsets, err := gTestEnv.KubeInt.AppsV1().StatefulSets(common.NSMayastor()).List(context.TODO(), metaV1.ListOptions{})
+		if err != nil {
+			continue
+		}
+		ready = true
+		for _, deployment := range deployments.Items {
+			if contains(nonControlPlaneComponents, deployment.Name) {
+				logf.Log.Info("ControlPlaneReady: skipping data plane", "deployment", deployment.Name)
+				continue
+			}
+			if IsItemPresentInList(excludedList, deployment.Name) {
+				logf.Log.Info("Skipping deployment ready check", "name", deployment.Name)
+				continue
+			}
+			tmp := DeploymentReady(deployment.Name, common.NSMayastor())
+			logf.Log.Info("ControlPlaneReady: mayastor control plane", "deployment", deployment.Name, "ready", tmp)
+			ready = ready && tmp
+		}
+		for _, daemon := range daemonsets.Items {
+			if contains(nonControlPlaneComponents, daemon.Name) {
+				logf.Log.Info("ControlPlaneReady: skipping data plane", "daemonset", daemon.Name)
+				continue
+			}
+			if IsItemPresentInList(excludedList, daemon.Name) {
+				logf.Log.Info("Skipping daemonset ready check", "name", daemon.Name)
+				continue
+			}
+			tmp := DaemonSetReady(daemon.Name, common.NSMayastor())
+			logf.Log.Info("ControlPlaneReady: mayastor control plane", "daemonset", daemon.Name, "ready", tmp)
+			ready = ready && tmp
+		}
+		for _, statefulSet := range statefulsets.Items {
+			if contains(nonControlPlaneComponents, statefulSet.Name) {
+				logf.Log.Info("ControlPlaneReady: skipping data plane", "statefulset", statefulSet.Name)
+				continue
+			}
+			if IsItemPresentInList(excludedList, statefulSet.Name) {
+				logf.Log.Info("Skipping statefulset ready check", "name", statefulSet.Name)
+				continue
+			}
+			tmp := StatefulSetReady(statefulSet.Name, common.NSMayastor())
+			logf.Log.Info("ControlPlaneReady: mayastor control plane", "statefulset", statefulSet.Name, "ready", tmp)
+			ready = ready && tmp
+		}
+		logf.Log.Info("ControlPlaneReady: mayastor control plane", "ready", ready)
+	}
+	return ready
+}
+
 // OpenEBSReady checks if the product installation is ready
 func OpenEBSReady(sleepTime int, duration int) (bool, error) {
 	logf.Log.Info("OpenEBSReady", "sleepTime", sleepTime, "duration", duration)
@@ -1254,6 +1359,10 @@ func readyCheck(namespace string, verbose bool) (bool, error) {
 		statefulsets, stserr := gTestEnv.KubeInt.AppsV1().StatefulSets(namespace).List(context.TODO(), metaV1.ListOptions{})
 		if stserr == nil {
 			for _, sts := range statefulsets.Items {
+				if e2e_config.GetConfig().Product.ControlPlaneEtcd == sts.Name {
+					logf.Log.Info("Skipping etcd statefulset ready check", "name", sts.Name)
+					continue
+				}
 				ready := sts.Status.Replicas == sts.Status.ReadyReplicas && sts.Status.ReadyReplicas == sts.Status.CurrentReplicas && sts.Status.ReadyReplicas != 0
 				if verbose {
 					logf.Log.Info("StatefulSet",
@@ -1302,15 +1411,121 @@ func readyCheck(namespace string, verbose bool) (bool, error) {
 	return allReady, err
 }
 
+func readyCheckWithException(namespace string, verbose bool, excludedList []string) (bool, error) {
+	var err error
+	allReady := true
+	{
+		daemonsets, dserr := gTestEnv.KubeInt.AppsV1().DaemonSets(namespace).List(context.TODO(), metaV1.ListOptions{})
+		if dserr == nil {
+			for _, ds := range daemonsets.Items {
+				if IsItemPresentInList(excludedList, ds.Name) {
+					logf.Log.Info("Skipping daemonset ready check", "name", ds.Name)
+					continue
+				}
+				ready := ds.Status.DesiredNumberScheduled != 0 &&
+					ds.Status.DesiredNumberScheduled == ds.Status.CurrentNumberScheduled &&
+					ds.Status.DesiredNumberScheduled == ds.Status.NumberReady &&
+					ds.Status.DesiredNumberScheduled == ds.Status.NumberAvailable
+				if verbose {
+					logf.Log.Info("DaemonSet",
+						"ready", ready,
+						"name", ds.Name,
+						"DesiredNumberScheduled", ds.Status.DesiredNumberScheduled,
+						"CurrentNumberScheduled", ds.Status.CurrentNumberScheduled,
+						"NumberReady", ds.Status.NumberReady,
+						"NumberAvailable", ds.Status.NumberAvailable,
+					)
+				}
+				allReady = allReady && ready
+			}
+		} else {
+			err = dserr
+		}
+	}
+
+	{
+		statefulsets, stserr := gTestEnv.KubeInt.AppsV1().StatefulSets(namespace).List(context.TODO(), metaV1.ListOptions{})
+		if stserr == nil {
+			for _, sts := range statefulsets.Items {
+				if IsItemPresentInList(excludedList, sts.Name) {
+					logf.Log.Info("Skipping statefulset ready check", "name", sts.Name)
+					continue
+				}
+				ready := sts.Status.Replicas == sts.Status.ReadyReplicas && sts.Status.ReadyReplicas == sts.Status.CurrentReplicas && sts.Status.ReadyReplicas != 0
+				if verbose {
+					logf.Log.Info("StatefulSet",
+						"ready", ready,
+						"name", sts.Name,
+						"Replicas", sts.Status.Replicas,
+						"ReadyReplicas", sts.Status.ReadyReplicas,
+						"CurrentReplicas", sts.Status.CurrentReplicas,
+					)
+				}
+				allReady = allReady && ready
+			}
+		} else {
+			err = stserr
+		}
+	}
+
+	{
+		deployments, dperr := gTestEnv.KubeInt.AppsV1().Deployments(namespace).List(context.TODO(), metaV1.ListOptions{})
+		if dperr == nil {
+			for _, deployment := range deployments.Items {
+				if IsItemPresentInList(excludedList, deployment.Name) {
+					logf.Log.Info("Skipping deployment ready check", "name", deployment.Name)
+					continue
+				}
+				ready := false
+				for _, condition := range deployment.Status.Conditions {
+					if condition.Type == appsV1.DeploymentAvailable {
+						if condition.Status == coreV1.ConditionTrue {
+							ready = true
+						}
+					}
+				}
+				if verbose {
+					logf.Log.Info("Deployment",
+						"ready", ready,
+						"name", deployment.Name,
+					)
+				}
+				allReady = allReady && ready
+			}
+		} else {
+			err = dperr
+		}
+	}
+
+	if verbose {
+		logf.Log.Info("ReadyCheck", "namespace", namespace, "allReady", allReady, "error", err)
+	}
+	return allReady, err
+}
+
 func ReadyCheck(namespace string) (bool, error) {
 	logf.Log.Info("ReadyCheck", "namespace", namespace)
 	return readyCheck(namespace, true)
+}
+
+// ReadyCheckWithException list all deployments, statefulsets and daemonsets in given namespace and return true if all are in running state else return false
+// it will skip the excludedList
+func ReadyCheckWithException(namespace string, excludeList []string) (bool, error) {
+	logf.Log.Info("ReadyCheck", "namespace", namespace)
+	return readyCheckWithException(namespace, true, excludeList)
 }
 
 // list all pods in given namespace and return true if all are in running state else return false
 func PodReadyCheck(namespace string) (bool, error) {
 	logf.Log.Info("PodReadyCheck", "namespace", namespace)
 	return podReadyCheck(namespace)
+}
+
+// list all pods in given namespace and return true if all are in running state else return false
+// it will skip the excludedList
+func PodReadyCheckWithExceptionList(namespace string, excludedList []string) (bool, error) {
+	logf.Log.Info("PodReadyCheck", "namespace", namespace, "excludedList", excludedList)
+	return podReadyCheckWithExceptionList(namespace, excludedList)
 }
 
 // list all pods in
@@ -1322,6 +1537,32 @@ func podReadyCheck(namespace string) (bool, error) {
 	}
 	var notRunningpods []string
 	for _, p := range pods.Items {
+		if p.Status.Phase != coreV1.PodRunning {
+			logf.Log.Info("pod not in running state", "pod", p.Name, "namespace", p.Namespace)
+			notRunningpods = append(notRunningpods, p.Name)
+		}
+	}
+	if len(notRunningpods) == 0 {
+		logf.Log.Info("pods not in running state", "pods", notRunningpods, "namespace", namespace)
+		return true, nil
+	}
+	return false, nil
+}
+
+// list all pods in given namespace and return true if all are in running state else return false
+// it will skip the excludedList
+func podReadyCheckWithExceptionList(namespace string, excludedList []string) (bool, error) {
+	pods, err := ListPod(namespace)
+	if err != nil {
+		logf.Log.Error(err, "can't get pods", "namespace", namespace)
+		return false, err
+	}
+	var notRunningpods []string
+	for _, p := range pods.Items {
+		if IsSubstringItemPresentInList(excludedList, p.Name) {
+			logf.Log.Info("Skipping pod ready check", "pod", p.Name, "namespace", namespace)
+			continue
+		}
 		if p.Status.Phase != coreV1.PodRunning {
 			logf.Log.Info("pod not in running state", "pod", p.Name, "namespace", p.Namespace)
 			notRunningpods = append(notRunningpods, p.Name)
@@ -1902,4 +2143,22 @@ func SizeToBytes(capacity string) (uint64, error) {
 	// Calculate bytes
 	bytes := value * multiplier
 	return uint64(bytes), nil
+}
+
+func IsItemPresentInList(list []string, item string) bool {
+	for _, l := range list {
+		if l == item {
+			return true
+		}
+	}
+	return false
+}
+
+func IsSubstringItemPresentInList(list []string, item string) bool {
+	for _, l := range list {
+		if strings.Contains(l, item) {
+			return true
+		}
+	}
+	return false
 }
