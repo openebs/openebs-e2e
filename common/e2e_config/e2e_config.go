@@ -78,6 +78,7 @@ type ProductSpec struct {
 	LoggingLabel                      string            `yaml:"loggingLabel" env-default:"openebs.io/logging"`
 	LogLevel                          string            `yaml:"logLevel" env-default:"debug"`
 	LokiStatefulset                   string            `yaml:"lokiStatefulset" env-default:"mayastor-loki"`
+	MayastorPluginName                string            `yaml:"mayastorPluginName"`
 	MetricsPollingInterval            string            `yaml:"metricsPollingInterval" env-default:"30s"`
 	MongoAuthDatabase                 string            `yaml:"mongoAuthDatabase" env-default:"test"`
 	MongoAuthPassword                 string            `yaml:"mongoAuthPassword" env-default:"admin123"`
