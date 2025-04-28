@@ -62,6 +62,7 @@ product:
     loggingLabel: "openebs.io/logging"
     logLevel: "debug"
     lokiStatefulset: "mayastor-loki"
+    mayastorPluginName: "kubectl-mayastor"
     metricsPollingInterval: "30s"
     mongoAuthDatabase: "test"
     mongoAuthPassword: "admin123"
