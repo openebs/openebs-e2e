@@ -40,6 +40,7 @@ type dfaStatus struct {
 	sessionId      string
 	monitor        *common.E2eFioPodOutputMonitor
 	deploymentName string
+	encryption     bool
 }
 
 type FioApp struct {
@@ -84,6 +85,7 @@ type FioApp struct {
 	PoolHasTopologyKey                  string
 	PoolAffinityTopologyLabel           map[string]string
 	MountReadOnly                       bool
+	Encryption                          bool
 	status                              dfaStatus
 }
 
@@ -451,6 +453,7 @@ func (dfa *FioApp) CreateVolume() error {
 	decoration = strings.ToLower(dfa.Decor) + decoration
 	dfa.status.volName = decoration
 	dfa.status.scName = decoration
+	dfa.status.encryption = dfa.Encryption
 
 	provisioning := common.ThickProvisioning
 	volBindingMode := storageV1.VolumeBindingImmediate
@@ -472,6 +475,7 @@ func (dfa *FioApp) CreateVolume() error {
 		WithVolumeBindingMode(volBindingMode).
 		WithProvisioningType(provisioning).
 		WithMountOptions(dfa.MountOptions).
+		WithEncryption(dfa.Encryption).
 		WithVolumeExpansion(dfa.AllowVolumeExpansion)
 
 	if dfa.VolType == common.VolFileSystem {
@@ -961,4 +965,8 @@ func (dfa *FioApp) ImportVolumeFromApp(srcDfa *FioApp) error {
 	dfa.VolType = srcDfa.VolType
 	dfa.ReplicaCount = srcDfa.ReplicaCount
 	return dfa.ImportVolume(srcDfa.GetVolName())
+}
+
+func (dfa *FioApp) IsVolumeEncrypted() bool {
+	return dfa.status.encryption
 }
