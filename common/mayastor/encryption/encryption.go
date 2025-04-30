@@ -110,14 +110,14 @@ func CreateAesXtsEncryptionSecret(secretName string, namespace string) error {
 func GetEncryptionKeys() []string {
 	keys := make([]string, 0)
 	// Get first key
-	key1, err := GetKeyFromEnv("encryption_key1")
+	key1, err := GetKeyFromEnv("e2e_xts_128_encryption_key1")
 	if err != nil {
 		log.Log.Error(err, "Failed to get first key from env", "key name", key1)
 		return keys
 	}
 	keys = append(keys, key1)
 	// Get second key
-	key2, err := GetKeyFromEnv("encryption_key2")
+	key2, err := GetKeyFromEnv("e2e_xts_128_encryption_key2")
 	if err != nil {
 		log.Log.Error(err, "Failed to get second key from env", "key name", key2)
 		return keys
