@@ -259,9 +259,6 @@ func (b *ScBuilder) WithProvisioningType(provisioningType common.ProvisioningTyp
 	if provisioningType == common.ThinProvisioning {
 		b.sc.object.Parameters[common.ScThinProvisioning] = "true"
 	}
-	if provisioningType == common.ThickProvisioning {
-		b.sc.object.Parameters[common.ScThinProvisioning] = "false"
-	}
 	return b
 }
 
