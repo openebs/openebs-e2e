@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/openebs/openebs-e2e/common"
 	mcpV1 "github.com/openebs/openebs-e2e/common/controlplane/v1"
@@ -17,6 +18,7 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const configMapName = "e2e-diskpools-fqn"
@@ -256,5 +258,37 @@ func CreateDiskPoolsConfiguration() error {
 			log.Log.Info("failed to create config map", "name", cmap.ObjectMeta.Name, "error", err)
 		}
 	}
+	return err
+}
+
+// GetDiskPoolUsage returns pool used size
+func GetDiskPoolUsage(poolName string) (uint64, error) {
+	pool, err := custom_resources.GetMsPool(poolName)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get pool %s, error: %v", poolName, err)
+	}
+	if pool == nil {
+		return 0, fmt.Errorf("pool %s not found", poolName)
+	}
+	return pool.GetStatusUsed(), nil
+}
+
+// WaitForDiskPoolUsageToBeZero waits for the disk pool usage to be zero
+func WaitForDiskPoolUsageToBeZero(poolName string, timeoutsecs int) error {
+	const sleepTime = 5
+	var err error
+	for ix := 1; ix < timeoutsecs/sleepTime; ix++ {
+		time.Sleep(sleepTime * time.Second)
+		var usedSize uint64
+		usedSize, err := GetDiskPoolUsage(poolName)
+		if err != nil {
+			logf.Log.Info("Error in WaitForDiskPoolUsageToBeZero", "poolName", poolName, "error", err)
+		}
+		if usedSize == 0 {
+			logf.Log.Info("WaitForDiskPoolUsageToBeZero", "poolName", poolName, "usedSize", usedSize)
+			break
+		}
+	}
+
 	return err
 }

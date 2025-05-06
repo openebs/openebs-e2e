@@ -73,6 +73,18 @@ func scaleMayastorVolume(uuid string, replicaCount int) error {
 	return nil
 }
 
+func setMsvEncryption(uuid string, encryption bool) error {
+	var err error
+	var jsonInput []byte
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "set", "volume", uuid, "encryption", strconv.FormatBool(encryption))
+	jsonInput, err = cmd.CombinedOutput()
+	err = CheckPluginError(jsonInput, err)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetMayastorVolumeState(volName string) (string, error) {
 	msv, err := getMayastorCpVolume(volName)
 	if err == nil {
@@ -259,6 +271,12 @@ func (cp CPv1) ListRestoredMsvs() ([]common.MayastorVolume, error) {
 func (cp CPv1) SetMsvReplicaCount(uuid string, replicaCount int) error {
 	err := scaleMayastorVolume(uuid, replicaCount)
 	logf.Log.Info("ScaleMayastorVolume", "Num_replicas", replicaCount)
+	return err
+}
+
+func (cp CPv1) SetMsvEncryption(uuid string, encryption bool) error {
+	err := setMsvEncryption(uuid, encryption)
+	logf.Log.Info("SetMsvEncryption", "encryption", encryption)
 	return err
 }
 

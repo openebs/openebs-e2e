@@ -30,6 +30,10 @@ func SetMsvReplicaCount(uuid string, replicaCount int) error {
 	return controlplane.SetMsvReplicaCount(uuid, replicaCount)
 }
 
+func SetMsvEncryption(uuid string, encryption bool) error {
+	return controlplane.SetMsvEncryption(uuid, encryption)
+}
+
 func GetMsvState(uuid string) (string, error) {
 	return controlplane.GetMsvState(uuid)
 }

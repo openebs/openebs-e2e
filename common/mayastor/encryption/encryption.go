@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/openebs/openebs-e2e/common"
+	"github.com/openebs/openebs-e2e/common/controlplane"
 	"github.com/openebs/openebs-e2e/common/custom_resources"
 	"github.com/openebs/openebs-e2e/common/custom_resources/types"
 	"github.com/openebs/openebs-e2e/common/k8stest"
@@ -166,4 +167,36 @@ func GetNodeDiskMapOfPools() (map[string]string, error) {
 		nodeDiskMap[node] = disk[0]
 	}
 	return nodeDiskMap, nil
+}
+
+// IsVolumeReplicasAreOnEncryptedPool checks if all replicas of the volume are on encrypted pools
+// It takes the volume name as input and returns true if all replicas are on encrypted pools
+// It returns an error if the replicas are not found or if any replica is not on an encrypted pool
+func IsVolumeReplicasAreOnEncryptedPool(volumeName string) (bool, error) {
+	replicas, err := k8stest.GetMsvReplicaTopology(volumeName)
+	if err != nil {
+		return false, fmt.Errorf("failed to get replicas for volume %s, error: %v", volumeName, err)
+	}
+	if replicas == nil {
+		return false, fmt.Errorf("replicas not found for volume %s", volumeName)
+	}
+	if len(replicas) == 0 {
+		return false, fmt.Errorf("no replicas found for volume %s", volumeName)
+	}
+	for uuid, replica := range replicas {
+		if !replica.Encrypted {
+			log.Log.Info("Replica is not encrypted", "replica uuid", uuid, "node", replica.Node, "pool", replica.Pool)
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func EnableEncryptionOnVolume(volumeName string) error {
+	// Enable encryption on the volume
+	err := controlplane.SetMsvEncryption(volumeName, true)
+	if err != nil {
+		return fmt.Errorf("failed to enable encryption on volume %s, error: %v", volumeName, err)
+	}
+	return nil
 }
