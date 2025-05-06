@@ -102,6 +102,10 @@ func (cp CPv1RestApi) SetMsvReplicaCount(uuid string, replicaCount int) error {
 	return err
 }
 
+func (cp CPv1RestApi) SetMsvEncryption(uuid string, encryption bool) error {
+	return fmt.Errorf("not implemented")
+}
+
 func (cp CPv1RestApi) GetMsvState(uuid string) (string, error) {
 	vol, err, _ := cp.oa.getVolume(uuid)
 	var volState string

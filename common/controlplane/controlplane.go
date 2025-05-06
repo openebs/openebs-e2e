@@ -44,7 +44,6 @@ type ControlPlaneInterface interface {
 	ReplicaStateFaulted() string
 
 	// MSV abstraction
-
 	GetMSV(uuid string) (*common.MayastorVolume, error)
 	GetMsvNodes(uuid string) (string, []string)
 	CanDeleteMsv() bool
@@ -68,6 +67,7 @@ type ControlPlaneInterface interface {
 	GetMsvMaxSnapshotCount(uuid string) (int32, error)
 	GetMsvDeviceUri(uuid string) (string, error)
 	IsMsvEncrypted(uuid string) bool
+	SetMsvEncryption(uuid string, encryption bool) error
 
 	// Mayastor Node abstraction
 
@@ -253,6 +253,10 @@ func ListRestoredMsvs() ([]common.MayastorVolume, error) {
 
 func SetMsvReplicaCount(uuid string, replicaCount int) error {
 	return getControlPlane().SetMsvReplicaCount(uuid, replicaCount)
+}
+
+func SetMsvEncryption(uuid string, encryption bool) error {
+	return getControlPlane().SetMsvEncryption(uuid, encryption)
 }
 
 func GetMsvState(uuid string) (string, error) {
