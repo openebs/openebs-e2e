@@ -304,7 +304,11 @@ func CheckForTestPods() (bool, error) {
 // isPodHealthCheckCandidate is a filter function for health check on pod,
 func isPodHealthCheckCandidate(podName string, namespace string) bool {
 	if namespace == common.NSMayastor() {
-		return !strings.HasPrefix(podName, "mayastor-etcd")
+		if strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneEtcd) ||
+			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneLoki) ||
+			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneMinio) {
+			return false
+		}
 	}
 	return true
 }

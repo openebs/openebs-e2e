@@ -1363,6 +1363,14 @@ func readyCheck(namespace string, verbose bool) (bool, error) {
 					logf.Log.Info("Skipping etcd statefulset ready check", "name", sts.Name)
 					continue
 				}
+				if e2e_config.GetConfig().Product.ControlPlaneLoki == sts.Name {
+					logf.Log.Info("Skipping Loki statefulset ready check", "name", sts.Name)
+					continue
+				}
+				if e2e_config.GetConfig().Product.ControlPlaneMinio == sts.Name {
+					logf.Log.Info("Skipping Minio statefulset ready check", "name", sts.Name)
+					continue
+				}
 				ready := sts.Status.Replicas == sts.Status.ReadyReplicas && sts.Status.ReadyReplicas == sts.Status.CurrentReplicas && sts.Status.ReadyReplicas != 0
 				if verbose {
 					logf.Log.Info("StatefulSet",
@@ -1586,39 +1594,6 @@ func GetDeploymentReplicaCount(deploymentName string, namespace string) (int32, 
 			err)
 	}
 	return *deployment.Spec.Replicas, err
-}
-
-func SetPromtailTolerations(tolerations []coreV1.Toleration, promtailDsName string, namespace string) error {
-	dsAPI := gTestEnv.KubeInt.AppsV1().DaemonSets
-	var err error
-
-	// this is to cater for a race condition, occasionally seen,
-	// when the deployment is changed between Get and Update
-	for attempts := 0; attempts < 10; attempts++ {
-		ds, err := dsAPI(namespace).Get(context.TODO(), promtailDsName, metaV1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to get daemonset, name: %s, namespace: %s, error: %v",
-				promtailDsName,
-				namespace,
-				err)
-		}
-		ds.Spec.Template.Spec.Tolerations = tolerations
-
-		_, err = dsAPI(namespace).Update(context.TODO(), ds, metaV1.UpdateOptions{})
-		if err == nil {
-			break
-		}
-		logf.Log.Info("Re-trying update attempt due to error", "error", err)
-		time.Sleep(1 * time.Second)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to add node toleration to daemonset, name: %s, namespace: %s, error: %v",
-			promtailDsName,
-			namespace,
-			err)
-	}
-	return nil
 }
 
 // VerifyIoEnginePodDeletionFromNode verify io engine pod removal from node

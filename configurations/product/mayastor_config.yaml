@@ -5,6 +5,8 @@ product:
     controlPlaneCoreAgent: "mayastor-agent-core"
     controlPlaneCsiController: "mayastor-csi-controller"
     controlPlaneEtcd: "mayastor-etcd"
+    controlPlaneLoki: "mayastor-loki"
+    controlPlaneMinio: "mayastor-minio"
     controlPlanePoolOperator: "mayastor-operator-diskpool"
     controlPlaneRestServer: "mayastor-api-rest"
     controlPlaneLocalpvProvisioner: "mayastor-localpv-provisioner"
