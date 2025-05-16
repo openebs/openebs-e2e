@@ -306,7 +306,8 @@ func isPodHealthCheckCandidate(podName string, namespace string) bool {
 	if namespace == common.NSMayastor() {
 		if strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneEtcd) ||
 			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneLoki) ||
-			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneMinio) {
+			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneMinio) ||
+			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneAlloy) {
 			return false
 		}
 	}

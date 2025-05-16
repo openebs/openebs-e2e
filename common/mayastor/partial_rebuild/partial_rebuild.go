@@ -230,7 +230,8 @@ func RescheduleCpAndShutdownNode(cpNode string, faultNode string) (string, error
 	// verify mayastor ready
 	excludeList := []string{e2e_config.GetConfig().Product.ControlPlaneEtcd,
 		e2e_config.GetConfig().Product.ControlPlaneMinio,
-		e2e_config.GetConfig().Product.ControlPlaneLoki}
+		e2e_config.GetConfig().Product.ControlPlaneLoki,
+		e2e_config.GetConfig().Product.ControlPlaneAlloy}
 	ready, err := k8stest.MayastorReadyWithException(2, 360, excludeList)
 	if err != nil {
 		return shutdownNode, err

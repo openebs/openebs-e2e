@@ -1334,6 +1334,14 @@ func readyCheck(namespace string, verbose bool) (bool, error) {
 		daemonsets, dserr := gTestEnv.KubeInt.AppsV1().DaemonSets(namespace).List(context.TODO(), metaV1.ListOptions{})
 		if dserr == nil {
 			for _, ds := range daemonsets.Items {
+				if e2e_config.GetConfig().Product.ControlPlaneAlloy == ds.Name {
+					logf.Log.Info("Skipping Alloy daemonset ready check", "name", ds.Name,
+						"DesiredNumberScheduled", ds.Status.DesiredNumberScheduled,
+						"CurrentNumberScheduled", ds.Status.CurrentNumberScheduled,
+						"NumberAvailable", ds.Status.NumberAvailable,
+					)
+					continue
+				}
 				ready := ds.Status.DesiredNumberScheduled != 0 &&
 					ds.Status.DesiredNumberScheduled == ds.Status.CurrentNumberScheduled &&
 					ds.Status.DesiredNumberScheduled == ds.Status.NumberReady &&
@@ -1360,15 +1368,27 @@ func readyCheck(namespace string, verbose bool) (bool, error) {
 		if stserr == nil {
 			for _, sts := range statefulsets.Items {
 				if e2e_config.GetConfig().Product.ControlPlaneEtcd == sts.Name {
-					logf.Log.Info("Skipping etcd statefulset ready check", "name", sts.Name)
+					logf.Log.Info("Skipping etcd statefulset ready check", "name", sts.Name,
+						"Replicas", sts.Status.Replicas,
+						"ReadyReplicas", sts.Status.ReadyReplicas,
+						"CurrentReplicas", sts.Status.CurrentReplicas,
+					)
 					continue
 				}
 				if e2e_config.GetConfig().Product.ControlPlaneLoki == sts.Name {
-					logf.Log.Info("Skipping Loki statefulset ready check", "name", sts.Name)
+					logf.Log.Info("Skipping Loki statefulset ready check", "name", sts.Name,
+						"Replicas", sts.Status.Replicas,
+						"ReadyReplicas", sts.Status.ReadyReplicas,
+						"CurrentReplicas", sts.Status.CurrentReplicas,
+					)
 					continue
 				}
 				if e2e_config.GetConfig().Product.ControlPlaneMinio == sts.Name {
-					logf.Log.Info("Skipping Minio statefulset ready check", "name", sts.Name)
+					logf.Log.Info("Skipping Minio statefulset ready check", "name", sts.Name,
+						"Replicas", sts.Status.Replicas,
+						"ReadyReplicas", sts.Status.ReadyReplicas,
+						"CurrentReplicas", sts.Status.CurrentReplicas,
+					)
 					continue
 				}
 				ready := sts.Status.Replicas == sts.Status.ReadyReplicas && sts.Status.ReadyReplicas == sts.Status.CurrentReplicas && sts.Status.ReadyReplicas != 0

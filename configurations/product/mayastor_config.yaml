@@ -7,6 +7,7 @@ product:
     controlPlaneEtcd: "mayastor-etcd"
     controlPlaneLoki: "mayastor-loki"
     controlPlaneMinio: "mayastor-minio"
+    controlPlaneAlloy: "mayastor-alloy"
     controlPlanePoolOperator: "mayastor-operator-diskpool"
     controlPlaneRestServer: "mayastor-api-rest"
     controlPlaneLocalpvProvisioner: "mayastor-localpv-provisioner"
