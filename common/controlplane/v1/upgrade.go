@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/openebs/openebs-e2e/common"
+	"github.com/openebs/openebs-e2e/common/e2e_config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -19,6 +21,7 @@ const (
 	SkipReplicaRebuildFlag           upgradeFlags = "--skip-replica-rebuild"
 	SkipCordonNodeValidationFlag     upgradeFlags = "--skip-cordoned-node-validation"
 	AllowUpgradeToUnstableBranchFlag upgradeFlags = "--allow-unstable"
+	SkipUpgradePathValidationFlag    upgradeFlags = "--skip-upgrade-path-validation-for-unsupported-version"
 	DisablePartialRebuild            upgradeFlags = "agents.core.rebuild.partial.enabled=false"
 )
 
@@ -50,7 +53,9 @@ func (cp CPv1) Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeede
 		// for plugin version with rc tag i.e. release candidate
 		// upgrade job images are not present in ci-registry, they are in
 		// docker hub. so for those tags we dont need to add --registry flag.
-		if strings.Contains(pluginVersion, "-rc") {
+		if filepath.Base(kubectlPlugin) != e2e_config.GetConfig().Product.MayastorPluginName {
+			cmdArgs = append(cmdArgs, string(SkipUpgradePathValidationFlag))
+		} else if strings.Contains(pluginVersion, "-rc") {
 			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
 		} else {
 			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
@@ -111,7 +116,9 @@ func (cp CPv1) UpgradeWithSkipDataPlaneRestart(isUpgradingToUnstableBranch, isPa
 		// for plugin version with rc tag i.e. release candidate
 		// upgrade job images are not present in ci-registry, they are in
 		// docker hub. so for those tags we dont need to add --registry flag.
-		if strings.Contains(pluginVersion, "-rc") {
+		if filepath.Base(kubectlPlugin) != e2e_config.GetConfig().Product.MayastorPluginName {
+			cmdArgs = append(cmdArgs, string(SkipUpgradePathValidationFlag))
+		} else if strings.Contains(pluginVersion, "-rc") {
 			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
 		} else {
 			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
@@ -164,7 +171,9 @@ func (cp CPv1) UpgradeWithSkipSingleReplicaValidation(isUpgradingToUnstableBranc
 		// for plugin version with rc tag i.e. release candidate
 		// upgrade job images are not present in ci-registry, they are in
 		// docker hub. so for those tags we dont need to add --registry flag.
-		if strings.Contains(pluginVersion, "-rc") {
+		if filepath.Base(kubectlPlugin) != e2e_config.GetConfig().Product.MayastorPluginName {
+			cmdArgs = append(cmdArgs, string(SkipUpgradePathValidationFlag))
+		} else if strings.Contains(pluginVersion, "-rc") {
 			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
 		} else {
 			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
@@ -216,7 +225,9 @@ func (cp CPv1) UpgradeWithSkipReplicaRebuild(isUpgradingToUnstableBranch, isPart
 		// for plugin version with rc tag i.e. release candidate
 		// upgrade job images are not present in ci-registry, they are in
 		// docker hub. so for those tags we dont need to add --registry flag.
-		if strings.Contains(pluginVersion, "-rc") {
+		if filepath.Base(kubectlPlugin) != e2e_config.GetConfig().Product.MayastorPluginName {
+			cmdArgs = append(cmdArgs, string(SkipUpgradePathValidationFlag))
+		} else if strings.Contains(pluginVersion, "-rc") {
 			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
 		} else {
 			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
@@ -266,7 +277,9 @@ func (cp CPv1) UpgradeWithSkipCordonNodeValidation(isUpgradingToUnstableBranch, 
 		// for plugin version with rc tag i.e. release candidate
 		// upgrade job images are not present in ci-registry, they are in
 		// docker hub. so for those tags we dont need to add --registry flag.
-		if strings.Contains(pluginVersion, "-rc") {
+		if filepath.Base(kubectlPlugin) != e2e_config.GetConfig().Product.MayastorPluginName {
+			cmdArgs = append(cmdArgs, string(SkipUpgradePathValidationFlag))
+		} else if strings.Contains(pluginVersion, "-rc") {
 			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
 		} else {
 			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
@@ -292,13 +305,17 @@ func (cp CPv1) UpgradeWithSkipCordonNodeValidation(isUpgradingToUnstableBranch, 
 
 // This function is for getting status of upgrade
 // Syntax is: `kubectl-mayastor get upgrade-status`
+// For kubectl-openebs: `kubectl-openebs upgrade status -n <>`
 
 func (cp CPv1) GetUpgradeStatus() (string, error) {
 	kubectlPlugin := GetPluginPath()
-
-	cmd := exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "get", "upgrade-status")
+	var cmd *exec.Cmd
+	if filepath.Base(kubectlPlugin) == e2e_config.GetConfig().Product.MayastorPluginName {
+		cmd = exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "get", "upgrade-status")
+	} else {
+		cmd = exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "upgrade", "status")
+	}
 	upgradeStatusInfo, err := cmd.Output()
-
 	if err != nil {
 		return "", fmt.Errorf("plugin failed to get upgrade status, error %v", err)
 	}
@@ -340,9 +357,12 @@ func (cp CPv1) GetToUpgradeVersion() (string, error) {
 
 func (cp CPv1) DeleteUpgrade() error {
 	kubectlPlugin := GetPluginPath()
-
-	cmd := exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "delete", "upgrade")
-
+	var cmd *exec.Cmd
+	if filepath.Base(kubectlPlugin) == e2e_config.GetConfig().Product.MayastorPluginName {
+		cmd = exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "delete", "upgrade")
+	} else {
+		cmd = exec.Command(kubectlPlugin, "upgrade", "-n", common.NSMayastor(), "delete")
+	}
 	_, err := cmd.Output()
 
 	if err != nil {
