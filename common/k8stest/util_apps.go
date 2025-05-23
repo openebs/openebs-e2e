@@ -87,6 +87,7 @@ type FioApp struct {
 	MountReadOnly                       bool
 	Encryption                          bool
 	status                              dfaStatus
+	KeepStorageClass                    bool // If true, don't cleanup storage class during Cleanup(). Default: false
 }
 
 func (dfa *FioApp) DeployApp() error {
@@ -591,7 +592,8 @@ func (dfa *FioApp) Cleanup() error {
 	// Only delete PVC and storage class if they were created by this instance
 	if dfa.status.createdPVC {
 		err = RmPVC(dfa.status.volName, dfa.status.scName, common.NSDefault)
-		if err == nil {
+		if err == nil && !dfa.KeepStorageClass {
+			// Only delete storage class if KeepStorageClass is false (default behavior)
 			err = RmStorageClass(dfa.status.scName)
 		}
 	}

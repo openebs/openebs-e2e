@@ -59,6 +59,7 @@ type FioApplication struct {
 	HostPath                       HostPathOptions
 	status                         FioApplicationStatus
 	SkipPvcVerificationAfterCreate bool
+	KeepStorageClass               bool // If true, don't cleanup storage class during Cleanup(). Default: false
 }
 
 type LvmOptions struct {
@@ -437,8 +438,9 @@ func (dfa *FioApplication) Cleanup() error {
 	// Only delete PVC and storage class if they were created by this instance
 	if dfa.status.createdPVC {
 		err = RemovePVC(dfa.status.pvcName, dfa.status.scName, common.NSDefault, localEngine)
-		if err == nil {
+		if err == nil && !dfa.KeepStorageClass {
 			dfa.status.createdPVC = false
+			// Only delete storage class if KeepStorageClass is false (default behavior)
 			err = RmStorageClass(dfa.status.scName)
 		}
 	}
