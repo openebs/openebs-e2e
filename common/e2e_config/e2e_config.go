@@ -66,6 +66,7 @@ type ProductSpec struct {
 	IOEnginePodName                   string            `yaml:"ioEnginePodName"`
 	JaegersCrdName                    string            `yaml:"jaegersCrdName" env-default:"jaegers.jaegertracing.io"`
 	KubectlPluginName                 string            `yaml:"kubectlPluginName" env-default:"kubectl-mayastor" env:"e2e_kc_plugin"`
+	KubectlOpenebsPluginName          string            `yaml:"kubectlOpenebsPluginName" env-default:"kubectl-openebs"`
 	KubectlPluginPort                 int               `yaml:"kubectlPluginPort" env-default:"30011"`
 	LogConfigResources                []string          `yaml:"logConfigResources"`
 	LogDumpCsiAttacherName            string            `yaml:"logDumpCsiAttacherName" env-default:"csi-attacher"`
@@ -74,6 +75,8 @@ type ProductSpec struct {
 	LogDumpCsiResizerName             string            `yaml:"logDumpCsiResizerName" env-default:"csi-resizer"`
 	LogDumpCsiSnapshotControllerName  string            `yaml:"logDumpCsiSnapshotControllerName" env-default:"csi-snapshot-controller"`
 	LogDumpCsiSnapshotterName         string            `yaml:"logDumpCsiSnapshotterName" env-default:"csi-snapshotter"`
+	LogDumpLokiMetricsName            string            `yaml:"logDumpLokiMetricsName" env-default:"loki-metrics"`
+	LogDumpLokiReloaderName           string            `yaml:"logDumpLokiReloaderName" env-default:"loki-reloader"`
 	LogDumpDirs                       []string          `yaml:"logDumpDirs"`
 	LogDumpEngineLabel                string            `yaml:"logDumpEngineLabel"`
 	LogDumpHaClusterName              string            `yaml:"logDumpHaClusterName"`

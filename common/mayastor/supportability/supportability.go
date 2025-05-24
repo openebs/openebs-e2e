@@ -163,12 +163,18 @@ func GetPodsWithLoggingLabel() ([]coreV1.Pod, error) {
 }
 
 func SystemDump() (string, error) {
-	cmd := v1.GetMayastorPluginCmd("dump", "system", "-n", common.NSMayastor(), "-d", TmpDir)
+	cmd := v1.GetPluginCmd("dump", "system", "-n", common.NSMayastor(), "-d", TmpDir)
 	start := time.Now()
-	logf.Log.Info("Collecting system log dump starts", "namespace", common.NSMayastor(), "start_time", start)
+	logf.Log.Info("Collecting system log dump starts",
+		"namespace", common.NSMayastor(),
+		"command", cmd,
+		"start_time", start)
 	err := cmd.Run()
 	if err != nil {
-		logf.Log.Error(err, "the plugin raises an exception")
+		logf.Log.Info("Error while collecting system log dump starts",
+			"namespace", common.NSMayastor(),
+			"command", cmd,
+			"error", err.Error())
 		return "", err
 	}
 	logf.Log.Info("Collecting system log dump ends", "namespace", common.NSMayastor(), "end_time", time.Now(), "duration", time.Since(start))
