@@ -1334,28 +1334,32 @@ func readyCheck(namespace string, verbose bool) (bool, error) {
 		daemonsets, dserr := gTestEnv.KubeInt.AppsV1().DaemonSets(namespace).List(context.TODO(), metaV1.ListOptions{})
 		if dserr == nil {
 			for _, ds := range daemonsets.Items {
+				var ready bool
 				if e2e_config.GetConfig().Product.ControlPlaneAlloy == ds.Name {
-					logf.Log.Info("Skipping Alloy daemonset ready check", "name", ds.Name,
-						"DesiredNumberScheduled", ds.Status.DesiredNumberScheduled,
-						"CurrentNumberScheduled", ds.Status.CurrentNumberScheduled,
-						"NumberAvailable", ds.Status.NumberAvailable,
-					)
-					continue
-				}
-				ready := ds.Status.DesiredNumberScheduled != 0 &&
-					ds.Status.DesiredNumberScheduled == ds.Status.CurrentNumberScheduled &&
-					ds.Status.DesiredNumberScheduled == ds.Status.NumberReady &&
-					ds.Status.DesiredNumberScheduled == ds.Status.NumberAvailable
-				if verbose {
-					logf.Log.Info("DaemonSet",
-						"ready", ready,
+					logf.Log.Info("Minimum one daemonset should be ready",
 						"name", ds.Name,
 						"DesiredNumberScheduled", ds.Status.DesiredNumberScheduled,
 						"CurrentNumberScheduled", ds.Status.CurrentNumberScheduled,
-						"NumberReady", ds.Status.NumberReady,
 						"NumberAvailable", ds.Status.NumberAvailable,
 					)
+					ready = ds.Status.DesiredNumberScheduled != 0 && ds.Status.NumberReady != 0 && ds.Status.NumberAvailable != 0
+				} else {
+					ready = ds.Status.DesiredNumberScheduled != 0 &&
+						ds.Status.DesiredNumberScheduled == ds.Status.CurrentNumberScheduled &&
+						ds.Status.DesiredNumberScheduled == ds.Status.NumberReady &&
+						ds.Status.DesiredNumberScheduled == ds.Status.NumberAvailable
+					if verbose {
+						logf.Log.Info("DaemonSet",
+							"ready", ready,
+							"name", ds.Name,
+							"DesiredNumberScheduled", ds.Status.DesiredNumberScheduled,
+							"CurrentNumberScheduled", ds.Status.CurrentNumberScheduled,
+							"NumberReady", ds.Status.NumberReady,
+							"NumberAvailable", ds.Status.NumberAvailable,
+						)
+					}
 				}
+
 				allReady = allReady && ready
 			}
 		} else {
@@ -1367,39 +1371,29 @@ func readyCheck(namespace string, verbose bool) (bool, error) {
 		statefulsets, stserr := gTestEnv.KubeInt.AppsV1().StatefulSets(namespace).List(context.TODO(), metaV1.ListOptions{})
 		if stserr == nil {
 			for _, sts := range statefulsets.Items {
-				if e2e_config.GetConfig().Product.ControlPlaneEtcd == sts.Name {
-					logf.Log.Info("Skipping etcd statefulset ready check", "name", sts.Name,
-						"Replicas", sts.Status.Replicas,
-						"ReadyReplicas", sts.Status.ReadyReplicas,
-						"CurrentReplicas", sts.Status.CurrentReplicas,
-					)
-					continue
-				}
-				if e2e_config.GetConfig().Product.ControlPlaneLoki == sts.Name {
-					logf.Log.Info("Skipping Loki statefulset ready check", "name", sts.Name,
-						"Replicas", sts.Status.Replicas,
-						"ReadyReplicas", sts.Status.ReadyReplicas,
-						"CurrentReplicas", sts.Status.CurrentReplicas,
-					)
-					continue
-				}
-				if e2e_config.GetConfig().Product.ControlPlaneMinio == sts.Name {
-					logf.Log.Info("Skipping Minio statefulset ready check", "name", sts.Name,
-						"Replicas", sts.Status.Replicas,
-						"ReadyReplicas", sts.Status.ReadyReplicas,
-						"CurrentReplicas", sts.Status.CurrentReplicas,
-					)
-					continue
-				}
-				ready := sts.Status.Replicas == sts.Status.ReadyReplicas && sts.Status.ReadyReplicas == sts.Status.CurrentReplicas && sts.Status.ReadyReplicas != 0
-				if verbose {
-					logf.Log.Info("StatefulSet",
-						"ready", ready,
+				var ready bool
+				if e2e_config.GetConfig().Product.ControlPlaneEtcd == sts.Name ||
+					e2e_config.GetConfig().Product.ControlPlaneLoki == sts.Name ||
+					e2e_config.GetConfig().Product.ControlPlaneMinio == sts.Name ||
+					e2e_config.GetConfig().Product.EventBusNatsSts == sts.Name {
+					logf.Log.Info("Minimum one replica of statefulset ready should be ready",
 						"name", sts.Name,
 						"Replicas", sts.Status.Replicas,
 						"ReadyReplicas", sts.Status.ReadyReplicas,
 						"CurrentReplicas", sts.Status.CurrentReplicas,
 					)
+					ready = sts.Status.CurrentReplicas != 0 && sts.Status.ReadyReplicas != 0
+				} else {
+					ready = sts.Status.Replicas == sts.Status.ReadyReplicas && sts.Status.ReadyReplicas == sts.Status.CurrentReplicas && sts.Status.ReadyReplicas != 0
+					if verbose {
+						logf.Log.Info("StatefulSet",
+							"ready", ready,
+							"name", sts.Name,
+							"Replicas", sts.Status.Replicas,
+							"ReadyReplicas", sts.Status.ReadyReplicas,
+							"CurrentReplicas", sts.Status.CurrentReplicas,
+						)
+					}
 				}
 				allReady = allReady && ready
 			}
