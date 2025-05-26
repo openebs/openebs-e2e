@@ -307,7 +307,8 @@ func isPodHealthCheckCandidate(podName string, namespace string) bool {
 		if strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneEtcd) ||
 			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneLoki) ||
 			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneMinio) ||
-			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneAlloy) {
+			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneAlloy) ||
+			strings.HasPrefix(podName, e2e_config.GetConfig().Product.EventBusNatsSts) {
 			return false
 		}
 	}
