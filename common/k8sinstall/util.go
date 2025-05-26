@@ -51,6 +51,8 @@ func installTheProduct() error {
 		"-n",
 		common.NSOpenEBS(),
 		e2eCfg.Product.OpenEBSHelmChartName,
+		"--version",
+		e2eCfg.Product.OpenEBSHelmChartVersion,
 	}
 
 	// Remove the existing Helm repository before adding it back again.
@@ -94,6 +96,15 @@ func installTheProduct() error {
 func installOpenebs(namespace string, cmdArgs []string) error {
 	e2eCfg := e2e_config.GetConfig()
 
+	// get worker node
+	workerNodes, err := k8stest.ListWorkerNode()
+	if err != nil {
+		return fmt.Errorf("failed to list worker nodes: %v", err)
+	}
+	if len(workerNodes) == 0 {
+		return fmt.Errorf("no worker nodes found in the cluster")
+	}
+
 	cmdArgs = append(cmdArgs,
 		"--set",
 		fmt.Sprintf("engines.replicated.mayastor.enabled=%v", e2eCfg.ReplicatedEngine),
@@ -103,6 +114,8 @@ func installOpenebs(namespace string, cmdArgs []string) error {
 		"zfs-localpv.analytics.enabled=false",
 		"--set",
 		"localpv-provisioner.analytics.enabled=false",
+		"--set",
+		fmt.Sprintf("loki.singleBinary.replicas=%d", len(workerNodes)),
 	)
 
 	if e2eCfg.ImagePullPolicy != "" {
