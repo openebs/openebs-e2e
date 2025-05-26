@@ -34,7 +34,7 @@ const (
 
 const (
 	VolSizeMb                        = 8192 // in Mb
-	DefTimeoutSecs                   = 180  // in seconds
+	DefTimeoutSecs                   = 300  // in seconds
 	WaitForRebuildTriggerTimeoutSecs = 60   // in seconds
 	UpgradeJobCompeletionTimeOutSecs = 1800 // in seconds
 	DefRebuildTimeoutSecs            = 600  // in seconds
@@ -66,9 +66,11 @@ func CalculateNoOfFioRunLoops(VolSizeMb int) int {
 }
 
 var (
-	UpgradingControlPlane string = " Upgrading " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName) + " control-plane"
-	UpgradingDataPlane    string = " Upgrading " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName) + " data-plane"
-	UpgradeCompleted      string = " Successfully upgraded " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName)
+	UpgradingControlPlane        string = " Upgrading " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName) + " control-plane"
+	UpgradingDataPlane           string = " Upgrading " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName) + " data-plane"
+	UpgradingDataPlaneForOpenEBS string = " Upgrading data-plane"
+	UpgradeCompleted             string = " Successfully upgraded " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName)
+	UpgradeSuccessful            string = " Upgrade successful"
 )
 
 var MSDeployment = []string{
@@ -330,7 +332,7 @@ func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
 		pluginVersion = strings.TrimSpace(pluginVersion)
 		logf.Log.Info("kubectl", "plugin", filepath.Base(binPath), "version", pluginVersion)
 
-		tagRegexForDevelopBranch := `v?[0-9]+\.[0-9]+\.[0-9]+\+[0-9]+`
+		tagRegexForDevelopBranch := `v?[0-9]+\.[0-9]+\.[0-9]+-develop`
 		tagRegexForReleaseBranch := `v?[0-9]+\.[0-9]+\.[0-9]+\+0`
 
 		// Create a regular expression object for the plugin version format regex for develop branch

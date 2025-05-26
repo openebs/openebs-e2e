@@ -35,6 +35,9 @@ type ProductSpec struct {
 	ControlPlaneCoreAgent             string            `yaml:"controlPlaneCoreAgent" env-default:"agent-core"`
 	ControlPlaneCsiController         string            `yaml:"controlPlaneCsiController" env-default:"csi-controller"`
 	ControlPlaneEtcd                  string            `yaml:"controlPlaneEtcd" env-default:"mayastor-etcd"`
+	ControlPlaneLoki                  string            `yaml:"controlPlaneLoki" env-default:"mayastor-loki"`
+	ControlPlaneMinio                 string            `yaml:"controlPlaneMinio" env-default:"mayastor-minio"`
+	ControlPlaneAlloy                 string            `yaml:"controlPlaneAlloy" env-default:"mayastor-alloy"`
 	ControlPlanePoolOperator          string            `yaml:"controlPlanePoolOperator" env-default:"msp-operator"`
 	ControlPlaneRestServer            string            `yaml:"controlPlaneRestServer" env-default:"rest"`
 	ControlPlaneLocalpvProvisioner    string            `yaml:"controlPlaneLocalpvProvisioner" env-default:"mayastor-localpv-provisioner"`
