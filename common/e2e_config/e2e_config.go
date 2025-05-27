@@ -92,6 +92,7 @@ type ProductSpec struct {
 	OpenEBSHelmChartName              string            `yaml:"openEBSHelmChartName"`
 	OpenEBSHelmRepoName               string            `yaml:"openEBSHelmRepoName"`
 	OpenEBSHelmRepoUrl                string            `yaml:"openEBSHelmRepoUrl"`
+	OpenEBSHelmChartVersion           string            `yaml:"openEBSHelmChartVersion"`
 	MongoHelmRepo                     string            `yaml:"mongoHelmRepo" env-default:"bitnami/mongodb"`
 	MongoHelmRepoName                 string            `yaml:"mongoHelmRepoName" env-default:"bitnami"`
 	MongoHelmRepoUrl                  string            `yaml:"mongoHelmRepoUrl" env-default:"https://charts.bitnami.com/bitnami"`
