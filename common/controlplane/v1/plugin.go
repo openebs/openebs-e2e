@@ -78,3 +78,18 @@ func GetMayastorPluginCmd(arg ...string) *exec.Cmd {
 	}
 	return exec.Command(binPath, arg...)
 }
+
+// GetPluginCmd return an exec cmd object
+func GetPluginCmd(arg ...string) *exec.Cmd {
+	binPath := GetPluginPath()
+	return exec.Command(binPath, arg...)
+}
+
+// GetPluginName return the name of the plugin
+func GetPluginName() string {
+	binPath := GetPluginPath()
+	if filepath.Base(binPath) == e2e_config.GetConfig().Product.KubectlPluginName {
+		return e2e_config.GetConfig().Product.KubectlPluginName
+	}
+	return e2e_config.GetConfig().Product.KubectlOpenebsPluginName
+}
