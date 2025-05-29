@@ -164,4 +164,7 @@ product:
     zfsEngineControllerDeploymentName: "openebs-zfs-localpv-controller"
     zfsEngineLeaseName: "external-resizer-zfs-csi-openebs-io"
     mayastorCsiControllerLogLevel: "trace"
+    lokiIngesterChunkIdlePeriodTime: "30s"
+    lokiIngesterChunkRetainPeriodTime: "15s"
+    lokiIngesterMaxChunkAgeTime: "150s"
 
