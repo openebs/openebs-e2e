@@ -27,9 +27,10 @@ import (
 type userPromptMessages string
 
 const (
-	RebuildWarning                 userPromptMessages = "The cluster is rebuilding replica of some volumes"
-	SkipSingleReplicaVolumeWarning userPromptMessages = "These single replica volumes may not be accessible during upgrade"
-	CordonedNodeWarning            userPromptMessages = "One or more nodes in this cluster are in a Mayastor cordoned state"
+	RebuildWarning                           userPromptMessages = "The cluster is rebuilding replica of some volumes"
+	SkipSingleReplicaVolumeWarning           userPromptMessages = "These single replica volumes may not be accessible during upgrade"
+	SkipSingleReplicaVolumeWarningForOpenEBS userPromptMessages = "These single-replica volumes may not be accessible during upgrade"
+	CordonedNodeWarning                      userPromptMessages = "One or more nodes in this cluster are in a Mayastor cordoned state"
 )
 
 const (
