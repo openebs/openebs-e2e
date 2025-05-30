@@ -336,8 +336,12 @@ func (cp CPv1) GetUpgradeStatus() (string, error) {
 
 func (cp CPv1) GetToUpgradeVersion() (string, error) {
 	kubectlPlugin := GetPluginPath()
-
-	cmd := exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "get", "upgrade-status")
+	var cmd *exec.Cmd
+	if filepath.Base(kubectlPlugin) == e2e_config.GetConfig().Product.MayastorPluginName {
+		cmd = exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "get", "upgrade-status")
+	} else {
+		cmd = exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "upgrade", "status")
+	}
 	toUpgradeVersionInfo, err := cmd.Output()
 
 	if err != nil {
