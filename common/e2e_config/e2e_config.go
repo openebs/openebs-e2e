@@ -217,7 +217,7 @@ type E2EConfig struct {
 	ImageTag                     string `yaml:"imageTag" env:"e2e_image_tag"`
 	ImagePullPolicy              string `yaml:"imagePullPolicy" env-default:"IfNotPresent" env:"e2e_image_pull_policy"`
 	InstallLoki                  bool   `yaml:"installLoki" env-default:"true" env:"install_loki"`
-	InstallHaModeEtcd            bool   `yaml:"installHaModeEtcd" env-default:"true" env:"e2e_etcd_ha_mode"`
+	InstallNonHaModeEtcd         bool   `yaml:"installNonHaModeEtcd" env-default:"false" env:"e2e_single_replica_master_node_etcd"`
 	LokiStatefulsetOnControlNode bool   `yaml:"lokiOnControlNode" env-default:"true" env:"loki_on_control_node"`
 	E2eFioImage                  string `yaml:"e2eFioImage" env-default:"openebs/e2e-fio:v3.38-e2e-1" env:"e2e_fio_image"`
 	SetSafeMountAlways           bool   `yaml:"setSafeMountAlways" env-default:"false" env:"safe_mount_always"`
