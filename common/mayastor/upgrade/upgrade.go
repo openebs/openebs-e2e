@@ -281,7 +281,7 @@ func DeleteUpgradeResources() error {
 	logf.Log.Info("Delete the upgrade pod which was created by the upgrade job")
 	upgradePodLabel := "app=" + e2e_config.GetConfig().Product.UpgradePodLabelValue
 	err = k8stest.DeletePodsByLabel(upgradePodLabel, common.NSMayastor())
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "not found") {
 		return fmt.Errorf("failed to delete upgrade pod, err:%v", err)
 	}
 
