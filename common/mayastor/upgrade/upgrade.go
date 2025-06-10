@@ -334,6 +334,8 @@ func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
 		logf.Log.Info("kubectl", "plugin", filepath.Base(binPath), "version", pluginVersion)
 
 		tagRegexForDevelopBranch := `v?[0-9]+\.[0-9]+\.[0-9]+-develop`
+		tagRegexForPreReleaseTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+-prerelease`
+		tagRegexForReleaseCandidateTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+`
 		tagRegexForReleaseBranch := `v?[0-9]+\.[0-9]+\.[0-9]+\+0`
 
 		// Create a regular expression object for the plugin version format regex for develop branch
@@ -348,10 +350,22 @@ func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
 
+		// Create a regular expression object for the plugin version format regex for pre release testing
+		pluginRegexPreReleaseTesting, err := regexp.Compile(tagRegexForPreReleaseTesting)
+		if err != nil {
+			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
+		}
+
+		// Create a regular expression object for the plugin version format regex for release candidate testing
+		pluginRegexReleaseCandidateTesting, err := regexp.Compile(tagRegexForReleaseCandidateTesting)
+		if err != nil {
+			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
+		}
+
 		// Match plugin version with regular expressions
 		// for develop branch and pre-release testing, version should be
 		// considered as unstable and will need --allow-unstable flag
-		if pluginRegexDevelopBranch.MatchString(pluginVersion) {
+		if pluginRegexDevelopBranch.MatchString(pluginVersion) || pluginRegexPreReleaseTesting.MatchString(pluginVersion) || pluginRegexReleaseCandidateTesting.MatchString(pluginVersion) {
 			return pluginVersion, true, nil
 		}
 
