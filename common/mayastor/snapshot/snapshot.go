@@ -23,6 +23,8 @@ var (
 	PreConditionFailedErrorSubstring         = "412 Precondition Failed"
 	PreConditionFailedFsfreezeErrorSubstring = "Preflight check for fsfreeze failed, nvmf subsystem not in desired state"
 	DefCpTimeoutSecs                         = 60 // in seconds, timeout value used for snapshot verification via control plane
+	annotationsDeleteSleepSeconds            = 5
+	notFoundString                           = "not found"
 )
 
 // CreateVolumeSnapshot create snapshot class and snapshot
@@ -275,6 +277,7 @@ func RemoveFailedSnapshot(snapshotName string, snapshotContentName string, names
 	}
 
 	logf.Log.Info("Waiting for Snapshot to be deleted", "snapshot", snapshotName)
+
 	// Wait for the Volume Snapshot content annotations
 	logf.Log.Info("Verify volume snapshot content annotation")
 	var err error
@@ -292,10 +295,30 @@ func RemoveFailedSnapshot(snapshotName string, snapshotContentName string, names
 	} else if len(annotations) != 2 {
 		return fmt.Errorf("more then two annotations exist on snapshot content , snapshot content: %s, annotations: %s", snapshotContentName, annotations)
 	}
+	logf.Log.Info("Snapshot content annotations", "snapshot content name", snapshotContentName, "annotations", annotations)
 
-	// remove volume snapshot content annotations
-	logf.Log.Info("Delete volume snapshot content annotation")
-	err = k8stest.RemoveSnapshotContentAnnotation(snapshotContentName)
+	for ix := 0; ix < DefCpTimeoutSecs/annotationsDeleteSleepSeconds; ix++ {
+		vsc, err := k8stest.GetSnapshotContent(snapshotContentName)
+		if err != nil && strings.Contains(err.Error(), notFoundString) {
+			logf.Log.Info("Volume Snapshot Content not found", "snapshot content", snapshotContentName, "error", err)
+			break
+		} else if err != nil {
+			logf.Log.Info("Failed to get Volume Snapshot Content", "snapshot content", snapshotContentName, "error", err)
+		} else if vsc == nil {
+			break
+		} else if vsc.Annotations == nil {
+			break
+		} else {
+			logf.Log.Info("Remove snapshot content annotations for ", "snapshot content name", snapshotContentName, "annotations", vsc.Annotations)
+			// remove volume snapshot content annotations
+			logf.Log.Info("Remove volume snapshot content annotation")
+			err = k8stest.RemoveSnapshotContentAnnotation(snapshotContentName)
+			if err != nil {
+				logf.Log.Error(err, "Failed to remove snapshot content annotation for ", "snapshot content name", snapshotContentName)
+			}
+		}
+		time.Sleep(time.Duration(annotationsDeleteSleepSeconds) * time.Second)
+	}
 
 	// Wait for the Volume Snapshot to be deleted.
 	logf.Log.Info("Wait for volume snapshot to be deleted")
