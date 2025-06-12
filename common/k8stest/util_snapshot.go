@@ -507,7 +507,10 @@ func GetSnapshotCpReplicaSnapshots(snapshotUid string, volUuid string) ([]common
 func RemoveSnapshotContentAnnotation(snapshotContentName string) error {
 	snapshotContentAPI := gTestEnv.CsiInt.SnapshotV1().VolumeSnapshotContents
 	snapshotContent, getErr := snapshotContentAPI().Get(context.TODO(), snapshotContentName, metaV1.GetOptions{})
-	if getErr != nil {
+	if getErr != nil && k8serrors.IsNotFound(getErr) {
+		logf.Log.Info("Snapshot content not found", "snapshotContentName", snapshotContentName, "Error", getErr)
+		return nil
+	} else if getErr != nil {
 		return fmt.Errorf("failed to get snapshot content: %s, error: %v", snapshotContentName, getErr)
 	}
 	if len(snapshotContent.Annotations) == 0 {
