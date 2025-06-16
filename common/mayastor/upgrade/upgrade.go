@@ -502,7 +502,8 @@ func CheckIfDiskPoolCRDVersionUpgraded(pluginVersion string, isUpgradingToUnstab
 	isDiskPoolCRDUpgraded := false
 	for _, ver := range crdVersions {
 		ver = crdGroupName + "/" + ver
-		if ver == expectedAPIVersion {
+		logf.Log.Info("comparing with diskpool crd version", "ver", ver)
+		if strings.TrimSpace(ver) == strings.TrimSpace(expectedAPIVersion) {
 			isDiskPoolCRDUpgraded = true
 			break
 		}
