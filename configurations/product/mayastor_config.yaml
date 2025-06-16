@@ -134,6 +134,7 @@ product:
       2.7.4: "openebs.io/v1beta2"
       2.8.0: "openebs.io/v1beta2"
       2.9.0: "openebs.io/v1beta3"
+      4.3.0: "openebs.io/v1beta3"
     chartName: "mayastor"
     chartVersion: "0.0.0-main"
     localPVContainerName: "mayastor-localpv-provisioner"
