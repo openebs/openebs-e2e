@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
@@ -208,8 +209,16 @@ func DiskPartition(serverAddr string, cmd string) error {
 	data := CmdList{
 		Cmd: cmd,
 	}
-	logf.Log.Info("Executing parted", "addr", serverAddr, "data", data)
-	return sendRequest("POST", url, data)
+	var err error
+	for retries := 0; retries < 3; retries++ {
+		logf.Log.Info("Executing parted", "addr", serverAddr, "data", data)
+		err = sendRequest("POST", url, data)
+		if err == nil {
+			return nil
+		}
+		time.Sleep(60 * time.Second) // wait before retrying
+	}
+	return err
 }
 
 // CreateFaultyDevice creates a device which returns an error on write IOs
