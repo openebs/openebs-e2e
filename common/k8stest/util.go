@@ -1110,7 +1110,7 @@ func GenerateSupportBundle(testLogDir string) {
 		logf.Log.Info("command failed", "error", err)
 		logf.Log.Info(out.String())
 	}
-	cmd = mcpV1.GetMayastorPluginCmd("dump", "system", "-n", common.NSMayastor(), "-d", testLogDir)
+	cmd = mcpV1.GetPluginCmd("dump", "system", "-n", common.NSMayastor(), "-d", testLogDir)
 	logf.Log.Info("About to execute", "command", cmd)
 	err = cmd.Run()
 	if err != nil {
