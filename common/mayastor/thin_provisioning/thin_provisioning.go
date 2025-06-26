@@ -19,9 +19,10 @@ import (
 )
 
 const (
-	DefTimeoutSecs     = 600
-	RebuildTimeoutSecs = 120
-	DefPoolCommitment  = 2.2
+	DefTimeoutSecs            = 600
+	RebuildTimeoutSecs        = 120
+	DefPoolCommitment         = 2.2
+	podDeletionTimeoutSeconds = 90
 )
 
 func GetPools() []common.MayastorPool {
@@ -144,8 +145,16 @@ func CreateAndRunSizedFio(uuid string, sizeMiB int, volName string, expectError 
 		Expect(phase == coreV1.PodSucceeded).To(BeTrue(), "fio pod phase is %s, %s", phase, podLogSynopsis)
 		logf.Log.Info("fio completed", "duration", tSecs)
 	}
+
+	logf.Log.Info("delete fio pod", "name", fioPodName)
 	err = k8stest.DeletePod(fioPodName, common.NSDefault)
 	Expect(err).ToNot(HaveOccurred())
+
+	// wait for the pod to be deleted
+	logf.Log.Info("Waiting for pod deletion", "name", fioPodName, "timeout", podDeletionTimeoutSeconds)
+	isPodDeleted, err := k8stest.WaitForPodDeletion(fioPodName, common.NSDefault, podDeletionTimeoutSeconds*time.Second)
+	Expect(err).ToNot(HaveOccurred(), "Error waiting for pod deletion: %s", err)
+	Expect(isPodDeleted).To(BeTrue(), "Pod %s was not deleted in %d second", fioPodName, podDeletionTimeoutSeconds)
 }
 
 func CreateAndRunRunningFio(sizeMiB int, volName string) *coreV1.Pod {
