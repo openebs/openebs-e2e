@@ -471,3 +471,15 @@ func (b *ScBuilder) WithZfsPoolName(value string) *ScBuilder {
 	b.sc.object.Parameters[string(common.ScZfsPoolName)] = value
 	return b
 }
+
+// WithZfsQuotaType sets the quotatype parameter of storageclass to given argument.
+func (b *ScBuilder) WithZfsQuotaType(value string) *ScBuilder {
+	if value == "" {
+		return b // Don't set parameter if value is empty
+	}
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[string(common.ScZfsQuotaType)] = value
+	return b
+}

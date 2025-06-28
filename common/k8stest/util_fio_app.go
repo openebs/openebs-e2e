@@ -80,6 +80,7 @@ type ZfsOptions struct {
 	ThinProvision     common.YesNoVal
 	VolBlockSize      string
 	Shared            common.YesNoVal
+	QuotaType         string
 }
 
 type HostPathOptions struct {
@@ -380,6 +381,10 @@ func (dfa *FioApplication) CreateSc() error {
 		}
 		if dfa.Zfs.DedUp.String() != "" {
 			scBuilder = scBuilder.WithZfsDeDUp(dfa.Zfs.DedUp.String())
+		}
+		// Add quota type support - only set if not empty
+		if dfa.Zfs.QuotaType != "" {
+			scBuilder = scBuilder.WithZfsQuotaType(dfa.Zfs.QuotaType)
 		}
 
 	} else if dfa.OpenEbsEngine == common.Hostpath {
