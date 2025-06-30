@@ -60,6 +60,7 @@ const ScZfsThinProvision = "thinProvision"
 const ScZfsDeDup = "dedup"
 const ScZfsPoolName = "poolname"
 const ScZfsVolBlockSize = "volblocksize"
+const ScZfsQuotaType = "quotatype"
 
 //  These variables match the settings used in fsx pod definition
 
