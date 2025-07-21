@@ -5,5 +5,4 @@ meta:
   include:
     - common
 testsuites:
-  - lvm_volume_provisioning
-  - lvm_shared_mount
+  - lvm_thin_volume_resize

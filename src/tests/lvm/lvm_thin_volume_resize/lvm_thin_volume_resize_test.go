@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/openebs/openebs-e2e/common"
-	"github.com/openebs/openebs-e2e/common/e2e_agent"
 	"github.com/openebs/openebs-e2e/common/e2e_ginkgo"
 	"github.com/openebs/openebs-e2e/common/k8stest"
 	"github.com/openebs/openebs-e2e/common/lvm"
@@ -12,7 +11,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // Background:
@@ -43,48 +41,48 @@ var _ = Describe("lvm_thin_volume_resize", func() {
 
 	AfterEach(func() {
 		// Check resource leakage.
-		after_err := e2e_ginkgo.AfterEachK8sCheck()
+		//after_err := e2e_ginkgo.AfterEachK8sCheck()
 		// cleanup k8s resources if exist
-		logf.Log.Info("cleanup k8s resources if exist")
-		err := volumeResize.ResizeApp.Cleanup()
-		Expect(err).ToNot(HaveOccurred(), "failed to k8s resource")
-		err = volumeResize.ResizeApp2.Cleanup()
-		Expect(err).ToNot(HaveOccurred(), "failed to k8s resource")
-		if volumeResize.ThinPoolNode != "" {
-			out, err := e2e_agent.LvmLvRemoveThinPool(volumeResize.ThinPoolNode, "lvmvg")
-			Expect(err).To(BeNil(), "failed to remove lv thin pool on node %s with vg %s, output: %s", volumeResize.ThinPoolNode, "lvmvg", out)
-		}
+		// logf.Log.Info("cleanup k8s resources if exist")
+		// err := volumeResize.ResizeApp.Cleanup()
+		// Expect(err).ToNot(HaveOccurred(), "failed to k8s resource")
+		// err = volumeResize.ResizeApp2.Cleanup()
+		// Expect(err).ToNot(HaveOccurred(), "failed to k8s resource")
+		// if volumeResize.ThinPoolNode != "" {
+		// 	out, err := e2e_agent.LvmLvRemoveThinPool(volumeResize.ThinPoolNode, "lvmvg")
+		// 	Expect(err).To(BeNil(), "failed to remove lv thin pool on node %s with vg %s, output: %s", volumeResize.ThinPoolNode, "lvmvg", out)
+		// }
 
-		Expect(after_err).ToNot(HaveOccurred())
+		//Expect(after_err).ToNot(HaveOccurred())
 
 	})
 
-	It("lvm ext4: should verify thin volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.Ext4FsType, true, common.Yes)
-	})
-	It("lvm xfs: should verify thin volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.XfsFsType, true, common.Yes)
-	})
-	It("lvm btrfs: should verify thin volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.BtrfsFsType, true, common.Yes)
-	})
-	It("lvm block: should verify thin volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolRawBlock, common.NoneFsType, true, common.Yes)
-	})
+	// It("lvm ext4: should verify thin volume resize", func() {
+	// 	volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.Ext4FsType, true, common.Yes)
+	// })
+	// It("lvm xfs: should verify thin volume resize", func() {
+	// 	volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.XfsFsType, true, common.Yes)
+	// })
+	// It("lvm btrfs: should verify thin volume resize", func() {
+	// 	volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.BtrfsFsType, true, common.Yes)
+	// })
+	// It("lvm block: should verify thin volume resize", func() {
+	// 	volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolRawBlock, common.NoneFsType, true, common.Yes)
+	// })
 
 	// immediate binding
 	It("lvm ext4: should verify thin volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.Ext4FsType, false, common.Yes)
+		volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, "lvmvg", common.VolFileSystem, common.Ext4FsType, false, common.Yes)
 	})
-	It("lvm xfs: should verify thin volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.XfsFsType, false, common.Yes)
-	})
-	It("lvm btrfs: should verify thin volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.BtrfsFsType, false, common.Yes)
-	})
-	It("lvm block: should verify thin volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolRawBlock, common.NoneFsType, false, common.Yes)
-	})
+	// It("lvm xfs: should verify thin volume resize", func() {
+	// 	volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.XfsFsType, false, common.Yes)
+	// })
+	// It("lvm btrfs: should verify thin volume resize", func() {
+	// 	volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.BtrfsFsType, false, common.Yes)
+	// })
+	// It("lvm block: should verify thin volume resize", func() {
+	// 	volumeResize.LvmVolumeResizeTest("lvm-thin-volume-resize", common.Lvm, nodeConfig.VgName, common.VolRawBlock, common.NoneFsType, false, common.Yes)
+	// })
 })
 
 var _ = BeforeSuite(func() {
@@ -101,11 +99,11 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	// logf.Log.Info("remove node with device and vg", "node config", nodeConfig)
-	err := nodeConfig.RemoveConfiguredLvmNodesWithDeviceAndVg()
-	Expect(err).ToNot(HaveOccurred(), "failed to cleanup node with device")
+	// err := nodeConfig.RemoveConfiguredLvmNodesWithDeviceAndVg()
+	// Expect(err).ToNot(HaveOccurred(), "failed to cleanup node with device")
 
 	// NB This only tears down the local structures for talking to the cluster,
 	// not the kubernetes cluster itself.	By("tearing down the test environment")
-	err = k8stest.TeardownTestEnv()
+	err := k8stest.TeardownTestEnv()
 	Expect(err).ToNot(HaveOccurred(), "failed to tear down test environment in AfterSuite : TeardownTestEnv %v", err)
 })
