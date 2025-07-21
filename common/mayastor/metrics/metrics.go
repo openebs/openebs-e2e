@@ -161,9 +161,12 @@ func installPrometheus(namespace string) error {
 }
 
 func postInstallationSteps() error {
-	err := CheckBoltInstallReady()
+	isReady, err := k8stest.MayastorReady(2, 540)
 	if err != nil {
-		return fmt.Errorf("prometheus/product deployment not in ready state, error: %v", err)
+		return fmt.Errorf("failed to check prometheus/product deployment ready state, error: %v", err)
+	}
+	if !isReady {
+		return fmt.Errorf("prometheus/product deployment not in ready state")
 	}
 
 	configDir := locations.GetE2EServiceMonitorPath()
@@ -260,12 +263,6 @@ func postUnInstallationSteps() error {
 	if err != nil {
 		return fmt.Errorf("failed to delete service monitor, error: %v", err)
 	}
-
-	// err = k8sinstall.RollbackBoltHelmRelease()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to rollback helm release, error: %v", err)
-	// }
-
 	return nil
 }
 
@@ -289,23 +286,6 @@ func DeleteServiceMonitorYaml(filename string, dir string, namespace string) err
 		return fmt.Errorf("failed to delete yaml file %s : Output: %s : Error: %v", filename, out, err)
 	}
 	return nil
-}
-
-func CheckBoltInstallReady() error {
-	ready, err := k8stest.MayastorReady(2, 540)
-	if err != nil {
-		return err
-	}
-	if !ready {
-		return fmt.Errorf("prometheus installation is not ready")
-	}
-
-	ready = k8stest.ControlPlaneReady(10, 180)
-	if !ready {
-		return fmt.Errorf("control plane installation is not ready")
-	}
-
-	return err
 }
 
 func VerifyResourceMetricGeneration(resourceCount int, node []string, metricsQuery string, sleepTime int, duration int) (bool, error) {
@@ -594,12 +574,14 @@ func MetricsTestTeardown() error {
 		return fmt.Errorf("failed in post prometheus uninstall steps, error %v", err)
 	}
 
-	err = CheckBoltInstallReady()
+	isReady, err := k8stest.MayastorReady(2, 540)
 	if err != nil {
-		return fmt.Errorf("product deployment not in ready state, error %v", err)
+		return fmt.Errorf("failed to check product deployment ready state, error: %v", err)
 	}
-
-	return err
+	if !isReady {
+		return fmt.Errorf("product deployment not in ready state")
+	}
+	return nil
 }
 
 func MetricsTestSetup() error {
