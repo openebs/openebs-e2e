@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
 
 	"k8s.io/klog/v2"
 )
@@ -15,6 +18,11 @@ type Lvm struct {
 	ThinPoolAutoExtendThreshold int    `json:"thinPoolAutoExtendThreshold"` // thin pool auto extend threshold
 	ThinPoolAutoExtendPercent   int    `json:"thinPoolAutoExtendPercent"`   // thin pool auto extend percent
 }
+
+const (
+	thinPoolAutoextendThresholdKey = "thin_pool_autoextend_threshold"
+	thinPoolAutoextendPercentKey   = "thin_pool_autoextend_percent"
+)
 
 // LvmVersion check lvm version installed on node
 func LvmVersion(w http.ResponseWriter, r *http.Request) {
@@ -221,17 +229,14 @@ func LvmThinPoolAutoExtendThreshold(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	klog.Info("update %s  thin pool auto extend threshold value, data: %v", lvmConfFile, lvm)
-
-	lvmThinPoolAutoExtentThresholdCommand := fmt.Sprintf("sed -i '/^[^#]*thin_pool_autoextend_threshold/ s/= .*/= %d/' %s",
-		lvm.ThinPoolAutoExtendThreshold,
-		lvmConfFile)
-	output, err := bashLocal(lvmThinPoolAutoExtentThresholdCommand)
+	err = updateLVMConfig(lvmConfFile, thinPoolAutoextendThresholdKey, fmt.Sprintf("%d", lvm.ThinPoolAutoExtendThreshold))
 	if err != nil {
 		msg = fmt.Sprintf("update %s thin pool auto extend threshold value, Error %s", lvmConfFile, err.Error())
 		klog.Error(msg)
 		WrapResult(msg, ErrExecFailed, w)
 		return
 	}
+	output := fmt.Sprintf("Updated %s thin pool auto extend threshold value to %d", lvmConfFile, lvm.ThinPoolAutoExtendThreshold)
 	WrapResult(output, ErrNone, w)
 }
 
@@ -265,18 +270,15 @@ func LvmThinPoolAutoExtendPercent(w http.ResponseWriter, r *http.Request) {
 		WrapResult(msg, ErrFileNotExist, w)
 		return
 	}
-	klog.Info("update %s  thin pool auto extend threshold value, data: %v", lvmConfFile, lvm)
-
-	lvmThinPoolAutoExtendPercentCommand := fmt.Sprintf("sed -i '/^[^#]*thin_pool_autoextend_percent/ s/= .*/= %d/' %s",
-		lvm.ThinPoolAutoExtendPercent,
-		lvmConfFile)
-	output, err := bashLocal(lvmThinPoolAutoExtendPercentCommand)
+	klog.Info("update %s  thin pool auto extend percent value, data: %v", lvmConfFile, lvm)
+	err = updateLVMConfig(lvmConfFile, thinPoolAutoextendPercentKey, fmt.Sprintf("%d", lvm.ThinPoolAutoExtendPercent))
 	if err != nil {
 		msg = fmt.Sprintf("update %s thin pool auto extend percent value, Error %s", lvmConfFile, err.Error())
 		klog.Error(msg)
 		WrapResult(msg, ErrExecFailed, w)
 		return
 	}
+	output := fmt.Sprintf("Updated %s thin pool auto extend percent value to %d", lvmConfFile, lvm.ThinPoolAutoExtendPercent)
 	WrapResult(output, ErrNone, w)
 }
 
@@ -376,4 +378,111 @@ func LvmLvRemoveThinPool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	WrapResult(output, ErrNone, w)
+}
+
+// updateLVMConfig updates a specific configuration line in a file.
+// It first checks for an uncommented line in the entire file.
+// If an uncommented line exists, it updates only that line.
+// If no uncommented line is found, it then checks for a commented line,
+// updates its value, and uncomments it.
+// If neither is found, it appends the new line to the file.
+func updateLVMConfig(path, key, value string) error {
+	klog.Infof("Updating %s in %s to %s", key, path, value)
+	// Read the file content.
+	input, err := os.ReadFile(path)
+	if err != nil {
+		// If the file does not exist, create it and add the new line.
+		if os.IsNotExist(err) {
+			klog.Info("Configuration file %s does not exist", path)
+			return fmt.Errorf("failed to read file %s: %w", path, err)
+		}
+		// Return any other file reading errors.
+		return fmt.Errorf("failed to read file %s: %w", path, err)
+	}
+
+	// Split the file content into individual lines.
+	lines := strings.Split(string(input), "\n")
+	var outputLines []string // Slice to store the modified lines.
+
+	// Regex to match an uncommented line for the key.
+	uncommentedRegex := regexp.MustCompile(fmt.Sprintf(`^(\s*)(%s)(\s*=\s*).*$`, regexp.QuoteMeta(key)))
+	// Regex to match a commented line for the key.
+	commentedRegex := regexp.MustCompile(fmt.Sprintf(`^(\s*)(#)(\s*)(%s)(\s*=\s*).*$`, regexp.QuoteMeta(key)))
+
+	// --- First Pass: Determine if an uncommented key exists anywhere in the file ---
+	uncommentedKeyFoundInFile := false
+	for _, line := range lines {
+		if uncommentedRegex.MatchString(line) {
+			uncommentedKeyFoundInFile = true
+			break // Found an uncommented line, no need to check further.
+		}
+	}
+
+	// --- Second Pass: Modify the lines based on the first pass result ---
+	lineModified := false // Flag to track if the relevant line has been found and modified in this pass.
+
+	for _, line := range lines {
+		// If the target line has already been modified in this pass,
+		// append the rest of the lines as they are without further checks for this key.
+		if lineModified {
+			outputLines = append(outputLines, line)
+			continue
+		}
+
+		if uncommentedKeyFoundInFile {
+			// If an uncommented key exists in the file, only try to update uncommented lines.
+			if matches := uncommentedRegex.FindStringSubmatch(line); len(matches) > 0 {
+				newLine := matches[1] + matches[2] + matches[3] + value
+				outputLines = append(outputLines, newLine)
+				lineModified = true // Mark that we've modified the line.
+				klog.Infof("Updated uncommented line: %s", newLine)
+				continue // Move to the next line.
+			}
+		} else {
+			// If no uncommented key was found in the entire file,
+			// then try to update and uncomment a commented line.
+			if matches := commentedRegex.FindStringSubmatch(line); len(matches) > 0 {
+				newLine := matches[1] + matches[4] + matches[5] + value // Remove '#' and leading whitespace
+				outputLines = append(outputLines, newLine)
+				lineModified = true // Mark that we've modified the line.
+				klog.Infof("Updated and uncommented line: %s", newLine)
+				continue // Move to the next line.
+			}
+		}
+
+		// If no relevant match for the key (based on the logic above), keep the original line.
+		outputLines = append(outputLines, line)
+	}
+
+	// If after iterating through the entire file, no line for the key was found (neither uncommented nor commented
+	// according to the prioritization logic), append the new line to the end of the file.
+	if !lineModified {
+		newLine := fmt.Sprintf("%s = %s", key, value)
+		outputLines = append(outputLines, newLine)
+		klog.Infof("Added new line: %s", newLine)
+	}
+
+	// Join the modified lines back into a single string, separated by newlines.
+	output := strings.Join(outputLines, "\n")
+
+	// Write the modified content back to the file using a temporary file for atomic update.
+	dir := filepath.Dir(path)
+	tmpFile, err := os.CreateTemp(dir, filepath.Base(path)+".tmp")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary file in %s: %w", dir, err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := tmpFile.WriteString(output); err != nil {
+		tmpFile.Close()
+		return fmt.Errorf("failed to write to temporary file %s: %w", tmpFile.Name(), err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("failed to close temporary file %s: %w", tmpFile.Name(), err)
+	}
+
+	if err := os.Rename(tmpFile.Name(), path); err != nil {
+		return fmt.Errorf("failed to rename temporary file %s to %s: %w", tmpFile.Name(), path, err)
+	}
+	return nil
 }
