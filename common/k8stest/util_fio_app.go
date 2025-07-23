@@ -461,7 +461,7 @@ func (dfa *FioApplication) Cleanup() error {
 func (dfa *FioApplication) ForcedCleanup() {
 	_ = DeletePod(dfa.status.fioPodName, common.NSDefault)
 	dfa.status.fioPodName = ""
-	_ = RmPVC(dfa.status.pvcName, dfa.status.scName, common.NSDefault)
+	_ = RemovePVC(dfa.status.pvcName, dfa.status.scName, common.NSDefault, false)
 	dfa.status.createdPVC = false
 	_ = RmStorageClass(dfa.status.scName)
 	dfa.status.scName = ""

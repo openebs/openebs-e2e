@@ -1282,7 +1282,7 @@ func CreateScVolumeAndFio(prefix string, replicaCount int, volSizeMb int, nodeNa
 		return scFioVolumeName, fmt.Errorf("failed to create storage class %s, error: %v", scFioVolumeName.ScName, err)
 	}
 	scFioVolumeName.VolName = fmt.Sprintf("vol-%s", scFioVolumeName.ScName)
-	uid, err := MkPVC(volSizeMb, scFioVolumeName.VolName, scFioVolumeName.ScName, volType, common.NSDefault)
+	uid, err := MakePVC(volSizeMb, scFioVolumeName.VolName, scFioVolumeName.ScName, volType, common.NSDefault, false, false)
 	if err != nil {
 		return scFioVolumeName, fmt.Errorf("failed to create pvc %s, errorr: %v", scFioVolumeName.VolName, err)
 	}
@@ -1316,7 +1316,7 @@ func DeleteScVolumeAndFio(scFioVolumeName ScFioVolumeName) error {
 		return fmt.Errorf("failed to delete fio pod %s, error: %v", scFioVolumeName.FioPodName, err)
 	}
 	// Delete the volume
-	err = RmPVC(scFioVolumeName.VolName, scFioVolumeName.ScName, common.NSDefault)
+	err = RemovePVC(scFioVolumeName.VolName, scFioVolumeName.ScName, common.NSDefault, false)
 	if err != nil {
 		return fmt.Errorf("failed to delete volume %s, error: %v", scFioVolumeName.VolName, err)
 	}

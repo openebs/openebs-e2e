@@ -135,17 +135,6 @@ func GetPvStatusPhase(volname string) (phase coreV1.PersistentVolumePhase, err e
 	return pv.Status.Phase, nil
 }
 
-// MkPVC Create a PVC and verify that
-//  1. The PVC status transitions to bound,
-//  2. The associated PV is created and its status transitions bound
-//  3. The associated MV is created and has a State "healthy"
-// MkPVC is used by mayastor tests, so local arguments in MakePVC is set to false
-
-// Deprecated:MkPVC is deprecated. Make use of MakePVC function
-func MkPVC(volSizeMb int, volName string, scName string, volType common.VolumeType, nameSpace string) (string, error) {
-	return MakePVC(volSizeMb, volName, scName, volType, nameSpace, false, false)
-}
-
 func VerifyMayastorPvcIsUsable(pvc *coreV1.PersistentVolumeClaim) error {
 	const timoSleepSecs = 1
 	var err error
@@ -350,7 +339,7 @@ func PVCCreateAndFailCordon(
 	}
 	// check that a volume hasn't been created
 	msvs, msverr := controlplane.ListMsvs()
-	_ = RmPVC(volName, scName, common.NSDefault)
+	_ = RemovePVC(volName, scName, common.NSDefault, false)
 	if msverr != nil {
 		return fmt.Errorf("failed to list msvs, error: %s", msverr.Error())
 	}
@@ -430,17 +419,6 @@ func MsvConsistencyCheck(uuid string) error {
 
 	logf.Log.Info("MsvConsistencyCheck OK")
 	return nil
-}
-
-// RmPVC Delete a PVC in the default namespace and verify that
-//  1. The PVC is deleted
-//  2. The associated PV is deleted
-//  3. The associated MV is deleted
-// RmPVC is used by mayastor tests, so local arguments in MakePVC is set to false
-
-// Deprecated:RmPVC is deprecated. Make use of RemovePVC function
-func RmPVC(volName string, scName string, nameSpace string) error {
-	return RemovePVC(volName, scName, nameSpace, false)
 }
 
 // CreatePVC Create a PVC in default namespace, no options and no context
@@ -692,7 +670,7 @@ func TryMkOversizedPVC(volSizeMb int, volName string, scName string, volType com
 		eventList, listerr := GetEvents(nameSpace, options)
 		if listerr != nil {
 			err = fmt.Errorf("failed to get namespace events, pvc: %s, namespace:  %s, error: %v", volName, nameSpace, listerr)
-			_ = RmPVC(volName, scName, nameSpace)
+			_ = RemovePVC(volName, scName, nameSpace, false)
 			return foundOversizeError, err
 		}
 		for _, event := range eventList.Items {
