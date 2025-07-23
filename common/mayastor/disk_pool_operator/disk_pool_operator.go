@@ -165,7 +165,7 @@ func (tc *TestCase) DeployApp() error {
 		return fmt.Errorf("failed to create storage class %s %v", tc.ScName, err)
 	}
 	// Create the volume
-	tc.Uid, err = k8stest.MkPVC(tc.VolSizeMb, tc.VolName, tc.ScName, tc.VolType, common.NSDefault)
+	tc.Uid, err = k8stest.MakePVC(tc.VolSizeMb, tc.VolName, tc.ScName, tc.VolType, common.NSDefault, false, false)
 	if err != nil {
 		return fmt.Errorf("failed to create pvc %s, %v", tc.VolName, err)
 	}
@@ -217,7 +217,7 @@ func (tc *TestCase) Cleanup() error {
 	// delete pod and volume
 	err = k8stest.DeletePod(tc.PodName, common.NSDefault)
 	if err == nil {
-		err = k8stest.RmPVC(tc.VolName, tc.ScName, common.NSDefault)
+		err = k8stest.RemovePVC(tc.VolName, tc.ScName, common.NSDefault, false)
 		if err == nil {
 			err = k8stest.RmStorageClass(tc.ScName)
 		}

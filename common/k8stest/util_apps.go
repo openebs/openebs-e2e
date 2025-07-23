@@ -517,7 +517,7 @@ func (dfa *FioApp) CreateVolume() error {
 			return err
 		}
 	} else {
-		dfa.status.volUuid, err = MkPVC(dfa.VolSizeMb, dfa.status.volName, dfa.status.scName, dfa.VolType, common.NSDefault)
+		dfa.status.volUuid, err = MakePVC(dfa.VolSizeMb, dfa.status.volName, dfa.status.scName, dfa.VolType, common.NSDefault, false, false)
 		dfa.status.createdPVC = dfa.status.volUuid != ""
 		if err != nil {
 			return fmt.Errorf("failed to create pvc %s, %v", dfa.status.volName, err)
@@ -591,7 +591,7 @@ func (dfa *FioApp) Cleanup() error {
 	}
 	// Only delete PVC and storage class if they were created by this instance
 	if dfa.status.createdPVC {
-		err = RmPVC(dfa.status.volName, dfa.status.scName, common.NSDefault)
+		err = RemovePVC(dfa.status.volName, dfa.status.scName, common.NSDefault, false)
 		if err == nil && !dfa.KeepStorageClass {
 			// Only delete storage class if KeepStorageClass is false (default behavior)
 			err = RmStorageClass(dfa.status.scName)
@@ -609,7 +609,7 @@ func (dfa *FioApp) Cleanup() error {
 func (dfa *FioApp) ForcedCleanup() {
 	_ = DeletePod(dfa.status.podName, common.NSDefault)
 	dfa.status.podName = ""
-	_ = RmPVC(dfa.status.volName, dfa.status.scName, common.NSDefault)
+	_ = RemovePVC(dfa.status.volName, dfa.status.scName, common.NSDefault, false)
 	dfa.status.createdVolume = false
 	dfa.status.createdPVC = false
 	_ = RmStorageClass(dfa.status.scName)

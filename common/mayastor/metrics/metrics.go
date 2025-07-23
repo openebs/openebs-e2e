@@ -585,23 +585,6 @@ func MetricsTestTeardown() error {
 }
 
 func MetricsTestSetup() error {
-	// chartDir, err := locations.GetHelmChartsDir()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get helm chart directory, Error %v", err)
-	// }
-
-	// // Update helm chart with metrics poll time
-	// err = k8sinstall.UpdateMetricsPollTimeInHelmChart(chartDir)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to update helm chart with metrics polling interval, Error %v", err)
-	// }
-
-	// // Upgrade helm release
-	// err = k8sinstall.UpgradeHelmRelease(chartDir)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to upgrade helm chart with metrics polling interval, Error %v", err)
-	// }
-
 	// Install prometheus stack
 	err := installPrometheus(common.NSMayastor())
 	if err != nil {

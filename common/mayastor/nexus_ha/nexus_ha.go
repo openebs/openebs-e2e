@@ -376,7 +376,7 @@ func (c *NexusHa) CreateScAndVolume(prefix string, replicas int, volSizeMb int) 
 		return fmt.Errorf("failed to create storage class %s", scName)
 	}
 	volName := fmt.Sprintf("vol-%s", scName)
-	uid, err := k8stest.MkPVC(volSizeMb, volName, scName, common.VolFileSystem, common.NSDefault)
+	uid, err := k8stest.MakePVC(volSizeMb, volName, scName, common.VolFileSystem, common.NSDefault, false, false)
 	if err != nil {
 		return fmt.Errorf("failed to create pvc %s", volName)
 	}
@@ -395,7 +395,7 @@ func (c *NexusHa) DeleteScAndVolume() error {
 	logf.Log.Info("pvc", "pvName ->", pvc.Spec.VolumeName, "volume->", c.volName)
 
 	//Delete the volume
-	err = k8stest.RmPVC(c.volName, c.scName, common.NSDefault)
+	err = k8stest.RemovePVC(c.volName, c.scName, common.NSDefault, false)
 	if err != nil {
 		logf.Log.Error(err, "failed to delete", "pvc", c.volName)
 		return err
