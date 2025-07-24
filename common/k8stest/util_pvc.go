@@ -339,7 +339,7 @@ func PVCCreateAndFailCordon(
 	}
 	// check that a volume hasn't been created
 	msvs, msverr := controlplane.ListMsvs()
-	_ = RemovePVC(volName, scName, common.NSDefault, false)
+	_ = RemovePVC(volName, scName, common.NSDefault, common.Mayastor)
 	if msverr != nil {
 		return fmt.Errorf("failed to list msvs, error: %s", msverr.Error())
 	}
@@ -670,7 +670,7 @@ func TryMkOversizedPVC(volSizeMb int, volName string, scName string, volType com
 		eventList, listerr := GetEvents(nameSpace, options)
 		if listerr != nil {
 			err = fmt.Errorf("failed to get namespace events, pvc: %s, namespace:  %s, error: %v", volName, nameSpace, listerr)
-			_ = RemovePVC(volName, scName, nameSpace, false)
+			_ = RemovePVC(volName, scName, nameSpace, common.Mayastor)
 			return foundOversizeError, err
 		}
 		for _, event := range eventList.Items {
@@ -1160,7 +1160,7 @@ func GetPvCapacity(pvName string) (*resource.Quantity, error) {
 //  1. The PVC status transitions to bound,
 //  2. The associated PV is created and its status transitions bound
 //  3. The associated maaystor volume is created and has a State "healthy" if engine is mayastor
-func MakePVC(volSizeMb int, volName string, scName string, volType common.VolumeType, nameSpace string, local bool, skipVolumeVerification bool) (string, error) {
+func MakePVC(volSizeMb int, volName string, scName string, volType common.VolumeType, nameSpace string, engine common.OpenEbsEngine, skipVolumeVerification bool) (string, error) {
 	volSizeMbStr := fmt.Sprintf("%dMi", volSizeMb)
 	logf.Log.Info("Creating", "volume", volName, "storageClass", scName, "volume type", volType, "size", volSizeMbStr)
 
@@ -1221,11 +1221,15 @@ func MakePVC(volSizeMb int, volName string, scName string, volType common.Volume
 		if err != nil {
 			return string(pvc.ObjectMeta.UID), err
 		}
-		if !local {
+		if engine == common.Mayastor {
 			uuid, err = VerifyMayastorVolumeProvision(volName, nameSpace)
 			if err != nil {
 				return string(pvc.ObjectMeta.UID), err
 			}
+		} else if engine == common.Zfs {
+			logf.Log.Info("NOT IMPLEMENTED: Verify volume verification for zfs engine")
+		} else if engine == common.Lvm {
+			logf.Log.Info("NOT IMPLEMENTED: Verify volume verification for lvm engine")
 		}
 		logf.Log.Info("Created", "volume", volName, "uuid", pvc.ObjectMeta.UID, "storageClass", scName, "volume type", volType, "size", volSizeMbStr, "elapsed time", time.Since(t0))
 		return uuid, nil
@@ -1238,7 +1242,7 @@ func MakePVC(volSizeMb int, volName string, scName string, volType common.Volume
 //  1. The PVC is deleted
 //  2. The associated PV is deleted
 //  3. The associated mayastor volume is deleted if engine is mayastor
-func RemovePVC(volName string, scName string, nameSpace string, local bool) error {
+func RemovePVC(volName string, scName string, nameSpace string, engine common.OpenEbsEngine) error {
 	const timoSleepSecs = 1
 	logf.Log.Info("Removing volume", "volume", volName, "storageClass", scName)
 	var isDeleted bool
@@ -1300,7 +1304,7 @@ func RemovePVC(volName string, scName string, nameSpace string, local bool) erro
 	}
 
 	// if it's replicated engine(mayastor), verify mayastor volume deletion
-	if !local {
+	if engine == common.Mayastor {
 		// Wait for the mayastor to be deleted.
 		for ix := 0; ix < defTimeoutSecs/timoSleepSecs; ix++ {
 			isDeleted = IsMsvDeleted(string(pvc.ObjectMeta.UID))
@@ -1312,6 +1316,10 @@ func RemovePVC(volName string, scName string, nameSpace string, local bool) erro
 		if !isDeleted {
 			return fmt.Errorf("mayastor volume not deleted, msv: %s", pvc.ObjectMeta.UID)
 		}
+	} else if engine == common.Zfs {
+		logf.Log.Info("NOT IMPLEMENTED: RemovePVC for zfs engine")
+	} else if engine == common.Lvm {
+		logf.Log.Info("NOT IMPLEMENTED: RemovePVC for lvm engine")
 	}
 	return nil
 }

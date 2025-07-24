@@ -69,7 +69,7 @@ func CleanUpBusyboxResources(pods []string, pvcName string) error {
 		if err != nil {
 			return fmt.Errorf("failed to get pvc %s err %v", pvcName, err)
 		}
-		err = RemovePVC(pvcName, *pvc.Spec.StorageClassName, common.NSDefault, true)
+		err = RemovePVC(pvcName, *pvc.Spec.StorageClassName, common.NSDefault, common.None)
 		if err != nil {
 			return fmt.Errorf("failed to delete pvc %s err %v", pvcName, err)
 		}
