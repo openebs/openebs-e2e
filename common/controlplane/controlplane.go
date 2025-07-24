@@ -112,6 +112,11 @@ type ControlPlaneInterface interface {
 	GetSnapshots() ([]common.SnapshotSchema, error)
 	GetVolumeSnapshotTopology() ([]common.SnapshotSchema, error)
 	GetPerSnapshotVolumeSnapshotTopology(snapshotId string) (common.SnapshotSchema, error)
+
+	// ZFSVolume abstraction
+	GetZFSVolume(name string) (*common.ZFSVolume, error)
+	ListZFSVolumes() ([]common.ZFSVolume, error)
+	GetZFSVolumeStatus(name string) (string, error)
 }
 
 var ifc ControlPlaneInterface
@@ -465,4 +470,21 @@ func GetVolumeSnapshotTopology() ([]common.SnapshotSchema, error) {
 
 func GetPerSnapshotVolumeSnapshotTopology(snapshotId string) (common.SnapshotSchema, error) {
 	return getControlPlane().GetPerSnapshotVolumeSnapshotTopology(snapshotId)
+}
+
+// ZFSVolume helpers
+
+// GetZFSVolume fetches a ZFSVolume CR by name from the mayastor namespace
+func GetZFSVolume(name string) (*common.ZFSVolume, error) {
+	return getControlPlane().GetZFSVolume(name)
+}
+
+// ListZFSVolumes lists all ZFSVolume CRs in the mayastor namespace
+func ListZFSVolumes() ([]common.ZFSVolume, error) {
+	return getControlPlane().ListZFSVolumes()
+}
+
+// GetZFSVolumeStatus returns the status.state of a ZFSVolume by name
+func GetZFSVolumeStatus(name string) (string, error) {
+	return getControlPlane().GetZFSVolumeStatus(name)
 }

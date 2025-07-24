@@ -13,6 +13,7 @@ import (
 	"github.com/openebs/openebs-e2e/common/controlplane"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"github.com/openebs/openebs-e2e/common/mayastorclient"
+
 	errors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
@@ -1227,7 +1228,12 @@ func MakePVC(volSizeMb int, volName string, scName string, volType common.Volume
 				return string(pvc.ObjectMeta.UID), err
 			}
 		} else if engine == common.Zfs {
-			logf.Log.Info("NOT IMPLEMENTED: Verify volume verification for zfs engine")
+			// ZFS volumes are in the dynamically detected namespace, not the PVC namespace
+			zfsNamespace := getZfsVolNamespace()
+			uuid, err = VerifyZFSVolumeProvision(volName, zfsNamespace)
+			if err != nil {
+				return string(pvc.ObjectMeta.UID), err
+			}
 		} else if engine == common.Lvm {
 			logf.Log.Info("NOT IMPLEMENTED: Verify volume verification for lvm engine")
 		}
@@ -1317,7 +1323,19 @@ func RemovePVC(volName string, scName string, nameSpace string, engine common.Op
 			return fmt.Errorf("mayastor volume not deleted, msv: %s", pvc.ObjectMeta.UID)
 		}
 	} else if engine == common.Zfs {
-		logf.Log.Info("NOT IMPLEMENTED: RemovePVC for zfs engine")
+		// Wait for the ZFS volume to be deleted.
+		// ZFS volumes are in the dynamically detected namespace, not the PVC namespace
+		zfsNamespace := getZfsVolNamespace()
+		for ix := 0; ix < defTimeoutSecs/timoSleepSecs; ix++ {
+			isDeleted = IsZFSVolumeDeleted(string(pvc.ObjectMeta.UID), zfsNamespace)
+			if isDeleted {
+				break
+			}
+			time.Sleep(timoSleepSecs * time.Second)
+		}
+		if !isDeleted {
+			return fmt.Errorf("zfs volume not deleted, zfsvolume: %s", pvc.ObjectMeta.UID)
+		}
 	} else if engine == common.Lvm {
 		logf.Log.Info("NOT IMPLEMENTED: RemovePVC for lvm engine")
 	}
@@ -1354,4 +1372,75 @@ func WaitForPvcNormalEvent(pvcName string, namespace string, errorSubstring stri
 		time.Sleep(timeSleepSecs * time.Second)
 	}
 	return hasWarning, err
+}
+
+// VerifyZFSVolumeProvision verifies that a ZFS volume has been provisioned using direct kubectl
+func VerifyZFSVolumeProvision(pvcName string, namespace string) (string, error) {
+	logf.Log.Info("VerifyZFSVolumeProvision", "pvc", pvcName, "namespace", namespace)
+
+	// Get the PVC from the default namespace (where PVCs are created)
+	pvc, err := GetPVC(pvcName, common.NSDefault)
+	if err != nil {
+		return "", fmt.Errorf("failed to get PVC %s: %v", pvcName, err)
+	}
+
+	// Wait for the ZFS volume to be created using direct kubectl
+	// ZFS volume name is typically "pvc-" + PVC UID
+	zfsVolumeName := "pvc-" + string(pvc.ObjectMeta.UID)
+	logf.Log.Info("Looking for ZFS volume", "zfsVolumeName", zfsVolumeName)
+
+	for ix := 0; ix < defTimeoutSecs; ix++ {
+		zfsVolume, err := GetZfsVolumeCr(zfsVolumeName, namespace)
+		if err != nil {
+			logf.Log.Error(err, "Error getting ZFS volume", "zfsVolumeName", zfsVolumeName)
+			return "", fmt.Errorf("failed to get ZFS volume %s: %v", zfsVolumeName, err)
+		} else if zfsVolume != nil {
+			logf.Log.Info("ZFS volume found", "state", zfsVolume.Status.State)
+			if zfsVolume.Status.State == "Ready" {
+				logf.Log.Info("ZFS volume provisioned successfully", "pvc", pvcName, "uid", pvc.ObjectMeta.UID)
+				return string(pvc.ObjectMeta.UID), nil
+			}
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	return "", fmt.Errorf("timeout waiting for ZFS volume to be provisioned for PVC %s", pvcName)
+}
+
+// IsZFSVolumeDeleted checks if a ZFS volume has been deleted using direct kubectl
+func IsZFSVolumeDeleted(volumeName string, namespace string) bool {
+	logf.Log.Info("Verifying ZFS volume deletion", "volumeName", volumeName)
+	_, err := GetZfsVolumeCr(volumeName, namespace)
+	if err != nil {
+		// If we get an error, the volume is likely deleted
+		logf.Log.Info("ZFS volume appears to be deleted", "volumeName", volumeName, "error", err)
+		return true
+	}
+	logf.Log.Info("ZFS volume still exists", "volumeName", volumeName)
+	return false
+}
+
+// getZfsVolNamespace returns the namespace where ZFS volumes are created
+// ZFS volumes are created in the same namespace as the ZFS controller
+func getZfsVolNamespace() string {
+	// Check for ZFS controller pods in different namespaces
+	namespaces := []string{"mayastor", "openebs"}
+	for _, ns := range namespaces {
+		if podExists(ns, "app=openebs-zfs-controller") {
+			return ns
+		}
+	}
+	logf.Log.Error(nil, "ZFS controller pod not found in expected namespaces", "namespaces", namespaces)
+	return "" // Return empty if not found
+}
+
+// podExists checks if pods with the given label selector exist in the specified namespace
+func podExists(namespace, labelSelector string) bool {
+	pods, err := gTestEnv.KubeInt.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		return false
+	}
+	return len(pods.Items) > 0
 }
