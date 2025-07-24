@@ -284,13 +284,9 @@ func (dfa *FioApplication) CreateVolume() error {
 	if err != nil {
 		return fmt.Errorf("failed to create sc %s, %v", dfa.status.scName, err)
 	}
-	var localEngine bool
-	if dfa.OpenEbsEngine != common.Mayastor {
-		localEngine = true
-	}
 
 	// Create the volume
-	_, err = MakePVC(dfa.VolSizeMb, dfa.status.pvcName, dfa.status.scName, dfa.VolType, common.NSDefault, localEngine, dfa.SkipPvcVerificationAfterCreate)
+	_, err = MakePVC(dfa.VolSizeMb, dfa.status.pvcName, dfa.status.scName, dfa.VolType, common.NSDefault, dfa.OpenEbsEngine, dfa.SkipPvcVerificationAfterCreate)
 
 	if err != nil {
 		return fmt.Errorf("failed to create pvc %s, %v", dfa.status.pvcName, err)
@@ -436,13 +432,9 @@ func (dfa *FioApplication) Cleanup() error {
 		dfa.status.fioPodName = ""
 
 	}
-	var localEngine bool
-	if dfa.OpenEbsEngine != common.Mayastor {
-		localEngine = true
-	}
 	// Only delete PVC and storage class if they were created by this instance
 	if dfa.status.createdPVC {
-		err = RemovePVC(dfa.status.pvcName, dfa.status.scName, common.NSDefault, localEngine)
+		err = RemovePVC(dfa.status.pvcName, dfa.status.scName, common.NSDefault, dfa.OpenEbsEngine)
 		if err == nil && !dfa.KeepStorageClass {
 			dfa.status.createdPVC = false
 			// Only delete storage class if KeepStorageClass is false (default behavior)
@@ -461,7 +453,7 @@ func (dfa *FioApplication) Cleanup() error {
 func (dfa *FioApplication) ForcedCleanup() {
 	_ = DeletePod(dfa.status.fioPodName, common.NSDefault)
 	dfa.status.fioPodName = ""
-	_ = RemovePVC(dfa.status.pvcName, dfa.status.scName, common.NSDefault, false)
+	_ = RemovePVC(dfa.status.pvcName, dfa.status.scName, common.NSDefault, dfa.OpenEbsEngine)
 	dfa.status.createdPVC = false
 	_ = RmStorageClass(dfa.status.scName)
 	dfa.status.scName = ""

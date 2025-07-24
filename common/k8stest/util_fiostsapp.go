@@ -186,7 +186,7 @@ func (dfa *FioStsApp) Cleanup(replicaCount int) error {
 			// for e.g `testpvc-pod-0`
 			// where testpvc is claim name and pod is statefulset name and pod-0 is pod name
 			volName := dfa.VolName + "-" + dfa.StsName + "-" + strconv.Itoa(i)
-			err = RemovePVC(volName, dfa.ScName, common.NSDefault, false)
+			err = RemovePVC(volName, dfa.ScName, common.NSDefault, common.Mayastor)
 			if err != nil {
 				return fmt.Errorf("failed to remove pvc %s", volName)
 			}

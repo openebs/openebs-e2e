@@ -80,7 +80,7 @@ func randomInt(min, max int) int {
 func CreateVolume(scName, volBaseName string, volSizeMb int) (string, string, error) {
 	// Create the volume
 	volName := strings.ToLower(fmt.Sprintf("%s-vol-%d-%s-%s-%s", volBaseName, common.DefaultReplicaCount(), common.ShareProtoNvmf, common.VolRawBlock, randomString(5)))
-	uid, err := k8stest.MakePVC(volSizeMb, volName, scName, common.VolRawBlock, common.NSDefault, false, false)
+	uid, err := k8stest.MakePVC(volSizeMb, volName, scName, common.VolRawBlock, common.NSDefault, common.Mayastor, false)
 	if err != nil {
 		return uid, volName, err
 	}
@@ -190,7 +190,7 @@ func CreateAndRunRunningFio(sizeMiB int, volName string) *coreV1.Pod {
 
 func CleanUp(scName string, volNames []string) error {
 	for _, name := range volNames {
-		err := k8stest.RemovePVC(name, scName, common.NSDefault, false)
+		err := k8stest.RemovePVC(name, scName, common.NSDefault, common.Mayastor)
 		if err != nil {
 			return err
 		}
