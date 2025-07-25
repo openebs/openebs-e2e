@@ -159,6 +159,7 @@ type ProductSpec struct {
 	LokiIngesterChunkIdlePeriodTime   string            `yaml:"lokiIngesterChunkIdlePeriodTime"`
 	LokiIngesterChunkRetainPeriodTime string            `yaml:"lokiIngesterChunkRetainPeriodTime"`
 	LokiIngesterMaxChunkAgeTime       string            `yaml:"lokiIngesterMaxChunkAgeTime"`
+	OciRegistryUrl                    string            `yaml:"ociRegistryUrl" env-default:""`
 }
 
 // E2EConfig is an application configuration structure
@@ -199,16 +200,18 @@ type E2EConfig struct {
 	GrpcMandated bool   `yaml:"grpcMandated" env:"e2e_grpc" env-default:"false"`
 	GrpcVersion  string `yaml:"grpcVersion" env:"e2e_grpc_version" env-default:""`
 	// Generic configuration files used for CI and automation should not define MayastorRootDir and E2eRootDir
-	MayastorRootDir   string `yaml:"mayastorRootDir" env:"e2e_mayastor_root_dir"`
-	E2eRootDir        string `yaml:"e2eRootDir" env:"e2e_root_dir"`
-	OpenEbsE2eRootDir string `yaml:"openEbsE2eRootDir" env:"openebs_e2e_root_dir"`
-	SessionDir        string `yaml:"sessionDir" env:"e2e_session_dir"`
-	MayastorVersion   string `yaml:"mayastorVersion" env:"e2e_mayastor_version"`
-	KubectlPluginPath string `yaml:"kubectlPluginPath" env:"e2e_kubectl_plugin_path"`
-	KubectlPluginDir  string `yaml:"kubectlPluginDir" env:"e2e_kubectl_plugin_dir"`
-	MaasOauthApiToken string `yaml:"maasOauthApiToken" env:"e2e_maas_api_token"`
-	MaasEndpoint      string `yaml:"maasEndpoint" env:"e2e_maas_endpoint"`
-	ReplicatedEngine  bool   `yaml:"replicatedEngine" env:"replicatedEngine"`
+	MayastorRootDir     string `yaml:"mayastorRootDir" env:"e2e_mayastor_root_dir"`
+	E2eRootDir          string `yaml:"e2eRootDir" env:"e2e_root_dir"`
+	OpenEbsE2eRootDir   string `yaml:"openEbsE2eRootDir" env:"openebs_e2e_root_dir"`
+	SessionDir          string `yaml:"sessionDir" env:"e2e_session_dir"`
+	MayastorVersion     string `yaml:"mayastorVersion" env:"e2e_mayastor_version"`
+	KubectlPluginPath   string `yaml:"kubectlPluginPath" env:"e2e_kubectl_plugin_path"`
+	KubectlPluginDir    string `yaml:"kubectlPluginDir" env:"e2e_kubectl_plugin_dir"`
+	MaasOauthApiToken   string `yaml:"maasOauthApiToken" env:"e2e_maas_api_token"`
+	MaasEndpoint        string `yaml:"maasEndpoint" env:"e2e_maas_endpoint"`
+	ReplicatedEngine    bool   `yaml:"replicatedEngine" env:"replicatedEngine"`
+	OciInstall          bool   `yaml:"ociInstall" env:"e2e_oci_install" env-default:"false"`
+	OpenebsChartVersion string `yaml:"openebsChartVersion" env:"e2e_openebs_chart_version"`
 
 	// Operational parameters
 	Cores int `yaml:"cores,omitempty"`

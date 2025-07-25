@@ -156,7 +156,7 @@ product:
     openEBSHelmChartName: "openebs/openebs"
     openEBSHelmRepoUrl: "https://openebs.github.io/openebs"
     openEBSProductNamespace: "openebs"
-    openEBSHelmChartVersion: "4.3.0-develop"
+    openEBSHelmChartVersion: "4.4.0-develop"
     lvmEngineControllerDeploymentName: "openebs-lvm-localpv-controller"
     lvmEngineLeaseName: "snapshot-controller-leader"
     lvmEnginePluginContainerName: "openebs-lvm-plugin"
@@ -174,4 +174,4 @@ product:
     lokiIngesterChunkIdlePeriodTime: "30s"
     lokiIngesterChunkRetainPeriodTime: "15s"
     lokiIngesterMaxChunkAgeTime: "150s"
-
+    ociRegistryUrl: "TODO: Set the OCI registry URL"

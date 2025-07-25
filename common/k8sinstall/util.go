@@ -45,37 +45,57 @@ func installTheProduct() error {
 		return err
 	}
 
+	var chartVersion string
+	if e2eCfg.OpenebsChartVersion != "" {
+		chartVersion = e2eCfg.OpenebsChartVersion
+	} else {
+		chartVersion = e2eCfg.Product.OpenEBSHelmChartVersion
+	}
+
+	logf.Log.Info("OpenEBS Helm chart version", "version", chartVersion)
+	var chartName string
+	if e2eCfg.OciInstall {
+		// If OCI install is enabled, we use the OCI registry to install the OpenEBS Helm chart.`
+		if e2eCfg.Product.OciRegistryUrl == "" {
+			return fmt.Errorf("OCI registry URL is not set in the configuration")
+		}
+		chartName = e2eCfg.Product.OciRegistryUrl
+		logf.Log.Info("OCI install enabled, using OCI registry for OpenEBS Helm chart", "chartName", chartName)
+	} else {
+		// Remove the existing Helm repository before adding it back again.
+		// This step ensures that any potential issues related to an outdated or corrupted repository configuration
+		// are resolved. It also helps in cases where the repository URL or content has changed, ensuring that the
+		// Helm repository is up-to-date with the latest charts. By removing and re-adding the repository, we make
+		// sure that the subsequent Helm commands (like `helm install`) interact with the correct and current version
+		// of the repository.
+		err = k8stest.RemoveHelmRepository(e2e_config.GetConfig().Product.OpenEBSHelmRepoName, e2e_config.GetConfig().Product.OpenEBSHelmRepoUrl)
+		if err != nil {
+			logf.Log.Info("failed to remove helm repository")
+		}
+
+		err = k8stest.AddHelmRepository(e2e_config.GetConfig().Product.OpenEBSHelmRepoName, e2e_config.GetConfig().Product.OpenEBSHelmRepoUrl)
+		if err != nil {
+			logf.Log.Info("failed to add helm repository")
+		}
+
+		err = k8stest.UpdateHelmRepository(e2e_config.GetConfig().Product.OpenEBSHelmRepoName)
+		if err != nil {
+			logf.Log.Info("failed to update helm repository")
+		}
+		chartName = e2e_config.GetConfig().Product.OpenEBSHelmChartName
+		logf.Log.Info("OCI install not enabled, using Helm repository for OpenEBS Helm chart", "chartName", chartName)
+	}
+
 	cmdArgs := []string{
 		"install",
 		e2eCfg.Product.OpenEBSHelmReleaseName,
 		"-n",
 		common.NSOpenEBS(),
-		e2eCfg.Product.OpenEBSHelmChartName,
+		chartName,
 		"--version",
-		e2eCfg.Product.OpenEBSHelmChartVersion,
+		chartVersion,
 	}
-
-	// Remove the existing Helm repository before adding it back again.
-	// This step ensures that any potential issues related to an outdated or corrupted repository configuration
-	// are resolved. It also helps in cases where the repository URL or content has changed, ensuring that the
-	// Helm repository is up-to-date with the latest charts. By removing and re-adding the repository, we make
-	// sure that the subsequent Helm commands (like `helm install`) interact with the correct and current version
-	// of the repository.
-	err = k8stest.RemoveHelmRepository(e2e_config.GetConfig().Product.OpenEBSHelmRepoName, e2e_config.GetConfig().Product.OpenEBSHelmRepoUrl)
-	if err != nil {
-		logf.Log.Info("failed to remove helm repository")
-	}
-
-	err = k8stest.AddHelmRepository(e2e_config.GetConfig().Product.OpenEBSHelmRepoName, e2e_config.GetConfig().Product.OpenEBSHelmRepoUrl)
-	if err != nil {
-		logf.Log.Info("failed to add helm repository")
-	}
-
-	err = k8stest.UpdateHelmRepository(e2e_config.GetConfig().Product.OpenEBSHelmRepoName)
-	if err != nil {
-		logf.Log.Info("failed to update helm repository")
-	}
-
+	logf.Log.Info("Helm command", "arguments", cmdArgs)
 	err = installOpenebs(common.NSOpenEBS(), cmdArgs)
 	if err != nil {
 		return err
