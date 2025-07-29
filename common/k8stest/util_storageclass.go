@@ -262,6 +262,16 @@ func (b *ScBuilder) WithProvisioningType(provisioningType common.ProvisioningTyp
 	return b
 }
 
+// WithThickProvisioningType sets the thin provisioning field of storageclass to false.
+func (b *ScBuilder) WithThickProvisioningType() *ScBuilder {
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[common.ScThinProvisioning] = "false"
+
+	return b
+}
+
 // WithStsAffinityGroup sets the stsAffinityGroup field of storageclass with provided argument.
 func (b *ScBuilder) WithStsAffinityGroup(stsAffinity common.StsAffinityGroup) *ScBuilder {
 	if b.sc.object.Parameters == nil {
@@ -360,6 +370,13 @@ func CreateSc(obj *storagev1.StorageClass) error {
 	ScApi := gTestEnv.KubeInt.StorageV1().StorageClasses
 	_, createErr := ScApi().Create(context.TODO(), obj, metaV1.CreateOptions{})
 	return createErr
+}
+
+// GetSc get storageclass with provided storageclass name
+func GetSc(scName string) (*storagev1.StorageClass, error) {
+	ScApi := gTestEnv.KubeInt.StorageV1().StorageClasses
+	sc, getErr := ScApi().Get(context.TODO(), scName, metaV1.GetOptions{})
+	return sc, getErr
 }
 
 // LVM

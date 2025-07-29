@@ -453,59 +453,61 @@ func (dfa *FioApp) CreateVolume() error {
 	dfa.status.suffix = decoration
 	decoration = strings.ToLower(dfa.Decor) + decoration
 	dfa.status.volName = decoration
-	dfa.status.scName = decoration
-	dfa.status.encryption = dfa.Encryption
+	if dfa.status.scName == "" {
+		dfa.status.scName = decoration
+		dfa.status.encryption = dfa.Encryption
 
-	provisioning := common.ThickProvisioning
-	volBindingMode := storageV1.VolumeBindingImmediate
-	if dfa.ThinProvisioned {
-		provisioning = common.ThinProvisioning
-	}
-	if dfa.VolWaitForFirstConsumer {
-		volBindingMode = storageV1.VolumeBindingWaitForFirstConsumer
-	}
-	if dfa.FsType == common.BtrfsFsType {
-		dfa.FsPercent = 95
-		dfa.MountOptions = []string{"nodatacow"}
-	}
-	scBuilder := NewScBuilder().
-		WithName(dfa.status.scName).
-		WithReplicas(dfa.status.replicaCount).
-		WithProtocol(common.ShareProtoNvmf).
-		WithNamespace(common.NSDefault).
-		WithVolumeBindingMode(volBindingMode).
-		WithProvisioningType(provisioning).
-		WithMountOptions(dfa.MountOptions).
-		WithEncryption(dfa.Encryption).
-		WithVolumeExpansion(dfa.AllowVolumeExpansion)
+		provisioning := common.ThickProvisioning
+		volBindingMode := storageV1.VolumeBindingImmediate
+		if dfa.ThinProvisioned {
+			provisioning = common.ThinProvisioning
+		}
+		if dfa.VolWaitForFirstConsumer {
+			volBindingMode = storageV1.VolumeBindingWaitForFirstConsumer
+		}
+		if dfa.FsType == common.BtrfsFsType {
+			dfa.FsPercent = 95
+			dfa.MountOptions = []string{"nodatacow"}
+		}
+		scBuilder := NewScBuilder().
+			WithName(dfa.status.scName).
+			WithReplicas(dfa.status.replicaCount).
+			WithProtocol(common.ShareProtoNvmf).
+			WithNamespace(common.NSDefault).
+			WithVolumeBindingMode(volBindingMode).
+			WithProvisioningType(provisioning).
+			WithMountOptions(dfa.MountOptions).
+			WithEncryption(dfa.Encryption).
+			WithVolumeExpansion(dfa.AllowVolumeExpansion)
 
-	if dfa.VolType == common.VolFileSystem {
-		scBuilder = scBuilder.
-			WithFileSystemType(dfa.FsType).
-			WithCloneFsIdAsVolumeId(dfa.CloneFsIdAsVolumeId)
-	}
+		if dfa.VolType == common.VolFileSystem {
+			scBuilder = scBuilder.
+				WithFileSystemType(dfa.FsType).
+				WithCloneFsIdAsVolumeId(dfa.CloneFsIdAsVolumeId)
+		}
 
-	if dfa.NodeAffinityTopologyLabel != nil {
-		scBuilder = scBuilder.WithNodeAffinityTopologyLabel(dfa.NodeAffinityTopologyLabel)
-	}
-	if dfa.NodeSpreadTopologyKey != "" {
-		scBuilder = scBuilder.WithNodeSpreadTopologyKey(dfa.NodeSpreadTopologyKey)
-	}
-	if dfa.NodeHasTopologyKey != "" {
-		scBuilder = scBuilder.WithNodeHasTopologyKey(dfa.NodeHasTopologyKey)
-	}
-	if dfa.MaxSnapshots != 0 {
-		scBuilder = scBuilder.WithMaxSnapshots(dfa.MaxSnapshots)
-	}
-	if dfa.PoolHasTopologyKey != "" {
-		scBuilder = scBuilder.WithPoolHasTopologyKey(dfa.PoolHasTopologyKey)
-	}
-	if dfa.PoolAffinityTopologyLabel != nil {
-		scBuilder = scBuilder.WithPoolAffinityTopologyLabel(dfa.PoolAffinityTopologyLabel)
-	}
-	err = scBuilder.BuildAndCreate()
-	if err != nil {
-		return fmt.Errorf("failed to create storage class %s %v", dfa.status.scName, err)
+		if dfa.NodeAffinityTopologyLabel != nil {
+			scBuilder = scBuilder.WithNodeAffinityTopologyLabel(dfa.NodeAffinityTopologyLabel)
+		}
+		if dfa.NodeSpreadTopologyKey != "" {
+			scBuilder = scBuilder.WithNodeSpreadTopologyKey(dfa.NodeSpreadTopologyKey)
+		}
+		if dfa.NodeHasTopologyKey != "" {
+			scBuilder = scBuilder.WithNodeHasTopologyKey(dfa.NodeHasTopologyKey)
+		}
+		if dfa.MaxSnapshots != 0 {
+			scBuilder = scBuilder.WithMaxSnapshots(dfa.MaxSnapshots)
+		}
+		if dfa.PoolHasTopologyKey != "" {
+			scBuilder = scBuilder.WithPoolHasTopologyKey(dfa.PoolHasTopologyKey)
+		}
+		if dfa.PoolAffinityTopologyLabel != nil {
+			scBuilder = scBuilder.WithPoolAffinityTopologyLabel(dfa.PoolAffinityTopologyLabel)
+		}
+		err = scBuilder.BuildAndCreate()
+		if err != nil {
+			return fmt.Errorf("failed to create storage class %s %v", dfa.status.scName, err)
+		}
 	}
 	// Create the volume
 	if dfa.SnapshotName != "" {
@@ -971,4 +973,17 @@ func (dfa *FioApp) ImportVolumeFromApp(srcDfa *FioApp) error {
 
 func (dfa *FioApp) IsVolumeEncrypted() bool {
 	return dfa.status.encryption
+}
+
+func (dfa *FioApp) ImportStorageclass(scName string) error {
+	sc, err := GetSc(scName)
+	if err != nil {
+		return fmt.Errorf("failed to get sc %s, error: %v", scName, err)
+	}
+	if sc == nil {
+		return fmt.Errorf("sc %s not found", sc)
+	}
+
+	dfa.status.scName = sc.Name
+	return err
 }

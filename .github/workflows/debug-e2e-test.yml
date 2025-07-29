@@ -79,4 +79,4 @@ jobs:
         uses: mxschmitt/action-tmate@v3
       - name: Zfs e2e test
         run: |
-          nix-shell shell.nix --run "./scripts/e2e-test.sh --testplan debug-zfs -openebs_chart_version ${{ github.event.inputs.openebs_chart_version }} --oci ${{ github.event.inputs.oci_install }}"
+          nix-shell shell.nix --run "./scripts/e2e-test.sh --testplan debug-zfs --openebs_chart_version ${{ github.event.inputs.openebs_chart_version }} --oci ${{ github.event.inputs.oci_install }}"
