@@ -25,7 +25,7 @@ pluginPath=""
 function cluster-get {
     echo "-- PODS mayastor* --------------------"
     # The CSI tests creates namespaces containing the text mayastor
-    mns=$(kubectl get ns | grep -e mayastor -e datacore -e kube-system | sed -e "s/ .*//")
+    mns=$(kubectl get ns | grep -e openebs -e kube-system | sed -e "s/ .*//")
     for ns in $mns
     do
         kubectl -n "$ns" -o wide get pods --sort-by=.metadata.creationTimestamp
@@ -43,7 +43,6 @@ function cluster-get {
     echo "-- K8s Nodes -------------------------"
     kubectl get nodes -o wide --show-labels
     echo "-- Pools -----------------------------"
-    kubectl -n datacore get diskpools --sort-by=.metadata.creationTimestamp
     kubectl -n mayastor get diskpools --sort-by=.metadata.creationTimestamp
     echo "-- Snapshot --------------------------"
     kubectl get volumesnapshots
@@ -52,10 +51,8 @@ function cluster-get {
     echo "-- SnapshotClasses -------------------"
     kubectl get volumesnapshotclasses
     echo "-- K8s Deployments -------------------"
-    kubectl -n datacore get deployments
     kubectl -n mayastor get deployments
     echo "-- K8s Daemonsets --------------------"
-    kubectl -n datacore get daemonsets
     kubectl -n mayastor get daemonsets
     if [ -n "$pluginPath" ]; then
         echo "-- MSV ---------------"
@@ -73,7 +70,7 @@ function cluster-get {
 function cluster-describe {
     echo "-- PODS mayastor* --------------------"
     # The CSI tests creates namespaces containing the text mayastor
-    mns=$(kubectl get ns | grep -e mayastor -e datacore -e kube-system | sed -e "s/ .*//")
+    mns=$(kubectl get ns | grep -e openebs -e kube-system | sed -e "s/ .*//")
     for ns in $mns
     do
         kubectl -n "$ns" describe pods
@@ -91,7 +88,6 @@ function cluster-describe {
     echo "-- K8s Nodes -------------------------"
     kubectl describe nodes
     echo "-- Pools --------------------"
-    kubectl -n datacore describe diskpools
     kubectl -n mayastor describe diskpools
     echo "-- Snapshot --------------------------"
     kubectl describe volumesnapshots
@@ -100,10 +96,8 @@ function cluster-describe {
     echo "-- SnapshotClasses -------------------"
     kubectl describe volumesnapshotclasses
     echo "-- K8s Deployments -------------------"
-    kubectl -n datacore describe deployments
     kubectl -n mayastor describe deployments
     echo "-- K8s Daemonsets --------------------"
-    kubectl -n datacore describe daemonsets
     kubectl -n mayastor describe daemonsets
     if [ -n "$pluginPath" ]; then
         echo "-- MSV ---------------"

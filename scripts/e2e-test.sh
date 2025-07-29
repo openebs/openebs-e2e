@@ -11,6 +11,10 @@ Usage: $0 [OPTIONS]
 
 Options:
   --testplan                 Test plan[lvm, zfs, hostpath, selfci etc.]
+  --openebs_chart_version   Openebs chart version to use for install test (default: latest)
+  --oci                     OCI registry to use for openesb install (default: "false")
+                            On true, Use OCI registry of install test
+                            On false, Use Helm registry of install test 
 Examples:
   $0 --testplan lvm
 EOF
@@ -23,6 +27,25 @@ while [ "$#" -gt 0 ]; do
       shift
       testplan="$1"
       ;;
+    --oci)
+      shift
+      case $1 in
+          true)
+             oci="$1"
+             ;;
+          false)
+             oci="$1"
+             ;;
+          *)
+              echo "Unknown boolean option oci  : $1"
+              exit 1
+              ;;
+      esac
+      ;;
+    --openebs_chart_version)
+        shift
+        openebs_chart_version="$1"
+        ;;
     *)
       echo "Unknown option: $1"
       help

@@ -38,6 +38,9 @@ test_list=""
 product=
 local=
 replicated_engine=
+openebs_chart_version=""
+oci="${e2e_oci_install:-false}"
+
 
 help() {
   cat <<EOF
@@ -58,20 +61,15 @@ Options:
   --uninstall_cleanup <y|n> On uninstall cleanup for reusable cluster. default($uninstall_cleanup)
   --config                  config name or configuration file default($config_file)
   --platform_config         test platform configuration file default($platform_config_file)
-  --tag <name>              Docker image tag of mayastor images (default "$tag")
-                            install files are retrieved from the CI registry using the appropriately
-                            tagged docker image :- mayadata/install-images
-  --mayastor                path to the mayastor source tree to use for testing.
-                            If this is specified the install test uses the install yaml files from this tree
-                            instead of the tagged image.
   --session                 session name, adds a subdirectory with session name to artifacts, logs and reports
                             directories to facilitate concurrent execution of test runs (default timestamp-uuid)
-  --version                 Mayastor version, 0 => MOAC, > 1 => restful control plane
   --local                   This option will only exercised for local testing not in Jenkins pipeline.
-                            On true, Creates namespace(mayastor/datacore) on cluster in case of install test
+                            On true, Creates namespace(openebs) on cluster in case of install test
                             On false, namespace will not be created on cluster in case of install test
-Examples:
-  $0 --registry 127.0.0.1:5000 --tag a80ce0c --product openebs
+  --openebs_chart_version   Openebs chart version to use for install test (default: latest)
+  --oci                     OCI registry to use for openesb install (default: "false")
+                            On true, Use OCI registry of install test
+                            On false, Use Helm registry of install test                    
 EOF
 }
 
@@ -206,6 +204,25 @@ while [ "$#" -gt 0 ]; do
         # short form for set product envvars
         :
         ;;
+    --oci)
+      shift
+      case $1 in
+          true)
+             oci="$1"
+             ;;
+          false)
+             oci="$1"
+             ;;
+          *)
+              echo "Unknown boolean option oci  : $1"
+              exit 1
+              ;;
+      esac
+      ;;
+    --openebs_chart_version)
+        shift
+        openebs_chart_version="$1"
+        ;;
     *)
       echo "Unknown option: $1"
       help
@@ -222,6 +239,8 @@ fi
 
 export e2e_product="${product}"
 export replicatedEngine="${replicated_engine}"
+export e2e_oci_install="${oci}"
+export e2e_openebs_chart_version="${openebs_chart_version}"
 
 if [ -z "$session" ]; then
     sessiondir="$ARTIFACTSDIR"
@@ -355,6 +374,8 @@ echo "    e2e_product=$e2e_product"
 echo "    e2e_reports_dir=$e2e_reports_dir"
 echo "    e2e_uninstall_cleanup=$e2e_uninstall_cleanup"
 echo "    e2e_policy_cleanup_before=$e2e_policy_cleanup_before"
+echo "    e2e_oci_install=$e2e_oci_install"
+echo "    e2e_openebs_chart_version=$e2e_openebs_chart_version"
 echo ""
 echo "Script control settings:"
 echo "    on_fail=$on_fail"
