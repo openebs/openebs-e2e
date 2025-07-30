@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/openebs/openebs-e2e/common"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/openebs/openebs-e2e/common"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -158,13 +159,22 @@ func GetLatestHelmChartVersion(helmChart string) (Chart, error) {
 	if err != nil {
 		return Chart{}, fmt.Errorf("failed to search repo %s: %v\n%s", helmChart, err, string(output))
 	}
-	err = json.Unmarshal(output, &charts)
+	// Extract JSON portion (starts with "[")
+	startIdx := strings.Index(string(output), "[")
+	if startIdx == -1 {
+		return Chart{}, fmt.Errorf("failed to find valid json, helm search command output: %s", string(output))
+	}
+	cleanedOutput := string(output)[startIdx:]
+
+	err = json.Unmarshal([]byte(cleanedOutput), &charts)
 	if err != nil {
+		logf.Log.Info("failed to unmarshal helm search output", "err", err)
 		return Chart{}, err
 	}
 	if len(charts) == 0 {
 		return Chart{}, fmt.Errorf("failed to find any chart version for repository %s", helmChart)
 	}
+	logf.Log.Info("Latest chart version found", "chartName", charts[0].Name, "version", charts[0].Version, "appVersion", charts[0].AppVersion)
 	return charts[0], nil
 }
 

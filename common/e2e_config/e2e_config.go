@@ -91,7 +91,7 @@ type ProductSpec struct {
 	MongoAuthRootPassword             string            `yaml:"mongoAuthRootPassword" env-default:"r00tAdmin"`
 	MongoAuthUsername                 string            `yaml:"mongoAuthUsername" env-default:"admin"`
 	MongoDatabasePort                 int               `yaml:"mongoDatabasePort" env-default:"27017"`
-	MongoDefaultChartVersion          string            `yaml:"mongoDefaultChartVersion" env-default:"14.5.0"`
+	MongoDefaultChartVersion          string            `yaml:"mongoDefaultChartVersion" env-default:"16.5.0"`
 	OpenEBSHelmChartName              string            `yaml:"openEBSHelmChartName"`
 	OpenEBSHelmRepoName               string            `yaml:"openEBSHelmRepoName"`
 	OpenEBSHelmRepoUrl                string            `yaml:"openEBSHelmRepoUrl"`

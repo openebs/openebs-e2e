@@ -176,15 +176,8 @@ func (mb *mongoBuilder) WithYcsb() *mongoBuilder {
 }
 
 func (mb *mongoBuilder) Build() (MongoApp, error) {
-	var latest k8stest.Chart
-	latest, err := k8stest.GetLatestHelmChartVersion(e2e_config.GetConfig().Product.MongoHelmRepo)
-	if err != nil && mb.helmVersion == "" {
-		logf.Log.Error(err, "switching to default bitnami/mongo chart version", "defaultChart", e2e_config.GetConfig().Product.MongoDefaultChartVersion)
-		mb.helmVersion = e2e_config.GetConfig().Product.MongoDefaultChartVersion
-	}
-	if mb.helmVersion == "" {
-		mb.helmVersion = latest.Version
-	}
+	mb.helmVersion = e2e_config.GetConfig().Product.MongoDefaultChartVersion
+	logf.Log.Info("Using Helm Chart Version", "version", mb.helmVersion)
 	if mb.scName == "" {
 		scName, err := CreateStorageClass(mb)
 		if err != nil {
@@ -194,7 +187,7 @@ func (mb *mongoBuilder) Build() (MongoApp, error) {
 		mb.scName = scName
 		logf.Log.Info("StorageClass has been created", "storageClassName", scName)
 	}
-	err = k8stest.AddHelmRepository(e2e_config.GetConfig().Product.MongoHelmRepoName, e2e_config.GetConfig().Product.MongoHelmRepoUrl)
+	err := k8stest.AddHelmRepository(e2e_config.GetConfig().Product.MongoHelmRepoName, e2e_config.GetConfig().Product.MongoHelmRepoUrl)
 	if err != nil {
 		return MongoApp{}, err
 	}
