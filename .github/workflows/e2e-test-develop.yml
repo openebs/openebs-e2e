@@ -1,4 +1,4 @@
-name: e2e tests
+name: develop:regression e2e tests
 on:
   schedule: ## Schedule the job to run at 12. am daily
     - cron: '0 0 * * *'

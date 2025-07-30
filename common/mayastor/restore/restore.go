@@ -13,20 +13,21 @@ import (
 )
 
 var (
-	DefTimeoutSecs                       = 180 // in seconds
-	PreConditionFailedErrorSubstring     = "412 Precondition Failed"
-	PoolNotReadyToTakeCloneOfSnapshot    = "Pool not ready to take clone of snapshot"
-	NotReady                             = "is not Ready"
-	RangeNotSatisfiable                  = "416 Range Not Satisfiable"
-	CloneVolumeSizeErrorString           = "Cloned snapshot volume must match the snapshot size"
-	BadRequest                           = "400 Bad Request"
-	CloneVolumeThinErrorString           = "Cloned snapshot volumes must be thin provisioned"
-	ErrorGettingHandleDataSource         = "error getting handle for DataSource"
-	MultiReplicaRestore                  = "Cannot create a multi-replica volume from a snapshot of a single-replica volume"
-	FailedToStageVolume                  = "Failed to stage volume"
-	FailedToProvisionWithCrossVolumeMode = "snapshot.storage.kubernetes.io/allow-volume-mode-change annotation is not present on snapshotcontent"
-	VolumeModeConversionAnnotationKey    = "snapshot.storage.kubernetes.io/allow-volume-mode-change"
-	VolumeModeConversionAnnotationValue  = "true"
+	DefTimeoutSecs                         = 180 // in seconds
+	PreConditionFailedErrorSubstring       = "412 Precondition Failed"
+	PoolNotReadyToTakeCloneOfSnapshot      = "Pool not ready to take clone of snapshot"
+	NotReady                               = "is not Ready"
+	RangeNotSatisfiable                    = "416 Range Not Satisfiable"
+	CloneVolumeSizeErrorString             = "Cloned snapshot volume must match the snapshot size"
+	BadRequest                             = "400 Bad Request"
+	CloneVolumeThinErrorString             = "Cloned snapshot volumes must be thin provisioned"
+	ErrorGettingHandleDataSource           = "error getting handle for DataSource"
+	MultiReplicaRestore                    = "Cannot create a multi-replica volume from a snapshot of a single-replica volume"
+	FailedToStageVolume                    = "Failed to stage volume"
+	FailedToProvisionWithCrossVolumeMode   = "snapshot.storage.kubernetes.io/allow-volume-mode-change annotation is not present on snapshotcontent"
+	VolumeModeConversionAnnotationKey      = "snapshot.storage.kubernetes.io/allow-volume-mode-change"
+	VolumeModeConversionAnnotationValue    = "true"
+	ClonedSnapshotVolumeThinErrorsubstring = "ClonedSnapshotVolumeThin: Cloned snapshot volumes must be thin provisioned"
 )
 
 func IsWarningPvcEventPresent(pvcName string, namespace string, errorSubstring string) (bool, error) {
