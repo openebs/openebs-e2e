@@ -24,26 +24,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type userPromptMessages string
-
-const (
-	RebuildWarning                           userPromptMessages = "The cluster is rebuilding replica of some volumes"
-	SkipSingleReplicaVolumeWarning           userPromptMessages = "These single replica volumes may not be accessible during upgrade"
-	SkipSingleReplicaVolumeWarningForOpenEBS userPromptMessages = "These single-replica volumes may not be accessible during upgrade"
-	CordonedNodeWarning                      userPromptMessages = "One or more nodes in this cluster are in a Mayastor cordoned state"
-)
-
-const (
-	VolSizeMb                        = 8192 // in Mb
-	DefTimeoutSecs                   = 300  // in seconds
-	WaitForRebuildTriggerTimeoutSecs = 60   // in seconds
-	UpgradeJobCompeletionTimeOutSecs = 1800 // in seconds
-	DefRebuildTimeoutSecs            = 600  // in seconds
-	sleepTime                        = 3    // in seconds
-	// FioRunTime                       = 1800 // in seconds
-	toLocalpvProvisionerImage = "4.3.0"
-)
-
 // DisablePartialRebuildUpgradeVersions contains list of product
 // version which requires disabling partial rebuild while upgrade
 var DisablePartialRebuildUpgradeVersions = []string{
@@ -54,7 +34,7 @@ var DisablePartialRebuildUpgradeVersions = []string{
 // volume size as 4096. Now according to VolSizeMb in tests loops can be
 // configured. For e.g. in upgrade tests we have 8192Mb size of volume
 // then no of loops will become 5. Same way for lesser volume, no of loops will increase.
-var NoOfFioRunLoops = CalculateNoOfFioRunLoops(VolSizeMb)
+var NoOfFioRunLoops = CalculateNoOfFioRunLoops(common.VolSizeMb)
 
 func CalculateNoOfFioRunLoops(VolSizeMb int) int {
 	var loops int
@@ -113,7 +93,7 @@ func AreContainerImagesUpgraded(podList *coreV1.PodList, toUpgradeImageTag, dock
 					if !strings.Contains(imageTag[len(imageTag)-1], toUpgradeImageTag) {
 						return false, nil
 					}
-				} else if !strings.Contains(imageTag[len(imageTag)-1], toLocalpvProvisionerImage) {
+				} else if !strings.Contains(imageTag[len(imageTag)-1], common.ToLocalpvProvisionerImage) {
 					return false, nil
 				}
 			}
@@ -146,7 +126,7 @@ func IsDataPlaneUpgraded(toUpgradeImageTag, dockerImageOrgName string) (bool, er
 
 func VerifyMayastorAndPoolReady() (bool, error) {
 	// mayastor ready check
-	return k8stest.VerifyMayastorAndPoolReady(DefTimeoutSecs)
+	return k8stest.VerifyMayastorAndPoolReady(common.DefTimeoutSecs)
 }
 
 func RestartDataPlane(volUuid []string) error {
@@ -199,7 +179,7 @@ func RestartDataPlane(volUuid []string) error {
 		// wait for rebuild to complete if any replica is in rebuilding phase.
 		logf.Log.Info("wait for rebuild to complete")
 		for _, vol := range volUuid {
-			isRebuildCompleted, err := partial_rebuild.WaitForRebuildComplete(vol, DefRebuildTimeoutSecs)
+			isRebuildCompleted, err := partial_rebuild.WaitForRebuildComplete(vol, common.DefRebuildTimeoutSecs)
 			if err != nil {
 				return fmt.Errorf("failed to check rebuild completion, got error: %v", err)
 			}
@@ -216,7 +196,7 @@ func RestartDataPlane(volUuid []string) error {
 
 func checkIfIOEnginePodDeletedSuccessfully(ioEnginePod string) (bool, error) {
 	startTime := time.Now()
-	for time.Since(startTime) < time.Duration(DefTimeoutSecs)*time.Second {
+	for time.Since(startTime) < time.Duration(common.DefTimeoutSecs)*time.Second {
 		newIOEnginePodList, err := k8stest.ListIOEnginePods()
 		if err != nil {
 			return false, fmt.Errorf("failed to list io-engine pods: %v", err)
@@ -235,7 +215,7 @@ func checkIfIOEnginePodDeletedSuccessfully(ioEnginePod string) (bool, error) {
 			return true, nil
 		}
 
-		time.Sleep(sleepTime * time.Second)
+		time.Sleep(common.SleepTime * time.Second)
 	}
 	return false, nil
 }
@@ -243,7 +223,7 @@ func checkIfIOEnginePodDeletedSuccessfully(ioEnginePod string) (bool, error) {
 func AreDesiredNoOfIOEnginePodsRunning(podCount int) (bool, error) {
 	logf.Log.Info("Check status for the io-engine pods")
 	startTime := time.Now()
-	for time.Since(startTime) < time.Duration(DefTimeoutSecs)*time.Second {
+	for time.Since(startTime) < time.Duration(common.DefTimeoutSecs)*time.Second {
 
 		ioEnginePodList, err := k8stest.ListIOEnginePods()
 		if err != nil {
@@ -264,7 +244,7 @@ func AreDesiredNoOfIOEnginePodsRunning(podCount int) (bool, error) {
 			return true, nil
 		}
 
-		time.Sleep(sleepTime * time.Second)
+		time.Sleep(common.SleepTime * time.Second)
 	}
 	return false, nil
 }
@@ -299,19 +279,19 @@ func PostUpgradeWaitForRebuildCompletion(volUuid string) error {
 	// here we wait for 60 seconds to check if any rebuild is triggerd.
 	// upgrade job also has the same timeout seconds to check for rebuilds.
 	logf.Log.Info("wait for rebuild to get triggered")
-	rebuildInProgress, err := partial_rebuild.WaitForRebuildInProgress(volUuid, WaitForRebuildTriggerTimeoutSecs)
+	rebuildInProgress, err := partial_rebuild.WaitForRebuildInProgress(volUuid, common.WaitForRebuildTriggerTimeoutSecs)
 	if err != nil {
 		return fmt.Errorf("failed to check rebuild, err:%v", err)
 	}
 	// wait for rebuild to complete
 	if rebuildInProgress {
 		logf.Log.Info("wait for rebuild to complete")
-		isRebuildCompleted, err := partial_rebuild.WaitForRebuildComplete(volUuid, DefRebuildTimeoutSecs)
+		isRebuildCompleted, err := partial_rebuild.WaitForRebuildComplete(volUuid, common.DefRebuildTimeoutSecs)
 		if err != nil {
 			return fmt.Errorf("failed to check completion of rebuild")
 		}
 		if !isRebuildCompleted {
-			return fmt.Errorf("rebuild not completed in given time of %d seconds", DefRebuildTimeoutSecs)
+			return fmt.Errorf("rebuild not completed in given time of %d seconds", common.DefRebuildTimeoutSecs)
 		}
 	}
 	return nil
