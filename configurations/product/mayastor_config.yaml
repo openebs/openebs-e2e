@@ -174,4 +174,4 @@ product:
     lokiIngesterChunkIdlePeriodTime: "30s"
     lokiIngesterChunkRetainPeriodTime: "15s"
     lokiIngesterMaxChunkAgeTime: "150s"
-    ociRegistryUrl: "TODO: Set the OCI registry URL"
+    ociRegistryUrl: "oci://ghcr.io/openebs/helm/openebs"

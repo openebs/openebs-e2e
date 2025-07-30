@@ -5,6 +5,9 @@ set -eu
 SCRIPTDIR=$(dirname "$(realpath "$0")")
 EXITV_INVALID_OPTION=1
 
+openebs_chart_version=""
+oci="${e2e_oci_install:-false}"
+
 help() {
   cat <<EOF
 Usage: $0 [OPTIONS]
@@ -43,9 +46,9 @@ while [ "$#" -gt 0 ]; do
       esac
       ;;
     --openebs_chart_version)
-        shift
-        openebs_chart_version="$1"
-        ;;
+      shift
+      openebs_chart_version="$1"
+      ;;
     *)
       echo "Unknown option: $1"
       help
@@ -65,5 +68,5 @@ array=($array_str)
 # Iterate through the array
 for test in "${array[@]}"; do
     echo "Test: $test"
-    $SCRIPTDIR/exec-tests.sh --tests $test --local true --product openebs --replicated_engine false
+    $SCRIPTDIR/exec-tests.sh --tests $test --local true --product openebs --replicated_engine false --oci $oci --openebs_chart_version $openebs_chart_version
 done

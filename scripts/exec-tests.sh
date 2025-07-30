@@ -220,8 +220,13 @@ while [ "$#" -gt 0 ]; do
       esac
       ;;
     --openebs_chart_version)
-        shift
-        openebs_chart_version="$1"
+        if [[ $# -ge 2 && "${2}" != --* ]]; then
+            shift
+            openebs_chart_version="$1"
+        else
+            echo "Info: --openebs_chart_version provided without a value"
+            openebs_chart_version=""
+        fi
         ;;
     *)
       echo "Unknown option: $1"
