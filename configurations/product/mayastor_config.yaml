@@ -82,7 +82,7 @@ product:
     mongoAuthRootPassword: "r00tAdmin"
     mongoAuthUsername: "admin"
     mongoDatabasePort: 27017
-    mongoDefaultChartVersion: "14.5.0"
+    mongoDefaultChartVersion: "16.5.0"
     mongoHelmRepo: "bitnami/mongodb"
     mongoHelmRepoName: "bitnami"
     mongoHelmRepoUrl: "https://charts.bitnami.com/bitnami"
