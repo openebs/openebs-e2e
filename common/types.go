@@ -543,3 +543,25 @@ type ReplicasComparison struct {
 	Description string
 	Err         error
 }
+
+type ZFSVolume struct {
+	Spec   ZfsSpec   `json:"spec"`
+	Status ZfsStatus `json:"status"`
+}
+
+type ZfsSpec struct {
+	Capacity      string `json:"capacity"`
+	Compression   string `json:"compression"`
+	FsType        string `json:"fsType"`
+	OwnerNodeID   string `json:"ownerNodeID"`
+	PoolName      string `json:"poolName"`
+	QuotaType     string `json:"quotaType"`
+	Recordsize    string `json:"recordsize"`
+	Shared        string `json:"shared"`
+	ThinProvision string `json:"thinProvision"`
+	VolumeType    string `json:"volumeType"`
+}
+
+type ZfsStatus struct {
+	State string `json:"state"`
+}

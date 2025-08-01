@@ -93,3 +93,9 @@ func GetPluginName() string {
 	}
 	return e2e_config.GetConfig().Product.KubectlOpenebsPluginName
 }
+
+// GetOpenebsPluginCmd returns an exec.Cmd for the kubectl-openebs plugin, regardless of config
+func GetOpenebsPluginCmd(arg ...string) *exec.Cmd {
+	binPath := e2e_config.GetConfig().Product.KubectlOpenebsPluginName
+	return exec.Command(binPath, arg...)
+}
