@@ -26,6 +26,7 @@ type FioStsApp struct {
 	StsPodManagementPolicy string
 	StsAffinityGroup       string // "true" or "false" for anti affinity feature for volume replicas and target
 	VolType                common.VolumeType
+	FsType                 common.FileSystemType
 	StsReplicaCount        *int32
 	VolReplicaCount        int
 	VolUuid                string
@@ -34,6 +35,7 @@ type FioStsApp struct {
 	Loops                  int
 	VerifyReplicasOnDelete bool
 	AppNodeName            string
+	KeepStorageClass       bool // If true, don't cleanup storage class during Cleanup(). Default: false
 }
 
 var (
@@ -70,21 +72,40 @@ func (dfa *FioStsApp) StsApp() error {
 		dfa.VolReplicaCount = len(poolsInCluster)
 	}
 
-	dfa.ScName = strings.ToLower(fmt.Sprintf("%s-%d-repl-sc", dfa.Decor, dfa.VolReplicaCount))
+	// Enhanced naming to include filesystem type information
+	resourceSuffix := fmt.Sprintf("-%dr", dfa.VolReplicaCount)
+	if dfa.VolType == common.VolFileSystem {
+		if dfa.FsType == common.NoneFsType {
+			logf.Log.Info("default filesystem type to ext4")
+			dfa.FsType = common.Ext4FsType
+		}
+		resourceSuffix += "-" + string(dfa.FsType)
+	}
+	if dfa.VolType == common.VolRawBlock {
+		resourceSuffix += "-rb"
+	}
+
+	dfa.ScName = strings.ToLower(fmt.Sprintf("%s-%d-repl-sc%s", dfa.Decor, dfa.VolReplicaCount, resourceSuffix))
 	dfa.StsName = strings.ToLower(fmt.Sprintf("%s-%d-repl-sts", dfa.Decor, *dfa.StsReplicaCount))
-	dfa.VolName = strings.ToLower(fmt.Sprintf("%s-%d-repl-vol", dfa.Decor, dfa.VolReplicaCount))
+	dfa.VolName = strings.ToLower(fmt.Sprintf("%s-%d-repl-vol%s", dfa.Decor, dfa.VolReplicaCount, resourceSuffix))
 
 	if dfa.VolType.String() == "" {
 		dfa.VolType = common.VolRawBlock
 	}
 
-	err = NewScBuilder().
+	// Enhanced storage class creation with filesystem support
+	scBuilder := NewScBuilder().
 		WithName(dfa.ScName).
 		WithReplicas(dfa.VolReplicaCount).
 		WithProtocol(common.ShareProtoNvmf).
 		WithStsAffinityGroup(common.StsAffinityGroup(dfa.StsAffinityGroup)).
-		WithVolumeBindingMode(storageV1.VolumeBindingImmediate).
-		BuildAndCreate()
+		WithVolumeBindingMode(storageV1.VolumeBindingImmediate)
+
+	if dfa.VolType == common.VolFileSystem {
+		scBuilder = scBuilder.WithFileSystemType(dfa.FsType)
+	}
+
+	err = scBuilder.BuildAndCreate()
 	if err != nil {
 		return fmt.Errorf("failed to create storage class %s %v", dfa.ScName, err)
 	}
@@ -191,9 +212,12 @@ func (dfa *FioStsApp) Cleanup(replicaCount int) error {
 				return fmt.Errorf("failed to remove pvc %s", volName)
 			}
 		}
-		err = RmStorageClass(dfa.ScName)
-		if err != nil {
-			return fmt.Errorf("failed to delete storage class %s", dfa.ScName)
+		// Only delete storage class if KeepStorageClass is false (default behavior)
+		if !dfa.KeepStorageClass {
+			err = RmStorageClass(dfa.ScName)
+			if err != nil {
+				return fmt.Errorf("failed to delete storage class %s", dfa.ScName)
+			}
 		}
 	}
 	return err
