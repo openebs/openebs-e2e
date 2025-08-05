@@ -422,6 +422,40 @@ func MsvConsistencyCheck(uuid string) error {
 	return nil
 }
 
+// VerifyStsMsvReplicaTopology checks if MSV replicas have the affinity group and are on different nodes.
+func VerifyStsMsvReplicaTopology(volUuid string, namespace string, pvcName string) error {
+	// Get the MSV for the given volume UUID
+	msv, err := GetMSV(volUuid)
+	if err != nil {
+		return fmt.Errorf("failed to get MSV for volume UUID %s: %v", volUuid, err)
+	}
+
+	// Check if the affinity group is set
+	if msv.Spec.AffinityGroup == "" {
+		return fmt.Errorf("affinity group is not set for MSV %s", volUuid)
+	}
+	logf.Log.Info("Affinity group verified for MSV", "Volume UUID", volUuid, "Affinity Group", msv.Spec.AffinityGroup)
+
+	// Verify that the affinity group matches the namespace and PVC name
+	expectedAffinityGroup := fmt.Sprintf("%s/%s", namespace, pvcName)
+	if msv.Spec.AffinityGroup != expectedAffinityGroup {
+		return fmt.Errorf("affinity group mismatch: expected %s, got %s", expectedAffinityGroup, msv.Spec.AffinityGroup)
+	}
+	logf.Log.Info("Affinity group matches namespace and PVC", "Expected", expectedAffinityGroup, "Actual", msv.Spec.AffinityGroup)
+
+	// Verify that each replica is on a different node
+	nodeSet := make(map[string]bool)
+	for _, replica := range msv.State.Replicas {
+		if _, exists := nodeSet[replica.Node]; exists {
+			return fmt.Errorf("replica topology validation failed: multiple replicas on node %s for MSV %s", replica.Node, volUuid)
+		}
+		nodeSet[replica.Node] = true
+	}
+	logf.Log.Info("Replica topology verified for MSV", "Volume UUID", volUuid, "Nodes", nodeSet)
+
+	return nil
+}
+
 // CreatePVC Create a PVC in default namespace, no options and no context
 func CreatePVC(pvc *coreV1.PersistentVolumeClaim, nameSpace string) (*coreV1.PersistentVolumeClaim, error) {
 	return gTestEnv.KubeInt.CoreV1().PersistentVolumeClaims(nameSpace).Create(context.TODO(), pvc, metaV1.CreateOptions{})
@@ -1443,4 +1477,10 @@ func podExists(namespace, labelSelector string) bool {
 		return false
 	}
 	return len(pods.Items) > 0
+}
+
+// isPvcForStatefulSet checks if a PVC belongs to a given StatefulSet.
+func isPvcForStatefulSet(pvcName, stsName string) bool {
+	// PVCs for StatefulSets follow the naming convention: <volumeClaimTemplateName>-<statefulSetName>-<podIndex>
+	return strings.HasPrefix(pvcName, fmt.Sprintf("%s-", stsName))
 }

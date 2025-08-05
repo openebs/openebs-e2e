@@ -1,8 +1,11 @@
 package k8stest
 
 import (
+	"fmt"
+
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/controlplane"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // GetMSV Get pointer to a mayastor volume custom resource
@@ -88,4 +91,41 @@ func GetMsvDeviceUri(uuid string) (string, error) {
 
 func GetMsvMaxSnapshotCount(uuid string) (int32, error) {
 	return controlplane.GetMsvMaxSnapshotCount(uuid)
+}
+
+// GetMsvsForStatefulSet retrieves all MSVs associated with a StatefulSet.
+func GetMsvsForStatefulSet(stsName, namespace string) ([]*common.MayastorVolume, error) {
+	var msvs []*common.MayastorVolume
+
+	// List PVCs in the namespace
+	pvcList, err := ListPVCs(namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list PVCs in namespace %s: %v", namespace, err)
+	}
+
+	for _, pvc := range pvcList.Items {
+		// Check if the PVC belongs to the StatefulSet
+		if !isPvcForStatefulSet(pvc.Name, stsName) {
+			continue
+		}
+
+		// Get the PV associated with the PVC
+		pv, err := GetPV(pvc.Spec.VolumeName)
+		if err != nil {
+			logf.Log.Info("Processing PVC", "PVC Name", pvc.Name)
+			return nil, fmt.Errorf("failed to get PV for PVC %s: %v", pvc.Name, err)
+		}
+
+		// Get the MSV associated with the PV
+		volUuid := pv.Spec.CSI.VolumeHandle
+		msv, err := GetMSV(volUuid)
+		if err != nil {
+			logf.Log.Info("Retrieved MSV", "MSV UUID", msv.Spec.Uuid)
+			return nil, fmt.Errorf("failed to get MSV for Volume UUID %s: %v", volUuid, err)
+		}
+
+		msvs = append(msvs, msv)
+	}
+
+	return msvs, nil
 }
