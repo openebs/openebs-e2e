@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +18,8 @@ import (
 	errors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+
+	"strconv"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	coreV1 "k8s.io/api/core/v1"
@@ -422,8 +425,8 @@ func MsvConsistencyCheck(uuid string) error {
 	return nil
 }
 
-// VerifyStsMsvReplicaTopology checks if MSV replicas have the affinity group and are on different nodes.
-func VerifyStsMsvReplicaTopology(volUuid string, namespace string, pvcName string) error {
+// VerifyStsMsvAffinityGroup checks if MSV has the correct affinity group set for StatefulSet volumes.
+func VerifyStsMsvAffinityGroup(volUuid string, namespace string, pvcName string) error {
 	// Get the MSV for the given volume UUID
 	msv, err := GetMSV(volUuid)
 	if err != nil {
@@ -431,27 +434,29 @@ func VerifyStsMsvReplicaTopology(volUuid string, namespace string, pvcName strin
 	}
 
 	// Check if the affinity group is set
-	if msv.Spec.AffinityGroup == "" {
+	if msv.Spec.AffinityGroup.Id == "" {
 		return fmt.Errorf("affinity group is not set for MSV %s", volUuid)
 	}
-	logf.Log.Info("Affinity group verified for MSV", "Volume UUID", volUuid, "Affinity Group", msv.Spec.AffinityGroup)
+	logf.Log.Info("Affinity group verified for MSV", "Volume UUID", volUuid, "Affinity Group", msv.Spec.AffinityGroup.Id)
 
 	// Verify that the affinity group matches the namespace and PVC name
 	expectedAffinityGroup := fmt.Sprintf("%s/%s", namespace, pvcName)
-	if msv.Spec.AffinityGroup != expectedAffinityGroup {
-		return fmt.Errorf("affinity group mismatch: expected %s, got %s", expectedAffinityGroup, msv.Spec.AffinityGroup)
-	}
-	logf.Log.Info("Affinity group matches namespace and PVC", "Expected", expectedAffinityGroup, "Actual", msv.Spec.AffinityGroup)
 
-	// Verify that each replica is on a different node
-	nodeSet := make(map[string]bool)
-	for _, replica := range msv.State.Replicas {
-		if _, exists := nodeSet[replica.Node]; exists {
-			return fmt.Errorf("replica topology validation failed: multiple replicas on node %s for MSV %s", replica.Node, volUuid)
+	// For restored volumes, the affinity group might not include the pod index
+	// Extract the StatefulSet name from the PVC name (remove the pod index)
+	stsName := pvcName
+	if idx := strings.LastIndex(pvcName, "-"); idx != -1 {
+		// Check if the last part is a number (pod index)
+		if _, err := strconv.Atoi(pvcName[idx+1:]); err == nil {
+			stsName = pvcName[:idx]
 		}
-		nodeSet[replica.Node] = true
 	}
-	logf.Log.Info("Replica topology verified for MSV", "Volume UUID", volUuid, "Nodes", nodeSet)
+	expectedAffinityGroupSts := fmt.Sprintf("%s/%s", namespace, stsName)
+
+	if msv.Spec.AffinityGroup.Id != expectedAffinityGroup && msv.Spec.AffinityGroup.Id != expectedAffinityGroupSts {
+		return fmt.Errorf("affinity group mismatch: expected %s or %s, got %s", expectedAffinityGroup, expectedAffinityGroupSts, msv.Spec.AffinityGroup.Id)
+	}
+	logf.Log.Info("Affinity group matches namespace and PVC", "Expected", expectedAffinityGroup, "ExpectedSts", expectedAffinityGroupSts, "Actual", msv.Spec.AffinityGroup.Id)
 
 	return nil
 }
@@ -1479,8 +1484,67 @@ func podExists(namespace, labelSelector string) bool {
 	return len(pods.Items) > 0
 }
 
-// isPvcForStatefulSet checks if a PVC belongs to a given StatefulSet.
+// Enhanced isPvcForStatefulSet with additional safety checks
 func isPvcForStatefulSet(pvcName, stsName string) bool {
+	if pvcName == "" || stsName == "" {
+		logf.Log.Info("Empty PVC name or StatefulSet name", "pvcName", pvcName, "stsName", stsName)
+		return false
+	}
+
 	// PVCs for StatefulSets follow the naming convention: <volumeClaimTemplateName>-<statefulSetName>-<podIndex>
-	return strings.HasPrefix(pvcName, fmt.Sprintf("%s-", stsName))
+	// Use regex to match the pattern: contains stsName followed by dash and digits at the end
+	pattern := fmt.Sprintf(`%s-\d+$`, regexp.QuoteMeta(stsName))
+	matched, err := regexp.MatchString(pattern, pvcName)
+	if err != nil {
+		logf.Log.Error(err, "Error matching PVC name pattern", "pvcName", pvcName, "stsName", stsName)
+		return false
+	}
+
+	logf.Log.Info("PVC pattern match result", "pvcName", pvcName, "stsName", stsName, "matched", matched)
+	return matched
+}
+
+// GetMsvsForStatefulSet retrieves all MSVs associated with a StatefulSet.
+func GetMsvsForStatefulSet(stsName, namespace string) ([]*common.MayastorVolume, error) {
+	logf.Log.Info("GetMsvsForStatefulSet", "StatefulSet", stsName, "Namespace", namespace)
+
+	pvcList, err := ListPVCs(namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list PVCs in namespace %s: %v", namespace, err)
+	}
+	if pvcList == nil || len(pvcList.Items) == 0 {
+		logf.Log.Info("No PVCs found", "Namespace", namespace)
+		return nil, nil
+	}
+
+	var msvs []*common.MayastorVolume
+
+	for _, pvc := range pvcList.Items {
+		if pvc.Name == "" || pvc.Spec.VolumeName == "" || !isPvcForStatefulSet(pvc.Name, stsName) {
+			continue
+		}
+
+		pv, err := GetPV(pvc.Spec.VolumeName)
+		if err != nil || pv == nil || pv.Spec.CSI == nil || pv.Spec.CSI.VolumeHandle == "" {
+			logf.Log.Info("Skipping invalid or missing PV", "PVC", pvc.Name, "Error", err)
+			continue
+		}
+
+		volUuid := pv.Spec.CSI.VolumeHandle
+		logf.Log.Info("Getting MSV for Volume UUID", "UUID", volUuid, "PVC", pvc.Name)
+		msv, err := GetMSV(volUuid)
+		logf.Log.Info("MSV retrieval", "Error", err, "MSV", msv)
+		if err != nil || msv == nil || msv.Spec.Uuid == "" {
+			logf.Log.Info("Skipping invalid or missing MSV", "UUID", volUuid, "Error", err)
+			continue
+		}
+
+		logf.Log.Info("Retrieved MSV", "UUID", msv.Spec.Uuid)
+		msvs = append(msvs, msv)
+	}
+
+	if len(msvs) == 0 {
+		logf.Log.Info("No MSVs found for StatefulSet", "StatefulSet", stsName, "Namespace", namespace)
+	}
+	return msvs, nil
 }

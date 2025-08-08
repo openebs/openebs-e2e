@@ -258,7 +258,9 @@ type MsvSpec struct {
 	ContentSource ContentSource `json:"content_source"`
 	MaxSnapshots  int32         `json:"max_snapshots"`
 	Encrypted     bool          `json:"encrypted"`
-	AffinityGroup string        `json:"affinity_group"`
+	AffinityGroup struct {
+		Id string `json:"id"`
+	} `json:"affinity_group"`
 }
 
 type Policy struct {
