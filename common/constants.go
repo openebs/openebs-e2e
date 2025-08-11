@@ -67,3 +67,37 @@ const ScZfsQuotaType = "quotatype"
 const FsxBlockFileName = "/dev/sdm"
 
 const StrFioCriticalFailure = "fio Critical Failure"
+
+// Upgrade constants
+type upgradeFlags string
+
+const (
+	SkipDataPlaneRestartFlag         upgradeFlags = "--skip-data-plane-restart"
+	SkipSingleReplicaValidationFlag  upgradeFlags = "--skip-single-replica-volume-validation"
+	SkipReplicaRebuildFlag           upgradeFlags = "--skip-replica-rebuild"
+	SkipCordonNodeValidationFlag     upgradeFlags = "--skip-cordoned-node-validation"
+	AllowUpgradeToUnstableBranchFlag upgradeFlags = "--allow-unstable"
+	SkipUpgradePathValidationFlag    upgradeFlags = "--skip-upgrade-path-validation-for-unsupported-version"
+	DisablePartialRebuild            upgradeFlags = "agents.core.rebuild.partial.enabled=false"
+)
+
+type userPromptMessages string
+
+const (
+	RebuildWarning                           userPromptMessages = "The cluster is rebuilding replica of some volumes"
+	SkipSingleReplicaVolumeWarning           userPromptMessages = "These single replica volumes may not be accessible during upgrade"
+	SkipSingleReplicaVolumeWarningForOpenEBS userPromptMessages = "These single-replica volumes may not be accessible during upgrade"
+	CordonedNodeWarning                      userPromptMessages = "One or more nodes in this cluster are in a Mayastor cordoned state"
+)
+
+const (
+	VolSizeMb                        = 8192 // in Mb
+	DefTimeoutSecs                   = 300  // in seconds
+	WaitForRebuildTriggerTimeoutSecs = 60   // in seconds
+	UpgradeJobCompletionTimeOutSecs  = 1800 // in seconds
+	SmallPollIntervalSecs            = 5    // in seconds
+	LargePollIntervalSecs            = 30   // in seconds
+	DefRebuildTimeoutSecs            = 600  // in seconds
+	SleepTime                        = 3    // in seconds
+	ToLocalpvProvisionerImage        = "4.3.0"
+)

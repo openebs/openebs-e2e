@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,363 +12,212 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type upgradeFlags string
+// upgradeMetadata struct to hold plugin and registry information
+type upgradeMetadata struct {
+	KubectlPlugin    string
+	PluginVersion    string
+	CIRegistry       string
+	IsMayastorPlugin bool
+}
 
-const (
-	SkipDataPlaneRestartFlag         upgradeFlags = "--skip-data-plane-restart"
-	SkipSingleReplicaValidationFlag  upgradeFlags = "--skip-single-replica-volume-validation"
-	SkipReplicaRebuildFlag           upgradeFlags = "--skip-replica-rebuild"
-	SkipCordonNodeValidationFlag     upgradeFlags = "--skip-cordoned-node-validation"
-	AllowUpgradeToUnstableBranchFlag upgradeFlags = "--allow-unstable"
-	SkipUpgradePathValidationFlag    upgradeFlags = "--skip-upgrade-path-validation-for-unsupported-version"
-	DisablePartialRebuild            upgradeFlags = "agents.core.rebuild.partial.enabled=false"
-)
+// upgradeOptions struct to hold various upgrade flags
+type upgradeOptions struct {
+	IsUpgradingToUnstableBranch   bool
+	IsPartialRebuildDisableNeeded bool
+	ExtraFlags                    []string
+}
 
-// This function is to fire upgrade command with kubectl mayastor plugin
-// Syntax is: `kubectl-mayastor upgrade`
-// this function takes one boolean parameter, `isUpgradingToUnstableBranch`
-// this parameters is passed as true if we want to test upgrade to unstable main branch
-// and uses --allow-unstable flag with upgrade command.
-func (cp CPv1) Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) (string, error) {
-	kubectlPlugin := GetPluginPath()
-
-	pluginVersion, err := GetPluginVersion()
+// Helper to fetch plugin info and CI_REGISTRY
+func getUpgradeMetadata() (upgradeMetadata, error) {
+	var meta upgradeMetadata
+	var ok bool
+	var err error
+	meta.KubectlPlugin = GetPluginPath()         // This line is already present in the original code.
+	meta.PluginVersion, err = GetPluginVersion() // This line is already present in the original code.
 	if err != nil {
-		return "", fmt.Errorf("failed to get plugin version, err:%v", err)
+		return upgradeMetadata{}, fmt.Errorf("failed to get plugin version, err:%v", err)
 	}
-
-	pluginVersion = strings.TrimSpace(pluginVersion)
-
-	CIRegistry, ok := os.LookupEnv("CI_REGISTRY")
+	meta.PluginVersion = strings.TrimSpace(meta.PluginVersion)
+	meta.CIRegistry, ok = os.LookupEnv("CI_REGISTRY")
 	if !ok {
-		return "", fmt.Errorf("environment variable CI_REGISTRY is not defined")
+		return upgradeMetadata{}, fmt.Errorf("environment variable CI_REGISTRY is not defined")
 	}
+	meta.IsMayastorPlugin = filepath.Base(meta.KubectlPlugin) == e2e_config.GetConfig().Product.MayastorPluginName
 
-	// Construct the base command
+	return meta, nil
+}
+
+// Build the common upgrade command arguments
+func buildUpgradeArgs(meta upgradeMetadata, opts upgradeOptions) []string {
+
 	cmdArgs := []string{"-n", common.NSMayastor(), "upgrade"}
+	cmdArgs = append(cmdArgs, opts.ExtraFlags...)
 
-	// Append arguments based on conditions
-	if isUpgradingToUnstableBranch {
+	if opts.IsUpgradingToUnstableBranch {
 		// for plugin version with rc tag i.e. release candidate
 		// upgrade job images are not present in ci-registry, they are in
 		// docker hub. so for those tags we dont need to add --registry flag.
-		if filepath.Base(kubectlPlugin) != e2e_config.GetConfig().Product.MayastorPluginName {
-			cmdArgs = append(cmdArgs, string(SkipUpgradePathValidationFlag))
-		} else if strings.Contains(pluginVersion, "-rc") {
-			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
+		if !meta.IsMayastorPlugin {
+			cmdArgs = append(cmdArgs, string(common.SkipUpgradePathValidationFlag))
+		} else if strings.Contains(meta.PluginVersion, "-rc") {
+			cmdArgs = append(cmdArgs, string(common.AllowUpgradeToUnstableBranchFlag))
 		} else {
-			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
+			cmdArgs = append(cmdArgs, "--registry", meta.CIRegistry, string(common.AllowUpgradeToUnstableBranchFlag))
 		}
 	}
-
-	if isPartialRebuildDisableNeeded {
-		cmdArgs = append(cmdArgs, "--set", string(DisablePartialRebuild))
+	if opts.IsPartialRebuildDisableNeeded {
+		cmdArgs = append(cmdArgs, "--set", string(common.DisablePartialRebuild))
 	}
-
-	// Create the command
-	cmd := exec.Command(kubectlPlugin, cmdArgs...)
-
-	// Print the command that will be executed
-	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
-
-	// Capture standard error output
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	// Run the command
-	err = cmd.Run()
-	if err != nil {
-		logf.Log.Info(stderr.String())
-		return stderr.String(), fmt.Errorf("plugin failed to upgrade, err:%v", err)
-	}
-	return stderr.String(), nil
+	return cmdArgs
 }
 
-// This function is for starting upgrade with a flag to skip data plane restart
-// User can manually restart data plane later. During upgrade images will be upgraded
-// but pod restart will be manual process when used this flag.
-// Syntax is: `kubectl-mayastor upgrade --skip-data-plane-restart`
-// this function takes one boolean parameter, `isUpgradingToUnstableBranch`
-// this parameters is passed as true if we want to test upgrade to unstable main branch
-// and uses --allow-unstable flag with upgrade command.
+// Generic upgrade command invoker
+func (cp CPv1) runUpgrade(
+	opts upgradeOptions) (string, error) {
+	upgradeMeta, err := getUpgradeMetadata()
+	if err != nil {
+		return "", err
+	}
+	args := buildUpgradeArgs(
+		upgradeMeta, upgradeOptions{
+			IsUpgradingToUnstableBranch:   opts.IsUpgradingToUnstableBranch,
+			IsPartialRebuildDisableNeeded: opts.IsPartialRebuildDisableNeeded,
+			ExtraFlags:                    opts.ExtraFlags,
+		},
+	)
+	cmd := exec.Command(upgradeMeta.KubectlPlugin, args...)
+	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
+
+	var out []byte
+
+	if out, err = cmd.Output(); err != nil {
+		// If the command fails, return the error message.
+		logf.Log.Info("Command failed", "command", strings.Join(cmd.Args, " "), "error", err.Error())
+		return "", fmt.Errorf("plugin failed to upgrade: %v", err)
+	}
+	return string(out), nil
+}
+
+// Refactored upgrade commands -- easy to add new variants!
+func (cp CPv1) Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) (string, error) {
+	opts := upgradeOptions{
+		IsUpgradingToUnstableBranch:   isUpgradingToUnstableBranch,
+		IsPartialRebuildDisableNeeded: isPartialRebuildDisableNeeded,
+	}
+	// No extra upgrade flags
+	return cp.runUpgrade(opts)
+}
+
 func (cp CPv1) UpgradeWithSkipDataPlaneRestart(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) error {
-
-	kubectlPlugin := GetPluginPath()
-
-	pluginVersion, err := GetPluginVersion()
-	if err != nil {
-		return fmt.Errorf("failed to get plugin version, err:%v", err)
+	opts := upgradeOptions{
+		IsUpgradingToUnstableBranch:   isUpgradingToUnstableBranch,
+		IsPartialRebuildDisableNeeded: isPartialRebuildDisableNeeded,
+		ExtraFlags:                    []string{string(common.SkipDataPlaneRestartFlag)},
 	}
-
-	pluginVersion = strings.TrimSpace(pluginVersion)
-
-	CIRegistry, ok := os.LookupEnv("CI_REGISTRY")
-	if !ok {
-		return fmt.Errorf("environment varianble CI_REGISTRY is not defined")
-	}
-
-	// Construct the base command
-	cmdArgs := []string{"-n", common.NSMayastor(), "upgrade", string(SkipDataPlaneRestartFlag)}
-
-	// Append arguments based on conditions
-	if isUpgradingToUnstableBranch {
-		// for plugin version with rc tag i.e. release candidate
-		// upgrade job images are not present in ci-registry, they are in
-		// docker hub. so for those tags we dont need to add --registry flag.
-		if filepath.Base(kubectlPlugin) != e2e_config.GetConfig().Product.MayastorPluginName {
-			cmdArgs = append(cmdArgs, string(SkipUpgradePathValidationFlag))
-		} else if strings.Contains(pluginVersion, "-rc") {
-			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
-		} else {
-			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
-		}
-	}
-	if isPartialRebuildDisableNeeded {
-		cmdArgs = append(cmdArgs, "--set", string(DisablePartialRebuild))
-	}
-
-	// Create the command
-	cmd := exec.Command(kubectlPlugin, cmdArgs...)
-
-	// Print the command that will be executed
-	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
-
-	_, err = cmd.Output()
-
-	if err != nil {
-		return fmt.Errorf("plugin failed to upgrade when skip data plane restart flag is passsed , error %v", err)
-	}
-	return nil
+	_, err := cp.runUpgrade(opts)
+	return err
 }
 
-// This function is to fire upgrade command with skip single replica volume validation flag
-// Syntax is: `kubectl-mayastor upgrade --skip-single-replica-volume-validation`
-// this function takes one boolean parameter, `isUpgradingToUnstableBranch`
-// this parameters is passed as true if we want to test upgrade to unstable main branch
-// and uses --allow-unstable flag with upgrade command.
 func (cp CPv1) UpgradeWithSkipSingleReplicaValidation(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) error {
-
-	kubectlPlugin := GetPluginPath()
-
-	pluginVersion, err := GetPluginVersion()
-	if err != nil {
-		return fmt.Errorf("failed to get plugin version, err:%v", err)
+	opts := upgradeOptions{
+		IsUpgradingToUnstableBranch:   isUpgradingToUnstableBranch,
+		IsPartialRebuildDisableNeeded: isPartialRebuildDisableNeeded,
+		ExtraFlags:                    []string{string(common.SkipSingleReplicaValidationFlag)},
 	}
-
-	pluginVersion = strings.TrimSpace(pluginVersion)
-
-	CIRegistry, ok := os.LookupEnv("CI_REGISTRY")
-	if !ok {
-		return fmt.Errorf("environment varianble CI_REGISTRY is not defined")
-	}
-
-	// Construct the base command
-	cmdArgs := []string{"-n", common.NSMayastor(), "upgrade", string(SkipSingleReplicaValidationFlag)}
-
-	// Append arguments based on conditions
-	if isUpgradingToUnstableBranch {
-		// for plugin version with rc tag i.e. release candidate
-		// upgrade job images are not present in ci-registry, they are in
-		// docker hub. so for those tags we dont need to add --registry flag.
-		if filepath.Base(kubectlPlugin) != e2e_config.GetConfig().Product.MayastorPluginName {
-			cmdArgs = append(cmdArgs, string(SkipUpgradePathValidationFlag))
-		} else if strings.Contains(pluginVersion, "-rc") {
-			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
-		} else {
-			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
-		}
-	}
-	if isPartialRebuildDisableNeeded {
-		cmdArgs = append(cmdArgs, "--set", string(DisablePartialRebuild))
-	}
-
-	// Create the command
-	cmd := exec.Command(kubectlPlugin, cmdArgs...)
-
-	// Print the command that will be executed
-	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
-
-	_, err = cmd.Output()
-
-	if err != nil {
-		return fmt.Errorf("plugin failed to upgrade when skip single replica volume flag is passsed , error %v", err)
-	}
-	return nil
+	_, err := cp.runUpgrade(opts)
+	return err
 }
 
-// This function is to fire upgrade command with kubectl mayastor plugin with --skip-replica-rebuild flag
-// Syntax is: `kubectl-mayastor upgrade --skip-replica-rebuild`
-// this function takes one boolean parameter, `isUpgradingToUnstableBranch`
-// this parameters is passed as true if we want to test upgrade to unstable main branch
-// and uses --allow-unstable flag with upgrade command.
 func (cp CPv1) UpgradeWithSkipReplicaRebuild(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) error {
-	kubectlPlugin := GetPluginPath()
-
-	pluginVersion, err := GetPluginVersion()
-	if err != nil {
-		return fmt.Errorf("failed to get plugin version, err:%v", err)
+	opts := upgradeOptions{
+		IsUpgradingToUnstableBranch:   isUpgradingToUnstableBranch,
+		IsPartialRebuildDisableNeeded: isPartialRebuildDisableNeeded,
+		ExtraFlags:                    []string{string(common.SkipReplicaRebuildFlag)},
 	}
-
-	pluginVersion = strings.TrimSpace(pluginVersion)
-
-	CIRegistry, ok := os.LookupEnv("CI_REGISTRY")
-	if !ok {
-		return fmt.Errorf("environment varianble CI_REGISTRY is not defined")
-	}
-
-	// Construct the base command
-	cmdArgs := []string{"-n", common.NSMayastor(), "upgrade", string(SkipReplicaRebuildFlag)}
-
-	// Append arguments based on conditions
-	if isUpgradingToUnstableBranch {
-		// for plugin version with rc tag i.e. release candidate
-		// upgrade job images are not present in ci-registry, they are in
-		// docker hub. so for those tags we dont need to add --registry flag.
-		if filepath.Base(kubectlPlugin) != e2e_config.GetConfig().Product.MayastorPluginName {
-			cmdArgs = append(cmdArgs, string(SkipUpgradePathValidationFlag))
-		} else if strings.Contains(pluginVersion, "-rc") {
-			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
-		} else {
-			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
-		}
-	}
-	if isPartialRebuildDisableNeeded {
-		cmdArgs = append(cmdArgs, "--set", string(DisablePartialRebuild))
-	}
-
-	// Create the command
-	cmd := exec.Command(kubectlPlugin, cmdArgs...)
-
-	// Print the command that will be executed
-	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
-
-	_, err = cmd.Output()
-
-	if err != nil {
-		return fmt.Errorf("plugin failed to upgrade with --skip-rebuild-replica flag , error %v", err)
-	}
-	return nil
+	_, err := cp.runUpgrade(opts)
+	return err
 }
 
-// this function takes one boolean parameter, `isUpgradingToUnstableBranch`
-// this parameters is passed as true if we want to test upgrade to unstable main branch
-// and uses --allow-unstable flag with upgrade command.
 func (cp CPv1) UpgradeWithSkipCordonNodeValidation(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) error {
-	kubectlPlugin := GetPluginPath()
-
-	pluginVersion, err := GetPluginVersion()
-	if err != nil {
-		return fmt.Errorf("failed to get plugin version, err:%v", err)
-	}
-
-	pluginVersion = strings.TrimSpace(pluginVersion)
-
-	CIRegistry, ok := os.LookupEnv("CI_REGISTRY")
-	if !ok {
-		return fmt.Errorf("environment varianble CI_REGISTRY is not defined")
-	}
-
-	// Construct the base command
-	cmdArgs := []string{"-n", common.NSMayastor(), "upgrade", string(SkipCordonNodeValidationFlag)}
-
-	// Append arguments based on conditions
-	if isUpgradingToUnstableBranch {
-		// for plugin version with rc tag i.e. release candidate
-		// upgrade job images are not present in ci-registry, they are in
-		// docker hub. so for those tags we dont need to add --registry flag.
-		if filepath.Base(kubectlPlugin) != e2e_config.GetConfig().Product.MayastorPluginName {
-			cmdArgs = append(cmdArgs, string(SkipUpgradePathValidationFlag))
-		} else if strings.Contains(pluginVersion, "-rc") {
-			cmdArgs = append(cmdArgs, string(AllowUpgradeToUnstableBranchFlag))
-		} else {
-			cmdArgs = append(cmdArgs, "--registry", CIRegistry, string(AllowUpgradeToUnstableBranchFlag))
-		}
-	}
-	if isPartialRebuildDisableNeeded {
-		cmdArgs = append(cmdArgs, "--set", string(DisablePartialRebuild))
-	}
-
-	// Create the command
-	cmd := exec.Command(kubectlPlugin, cmdArgs...)
-
-	// Print the command that will be executed
-	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
-
-	_, err = cmd.Output()
-
-	if err != nil {
-		return fmt.Errorf("plugin failed to upgrade with skip cordon node validation flag, error %v", err)
-	}
-	return nil
+	opts := upgradeOptions{IsUpgradingToUnstableBranch: isUpgradingToUnstableBranch, IsPartialRebuildDisableNeeded: isPartialRebuildDisableNeeded, ExtraFlags: []string{string(common.SkipCordonNodeValidationFlag)}}
+	_, err := cp.runUpgrade(opts)
+	return err
 }
 
-// This function is for getting status of upgrade
-// Syntax is: `kubectl-mayastor get upgrade-status`
-// For kubectl-openebs: `kubectl-openebs upgrade status -n <>`
+// Helper for command selection for upgrade status/delete
+func getUpgradeStatusCmdArgs(cmdType string) ([]string, error) {
+	kubectlPlugin := GetPluginPath()
+	isMayastor := filepath.Base(kubectlPlugin) == e2e_config.GetConfig().Product.MayastorPluginName
 
+	switch cmdType {
+	case "status":
+		if isMayastor {
+			return []string{"-n", common.NSMayastor(), "get", "upgrade-status"}, nil
+		}
+		return []string{"-n", common.NSMayastor(), "upgrade", "status"}, nil
+
+	case "delete":
+		if isMayastor {
+			return []string{"-n", common.NSMayastor(), "delete", "upgrade"}, nil
+		}
+		return []string{"upgrade", "-n", common.NSMayastor(), "delete"}, nil
+
+	default:
+		return nil, fmt.Errorf("invalid cmdType: %s", cmdType)
+	}
+}
+
+// Unified upgrade status fetching
 func (cp CPv1) GetUpgradeStatus() (string, error) {
 	kubectlPlugin := GetPluginPath()
-	var cmd *exec.Cmd
-	if filepath.Base(kubectlPlugin) == e2e_config.GetConfig().Product.MayastorPluginName {
-		cmd = exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "get", "upgrade-status")
-	} else {
-		cmd = exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "upgrade", "status")
+	args, err := getUpgradeStatusCmdArgs("status")
+	if err != nil {
+		return "", err
 	}
-	upgradeStatusInfo, err := cmd.Output()
+	cmd := exec.Command(kubectlPlugin, args...)
+	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("plugin failed to get upgrade status, error %v", err)
 	}
-
-	out := strings.Split(string(upgradeStatusInfo), "\n")
-	var upgradeStatus string
-	for _, line := range out {
+	for _, line := range strings.Split(string(output), "\n") {
 		if strings.Contains(line, "Upgrade Status") {
 			parts := strings.Split(line, ":")
-			upgradeStatus = parts[len(parts)-1]
+			return strings.TrimSpace(parts[len(parts)-1]), nil
 		}
 	}
-	return upgradeStatus, nil
+	return "", nil // or return an error if not found
 }
-
-// This function is to get `to upgrade` version from upgrade-status infromation
-// Syntax is: `kubectl-mayastor get upgrade-status`
 
 func (cp CPv1) GetToUpgradeVersion() (string, error) {
 	kubectlPlugin := GetPluginPath()
-	var cmd *exec.Cmd
-	if filepath.Base(kubectlPlugin) == e2e_config.GetConfig().Product.MayastorPluginName {
-		cmd = exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "get", "upgrade-status")
-	} else {
-		cmd = exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "upgrade", "status")
+	args, err := getUpgradeStatusCmdArgs("status")
+	if err != nil {
+		return "", err
 	}
-	toUpgradeVersionInfo, err := cmd.Output()
-
+	cmd := exec.Command(kubectlPlugin, args...)
+	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("plugin failed to get `to upgrade` version, error %v", err)
 	}
-
-	out := strings.Split(string(toUpgradeVersionInfo), "\n")
-	var toUpgradeVersion string
-	for _, line := range out {
+	for _, line := range strings.Split(string(output), "\n") {
 		if strings.Contains(line, "Upgrade To") {
 			fields := strings.Fields(line)
-			toUpgradeVersion = fields[len(fields)-1]
+			if len(fields) > 0 {
+				return fields[len(fields)-1], nil
+			}
 		}
 	}
-	return toUpgradeVersion, nil
+	return "", nil // or return error if not found
 }
 
 func (cp CPv1) DeleteUpgrade() error {
 	kubectlPlugin := GetPluginPath()
-	var cmd *exec.Cmd
-	if filepath.Base(kubectlPlugin) == e2e_config.GetConfig().Product.MayastorPluginName {
-		cmd = exec.Command(kubectlPlugin, "-n", common.NSMayastor(), "delete", "upgrade")
-	} else {
-		cmd = exec.Command(kubectlPlugin, "upgrade", "-n", common.NSMayastor(), "delete")
-	}
-	_, err := cmd.Output()
-
+	args, err := getUpgradeStatusCmdArgs("delete")
 	if err != nil {
+		return err
+	}
+	cmd := exec.Command(kubectlPlugin, args...)
+	if _, err := cmd.Output(); err != nil {
 		return fmt.Errorf("plugin failed to delete resources created by the upgrade process, error %v", err)
 	}
 	return nil
