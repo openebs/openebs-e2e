@@ -87,7 +87,8 @@ type FioApp struct {
 	MountReadOnly                       bool
 	Encryption                          bool
 	status                              dfaStatus
-	KeepStorageClass                    bool // If true, don't cleanup storage class during Cleanup(). Default: false
+	KeepStorageClass                    bool   // If true, don't cleanup storage class during Cleanup(). Default: false
+	PoolClusterSize                     string // Mayastor pool allocation cluster size eg: "4MiB", "64KiB", "1GiB"
 }
 
 func (dfa *FioApp) DeployApp() error {
@@ -478,7 +479,8 @@ func (dfa *FioApp) CreateVolume() error {
 			WithProvisioningType(provisioning).
 			WithMountOptions(dfa.MountOptions).
 			WithEncryption(dfa.Encryption).
-			WithVolumeExpansion(dfa.AllowVolumeExpansion)
+			WithVolumeExpansion(dfa.AllowVolumeExpansion).
+			WithMayastorPoolClusterSize(dfa.PoolClusterSize)
 
 		if dfa.VolType == common.VolFileSystem {
 			scBuilder = scBuilder.

@@ -44,6 +44,7 @@ const ScStsAffinityGroup = "stsAffinityGroup"
 const ScCloneFsIdAsVolumeId = "cloneFsIdAsVolumeId"
 const ScMaxSnapshots = "maxSnapshots"
 const ScEncrypted = "encrypted"
+const ScPoolClusterSize = "poolClusterSize"
 
 // LVM
 const ScLvmShared = "shared"
