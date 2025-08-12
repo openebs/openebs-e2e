@@ -258,6 +258,9 @@ type MsvSpec struct {
 	ContentSource ContentSource `json:"content_source"`
 	MaxSnapshots  int32         `json:"max_snapshots"`
 	Encrypted     bool          `json:"encrypted"`
+	AffinityGroup struct {
+		Id string `json:"id"`
+	} `json:"affinity_group"`
 }
 
 type Policy struct {
@@ -306,6 +309,7 @@ type MsvState struct {
 	ReplicaTopology ReplicaTopology `json:"replica_topology"`
 	Usage           Usage           `json:"usage"`
 	Health          Health          `json:"health"`
+	Replicas        []Replica       `json:"replicas"`
 }
 
 type ReplicaTopology map[string]Replica
