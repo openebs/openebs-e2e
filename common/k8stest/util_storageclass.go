@@ -500,3 +500,15 @@ func (b *ScBuilder) WithZfsQuotaType(value string) *ScBuilder {
 	b.sc.object.Parameters[string(common.ScZfsQuotaType)] = value
 	return b
 }
+
+// WithMayastorPoolClusterSize sets the poolClusterSize parameter of storageclass to given argument
+func (b *ScBuilder) WithMayastorPoolClusterSize(size string) *ScBuilder {
+	if size == "" {
+		return b // Don't set parameter if value is empty
+	}
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[common.ScPoolClusterSize] = size
+	return b
+}
