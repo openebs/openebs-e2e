@@ -160,6 +160,7 @@ type ProductSpec struct {
 	LokiIngesterChunkRetainPeriodTime string            `yaml:"lokiIngesterChunkRetainPeriodTime"`
 	LokiIngesterMaxChunkAgeTime       string            `yaml:"lokiIngesterMaxChunkAgeTime"`
 	OciRegistryUrl                    string            `yaml:"ociRegistryUrl" env-default:""`
+	OpenebsToMayaVersionMap           map[string]string `yaml:"openebsToMayaVersionMap"`
 }
 
 // E2EConfig is an application configuration structure

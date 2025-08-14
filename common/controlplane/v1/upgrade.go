@@ -182,6 +182,7 @@ func (cp CPv1) GetUpgradeStatus() (string, error) {
 	for _, line := range strings.Split(string(output), "\n") {
 		if strings.Contains(line, "Upgrade Status") {
 			parts := strings.Split(line, ":")
+			logf.Log.Info("Output", "Upgrade Status", strings.TrimSpace(parts[len(parts)-1]))
 			return strings.TrimSpace(parts[len(parts)-1]), nil
 		}
 	}
@@ -203,7 +204,7 @@ func (cp CPv1) GetToUpgradeVersion() (string, error) {
 		if strings.Contains(line, "Upgrade To") {
 			fields := strings.Fields(line)
 			if len(fields) > 0 {
-				return fields[len(fields)-1], nil
+				return strings.TrimSpace(fields[len(fields)-1]), nil
 			}
 		}
 	}

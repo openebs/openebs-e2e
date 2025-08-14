@@ -50,8 +50,8 @@ var (
 	UpgradingControlPlane        string = " Upgrading " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName) + " control-plane"
 	UpgradingDataPlane           string = " Upgrading " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName) + " data-plane"
 	UpgradingDataPlaneForOpenEBS string = " Upgrading data-plane"
-	UpgradeCompleted             string = " Successfully upgraded " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName)
-	UpgradeSuccessful            string = " Upgrade successful"
+	UpgradeCompleted             string = "Successfully upgraded " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName)
+	UpgradeSuccessful            string = "Upgrade successful"
 )
 
 var MSDeployment = []string{
@@ -80,6 +80,9 @@ type TestApp struct {
 
 func AreContainerImagesUpgraded(podList *coreV1.PodList, toUpgradeImageTag, dockerImageOrgName string) (bool, error) {
 	var localPVContainerName = e2e_config.GetConfig().Product.LocalPVContainerName
+	mayastorVersion := e2e_config.GetConfig().Product.OpenebsToMayaVersionMap[toUpgradeImageTag]
+	openebsPlugin := e2e_config.GetConfig().Product.KubectlOpenebsPluginName
+	binPath := mcpV1.GetPluginPath()
 	for _, pod := range podList.Items {
 		for _, container := range pod.Spec.Containers {
 			if strings.Contains(container.Image, dockerImageOrgName) {
@@ -88,12 +91,19 @@ func AreContainerImagesUpgraded(podList *coreV1.PodList, toUpgradeImageTag, dock
 					return false, fmt.Errorf("image didn't split successfully in name and tag parts")
 				}
 				logf.Log.Info("Container images are", "container name: ", container.Name, " container image: ", container.Image)
-
+				lastField := imageTag[len(imageTag)-1]
 				if container.Name != localPVContainerName {
-					if !strings.Contains(imageTag[len(imageTag)-1], toUpgradeImageTag) {
+
+					logf.Log.Info("Container Information", "container name: ", container.Name, " imageTag: ", lastField, "OpenebsToMayaVersionMap: ", mayastorVersion)
+					// Check if the OpenebsToMayaVersionMap is empty if plugin is openebs plugin
+					// Else check if the image tag or mayastor version matches with the toUpgradeImageTag
+					if filepath.Base(binPath) == openebsPlugin && mayastorVersion == "" {
+						logf.Log.Info("OpenebsToMayaVersionMap is empty for the toUpgradeImageTag: ", toUpgradeImageTag)
+						return false, nil
+					} else if !(strings.Contains(lastField, toUpgradeImageTag) || strings.Contains(lastField, mayastorVersion)) {
 						return false, nil
 					}
-				} else if !strings.Contains(imageTag[len(imageTag)-1], common.ToLocalpvProvisionerImage) {
+				} else if !strings.Contains(lastField, common.ToLocalpvProvisionerImage) {
 					return false, nil
 				}
 			}
