@@ -27,6 +27,12 @@ type FioStsApp struct {
 	StsAffinityGroup       string // "true" or "false" for anti affinity feature for volume replicas and target
 	VolType                common.VolumeType
 	FsType                 common.FileSystemType
+	// FsPercent -> controls size of file allocated on FS
+	// 0 -> default (lessby N blocks) unless FsMiB is non-zero.
+	// > 0 < 100 percentage of available blocks used
+	FsPercent uint
+	// non-zero and FsPercent is 0 -> test file size in MiB
+	FsMiB                  uint
 	StsReplicaCount        *int32
 	VolReplicaCount        int
 	VolUuid                string
@@ -117,7 +123,24 @@ func (dfa *FioStsApp) StsApp() error {
 	} else if len(dfa.FioArgs) == 0 && dfa.VolType == common.VolFileSystem {
 		dfa.FioArgs = append(dfa.FioArgs, "--")
 		dfa.FioArgs = append(dfa.FioArgs, fmt.Sprintf("--filename=%s", common.FioFsFilename))
-		dfa.FioArgs = append(dfa.FioArgs, fmt.Sprintf("--size=%dm", dfa.VolSizeMb-200))
+
+		// Use FsPercent or FsMiB if specified, otherwise use default size calculation
+		if dfa.FsPercent > 0 {
+			if dfa.FsPercent > 100 {
+				return fmt.Errorf("invalid FsPercent value, valid range is 1 - 100")
+			}
+			// For percentage-based allocation, calculate the size based on volume size
+			// This is a simplified approach for StatefulSets
+			calculatedSize := (dfa.VolSizeMb * int(dfa.FsPercent)) / 100
+			dfa.FioArgs = append(dfa.FioArgs, fmt.Sprintf("--size=%dm", calculatedSize))
+		} else if dfa.FsMiB > 0 {
+			// For MiB-based allocation
+			dfa.FioArgs = append(dfa.FioArgs, fmt.Sprintf("--size=%dm", int(dfa.FsMiB)))
+		} else {
+			// Default behavior: use size calculation
+			dfa.FioArgs = append(dfa.FioArgs, fmt.Sprintf("--size=%dm", dfa.VolSizeMb-200))
+		}
+
 		dfa.FioArgs = append(dfa.FioArgs, common.GetFioArgs()...)
 	}
 	if dfa.Runtime != 0 {
