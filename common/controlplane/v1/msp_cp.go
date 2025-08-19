@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,6 +11,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+
+
 type MayastorCpPool struct {
 	Id    string   `json:"id"`
 	Spec  mspSpec  `json:"spec"`
@@ -17,11 +20,29 @@ type MayastorCpPool struct {
 }
 
 type mspSpec struct {
-	Disks  []string          `json:"disks"`
-	Id     string            `json:"id"`
-	Labels map[string]string `json:"labels"`
-	Node   string            `json:"node"`
-	Status string            `json:"status"`
+	Disks       []string          `json:"disks"`
+	Id          string            `json:"id"`
+	Labels      map[string]string `json:"labels"`
+	Node        string            `json:"node"`
+	Status      string            `json:"status"`
+	CordonDrain *CordonDrainSpec `json:"cordonDrain,omitempty"`
+}
+
+// CordonDrainSpec represents the cordon drain specification structure
+type CordonDrainSpec struct {
+	Cordoned *PoolCordonedState `json:"cordoned,omitempty"`
+}
+
+// PoolCordonedState represents the cordoned state with constraints for pools
+type PoolCordonedState struct {
+	Replicas  bool `json:"replicas"`
+	Snapshots bool `json:"snapshots"`
+	Restores  bool `json:"restores"`
+}
+
+// IsCordoned returns true if any constraint is enabled
+func (c *PoolCordonedState) IsCordoned() bool {
+	return c.Replicas || c.Snapshots || c.Restores
 }
 
 type mspState struct {
@@ -128,4 +149,162 @@ func (cp CPv1) ListMsPools() ([]common.MayastorPool, error) {
 		}
 	}
 	return msps, err
+}
+
+// CordonPool cordons a pool with the specified constraints
+func (cp CPv1) CordonPool(poolID string, constraints ...common.PoolCordonConstraint) error {
+	constraintStrings := make([]string, 0, len(constraints))
+	for _, c := range constraints {
+		if s := c.String(); s != "" {
+			constraintStrings = append(constraintStrings, s)
+		}
+	}
+	logf.Log.Info("Executing cordon pool command", "pool", poolID, "constraints", constraintStrings)
+	
+	args := []string{"-n", common.NSMayastor(), "cordon", "pool"}
+	
+	// Add constraint flags if specified
+	for _, constraint := range constraints {
+		switch constraint {
+		case common.CordonReplicas:
+			args = append(args, "--replicas")
+		case common.CordonSnapshots:
+			args = append(args, "--snapshots")
+		case common.CordonRestores:
+			args = append(args, "--restores")
+		}
+	}
+	
+	args = append(args, poolID)
+	
+	// Log the actual command being executed
+	logf.Log.Info("Executing command", "command", "mayastor", "args", args)
+	
+	cmd := GetMayastorPluginCmd(args...)
+	
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("plugin failed to cordon pool %s with constraints %v, error %v, output: %s", poolID, constraintStrings, err, out.String())
+	}
+	
+	logf.Log.Info("Successfully cordoned pool", "pool", poolID, "constraints", constraintStrings, "output", out.String())
+	return nil
+}
+
+// UnCordonPool uncordons a pool by removing the specified constraints
+func (cp CPv1) UnCordonPool(poolID string, constraints ...common.PoolCordonConstraint) error {
+	constraintStrings := make([]string, 0, len(constraints))
+	for _, c := range constraints {
+		if s := c.String(); s != "" {
+			constraintStrings = append(constraintStrings, s)
+		}
+	}
+	logf.Log.Info("Executing uncordon pool command", "pool", poolID, "constraints", constraintStrings)
+	
+	args := []string{"-n", common.NSMayastor(), "uncordon", "pool"}
+	
+	// Add constraint flags if specified
+	for _, constraint := range constraints {
+		switch constraint {
+		case common.CordonReplicas:
+			args = append(args, "--replicas")
+		case common.CordonSnapshots:
+			args = append(args, "--snapshots")
+		case common.CordonRestores:
+			args = append(args, "--restores")
+		}
+	}
+	
+	args = append(args, poolID)
+	
+	// Log the actual command being executed
+	logf.Log.Info("Executing command", "command", "mayastor", "args", args)
+	
+	cmd := GetMayastorPluginCmd(args...)
+	
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("plugin failed to uncordon pool %s with constraints %v, error %v, output: %s", poolID, constraintStrings, err, out.String())
+	}
+	
+	logf.Log.Info("Successfully uncordoned pool", "pool", poolID, "constraints", constraintStrings, "output", out.String())
+	return nil
+}
+
+// GetPoolCordonStatus gets the current cordon status of a pool
+func (cp CPv1) GetPoolCordonStatus(poolID string) (*PoolCordonStatus, error) {
+	logf.Log.Info("Getting cordon status for pool", "pool", poolID)
+	
+	args := []string{"-n", common.NSMayastor(), "-ojson", "get", "pool", poolID}
+	
+	// Log the actual command being executed
+	logf.Log.Info("Executing command", "command", "mayastor", "args", args)
+	
+	cmd := GetMayastorPluginCmd(args...)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	
+	err := cmd.Run()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cordon status for pool %s, error %v", poolID, err)
+	}
+	
+	outputString := out.String()
+	var poolInfo MayastorCpPool
+	err = json.Unmarshal([]byte(outputString), &poolInfo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal command output for pool %s, error %v", outputString, err)
+	}
+	
+	status := &PoolCordonStatus{
+		PoolID: poolID,
+		IsCordoned: poolInfo.Spec.CordonDrain != nil && poolInfo.Spec.CordonDrain.Cordoned != nil && poolInfo.Spec.CordonDrain.Cordoned.IsCordoned(),
+	}
+	
+	if poolInfo.Spec.CordonDrain != nil && poolInfo.Spec.CordonDrain.Cordoned != nil {
+		// Parse the cordon constraints from the YAML structure
+		// The cordonDrain field contains the constraint information
+		status.Constraints = parseCordonConstraints(poolInfo.Spec.CordonDrain.Cordoned)
+	}
+	
+	return status, nil
+}
+
+// PoolCordonStatus represents the cordon status of a pool
+type PoolCordonStatus struct {
+	PoolID      string   `json:"pool_id"`
+	IsCordoned  bool     `json:"is_cordoned"`
+	Constraints []string `json:"constraints,omitempty"`
+}
+
+// parseCordonConstraints parses the cordon constraints from the cordonDrain field
+// This is a helper function to extract constraint information
+func parseCordonConstraints(cordoned *PoolCordonedState) []string {
+	if cordoned == nil {
+		return []string{}
+	}
+	
+	// Parse cordonDrain field for constraints
+	constraints := []string{}
+	
+	if cordoned.Replicas {
+		constraints = append(constraints, "replicas")
+	}
+	if cordoned.Snapshots {
+		constraints = append(constraints, "snapshots")
+	}
+	if cordoned.Restores {
+		constraints = append(constraints, "restores")
+	}
+	
+	return constraints
 }

@@ -91,6 +91,11 @@ type ControlPlaneInterface interface {
 	GetCordonNodeLabels(nodeName string) ([]string, error)
 	UnCordonNode(nodeName string, cordonLabel string) error
 
+	//pool cordon
+	CordonPool(poolID string, constraints ...common.PoolCordonConstraint) error
+	UnCordonPool(poolID string, constraints ...common.PoolCordonConstraint) error
+	GetPoolCordonStatus(poolID string) (*v1.PoolCordonStatus, error)
+
 	//drain
 	DrainNode(nodeName string, drainLabel string, drainTimeOut int) error
 	GetDrainNodeLabels(nodeName string) ([]string, []string, error)
@@ -406,6 +411,19 @@ func GetCordonNodeLabels(nodeName string) ([]string, error) {
 
 func UnCordonNode(nodeName string, cordonLabel string) error {
 	return getControlPlane().UnCordonNode(nodeName, cordonLabel)
+}
+
+//pool cordon
+func CordonPool(poolID string, constraints ...common.PoolCordonConstraint) error {
+	return getControlPlane().CordonPool(poolID, constraints...)
+}
+
+func UnCordonPool(poolID string, constraints ...common.PoolCordonConstraint) error {
+	return getControlPlane().UnCordonPool(poolID, constraints...)
+}
+
+func GetPoolCordonStatus(poolID string) (*v1.PoolCordonStatus, error) {
+	return getControlPlane().GetPoolCordonStatus(poolID)
 }
 
 func DrainNode(nodeName string, drainLabel string, drainTimeOut int) error {

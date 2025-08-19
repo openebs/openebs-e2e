@@ -71,6 +71,33 @@ const (
 	CloneFsIdAsVolumeIdDisable CloneFsIdAsVolumeIdType = iota
 )
 
+// PoolCordonConstraint represents the allowed constraint flags for pool cordon/uncordon operations.
+// Using a typed enum improves type safety over free-form strings.
+type PoolCordonConstraint int
+
+const (
+	// CordonReplicas prevents scheduling new replicas on the pool
+	CordonReplicas PoolCordonConstraint = iota
+	// CordonSnapshots prevents creating snapshots on the pool
+	CordonSnapshots PoolCordonConstraint = iota
+	// CordonRestores prevents restore operations on the pool
+	CordonRestores PoolCordonConstraint = iota
+)
+
+// String returns the CLI flag name corresponding to the constraint.
+func (c PoolCordonConstraint) String() string {
+	switch c {
+	case CordonReplicas:
+		return "replicas"
+	case CordonSnapshots:
+		return "snapshots"
+	case CordonRestores:
+		return "restores"
+	default:
+		return ""
+	}
+}
+
 func (CloneFsId CloneFsIdAsVolumeIdType) String() string {
 	switch CloneFsId {
 	case CloneFsIdAsVolumeIdEnable:
