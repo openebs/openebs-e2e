@@ -184,6 +184,8 @@ type E2EConfig struct {
 		IOEngineTargetNvmfIface string `yaml:"ioengineTargetNvmfIface" env-default:"" env:"e2e_ioengine_target_nvmf_iface"`
 		// CSI provisioner , HZ: csi.hetzner.cloud
 		CsiProvisioner string `yaml:"csiProvisioner" env-default:"csi.hetzner.cloud"`
+		// NodeBootTimeoutSecs is the timeout for node booting
+		NodeBootTimeoutSecs int `yaml:"nodeBootTimeoutSecs" env-default:"360"`
 	} `yaml:"platform"`
 	Product ProductSpec `yaml:"product"`
 

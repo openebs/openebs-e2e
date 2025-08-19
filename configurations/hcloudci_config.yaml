@@ -9,3 +9,4 @@ beforeEachCheckAndRestart: true
 ioEngineNvmeTimeout: 110
 networkInterface: eth0
 csiProvisioner: csi.hetzner.cloud
+nodeBootTimeoutSecs: 420
