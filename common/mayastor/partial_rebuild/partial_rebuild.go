@@ -254,7 +254,7 @@ func PowerOnNode(nodeName string) (string, error) {
 	shutdownNode = ""
 
 	// verify node not ready
-	nodeReady := VerifyNodeReady(nodeName, DefTimeoutSecs)
+	nodeReady := VerifyNodeReady(nodeName, e2e_config.GetConfig().Platform.NodeBootTimeoutSecs)
 	if !nodeReady {
 		return shutdownNode, fmt.Errorf("node %s still not ready after %d seconds", nodeName, DefTimeoutSecs)
 	}
@@ -328,7 +328,7 @@ func RebootNode(nodeName string) (string, error) {
 	rebootNode = ""
 
 	// verify node not ready
-	nodeNotReady := VerifyNodeReady(nodeName, DefTimeoutSecs)
+	nodeNotReady := VerifyNodeReady(nodeName, e2e_config.GetConfig().Platform.NodeBootTimeoutSecs)
 	logf.Log.Info("nodeReady", "status", nodeNotReady)
 
 	if !nodeNotReady {
