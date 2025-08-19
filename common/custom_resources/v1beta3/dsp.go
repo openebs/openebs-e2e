@@ -181,6 +181,25 @@ func (p v1beta3DSP) IsPoolEncrypted() bool {
 	return false
 }
 
+func (p v1beta3DSP) SetClusterSize(clusterSize string) (crtypes.DiskPool, error) {
+	var err error
+	dsp := p
+	if p.v1beta3 != nil {
+		mspIn := *p.v1beta3
+		mspIn.Spec.ClusterSize = clusterSize
+		dsp.v1beta3, err = poolClientSet.DiskPools().Update(context.TODO(), &mspIn, metaV1.UpdateOptions{})
+		return dsp, err
+	}
+	return dsp, fmt.Errorf("uninitialised DiskPool")
+}
+
+func (p v1beta3DSP) GetClusterSize() string {
+	if p.v1beta3 != nil {
+		return p.v1beta3.Status.ClusterSize
+	}
+	return ""
+}
+
 //  DiskPoolFunctions implementation
 
 func (ifc v1beta3Ifc) CreateMsPool(poolName string, node string, disks []string) (crtypes.DiskPool, error) {
@@ -216,6 +235,25 @@ func (ifc v1beta3Ifc) CreateMsPoolWithTopologySpec(poolName string, node string,
 			Node:     node,
 			Disks:    disks,
 			Topology: topology,
+		},
+	}
+
+	mspOut, err := poolClientSet.DiskPools().Create(context.TODO(), &msp, metaV1.CreateOptions{})
+	dsp := v1beta3DSP{mspOut}
+	return dsp, err
+}
+
+func (ifc v1beta3Ifc) CreateMsPoolWithClusterSize(poolName string, node string, disks []string, clusterSize string) (crtypes.DiskPool, error) {
+	msp := v1beta3.DiskPool{
+		TypeMeta: metaV1.TypeMeta{Kind: "DiskPool"},
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      poolName,
+			Namespace: common.NSMayastor(),
+		},
+		Spec: v1beta3.DiskPoolSpec{
+			Node:        node,
+			Disks:       disks,
+			ClusterSize: clusterSize,
 		},
 	}
 

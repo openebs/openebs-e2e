@@ -228,6 +228,10 @@ func CreateMsPoolWithTopologySpec(poolName string, node string, disks []string, 
 	return getDspFuncs().CreateMsPoolWithTopologySpec(poolName, node, disks, labels)
 }
 
+func CreateMsPoolWithClusterSize(poolName string, node string, disks []string, clusterSize string) (crtypes.DiskPool, error) {
+	return getDspFuncs().CreateMsPoolWithClusterSize(poolName, node, disks, clusterSize)
+}
+
 func GetMsPool(poolName string) (crtypes.DiskPool, error) {
 	return getDspFuncs().GetMsPool(poolName)
 }

@@ -220,3 +220,15 @@ func (p v1beta1DSP) GetSpecEncryptionSecret() string {
 func (p v1beta1DSP) IsPoolEncrypted() bool {
 	return false
 }
+
+func (ifc v1beta1Ifc) CreateMsPoolWithClusterSize(poolName string, node string, disks []string, clusterSize string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("not implemented cluster size pool in v1beta1"))
+}
+
+func (p v1beta1DSP) SetClusterSize(clusterSize string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("not implemented cluster size pool in v1beta1"))
+}
+
+func (p v1beta1DSP) GetClusterSize() string {
+	panic(fmt.Errorf("not implemented cluster size pool in v1beta1"))
+}

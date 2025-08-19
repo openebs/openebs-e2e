@@ -21,6 +21,8 @@ type DiskPool interface {
 	SetSpecNode(node string) (DiskPool, error)
 	GetCRStatus() string
 	GetPoolStatus() string
+	GetClusterSize() string
+	SetClusterSize(clusterSize string) (DiskPool, error)
 	GetSpecEncryptionSecret() string
 	SetSpecEncryptionSecret(secretName string) (DiskPool, error)
 	IsPoolEncrypted() bool
@@ -31,6 +33,7 @@ type DiskPoolFunctions interface {
 	CreateMsPool(poolName string, node string, disks []string) (DiskPool, error)
 	CreateMsPoolWithTopologySpec(poolName string, node string, disks []string, labels map[string]string) (DiskPool, error)
 	CreateMsPoolWithEncryption(poolName string, node string, disks []string, encryptionSecretName string) (DiskPool, error)
+	CreateMsPoolWithClusterSize(poolName string, node string, disks []string, clusterSize string) (DiskPool, error)
 	GetMsPool(poolName string) (DiskPool, error)
 	DeleteMsPool(poolName string) error
 	ListMsPoolCrs() ([]DiskPool, error)
