@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -106,6 +107,71 @@ func AcceptConnectionsFromNodes(nodes []string, networkInterface string) error {
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// DropIncomingTrafficOnNode creates rules to drop every incoming traffic
+// on the specified node, except for SSH (port 22)
+func DropIncomingTrafficOnNode() error {
+	log.Printf("Dropping incoming traffic on node except for SSH")
+	// Flush existing rules
+	if err := AcceptIncomingTrafficOnNode(); err != nil {
+		return fmt.Errorf("failed to reset iptables before applying drop rules: %w", err)
+	}
+
+	// Allow SSH explicitly (for INPUT and OUTPUT)
+	for _, chain := range []string{"OUTPUT", "INPUT"} {
+		if err := runIptables(
+			"-A", chain, "-p", "tcp", "--dport", "22",
+			"-j", "ACCEPT", "-m", "comment", "--comment", "mayastor-e2e-test",
+		); err != nil {
+			return fmt.Errorf("failed to allow SSH on %s chain: %w", chain, err)
+		}
+		if err := runIptables(
+			"-A", chain, "-p", "tcp", "--dport", "10012",
+			"-j", "ACCEPT", "-m", "comment", "--comment", "mayastor-e2e-test",
+		); err != nil {
+			return fmt.Errorf("failed to allow e2e-agent rest port on %s chain: %w", chain, err)
+		}
+	}
+
+	// Drop everything else
+	if err := runIptables(
+		"-A", "INPUT", "-j", "DROP", "-m", "comment", "--comment", "mayastor-e2e-test",
+	); err != nil {
+		return fmt.Errorf("failed to append DROP rule: %w", err)
+	}
+
+	return nil
+}
+
+// AcceptIncomingTrafficOnNode removes the rules set by
+// DropIncomingTrafficOnNode so that the node can accept incoming traffic again
+// This function flushes the OUTPUT and INPUT chains, effectively removing all rules
+// including the DROP rule set by DropIncomingTrafficOnNode.
+func AcceptIncomingTrafficOnNode() error {
+	log.Println("Accepting incoming traffic from all nodes")
+	// Chains we want to flush
+	for _, chain := range []string{"OUTPUT", "INPUT"} {
+		if err := runIptables("-F", chain); err != nil {
+			return fmt.Errorf("failed to flush %s chain: %w", chain, err)
+		}
+	}
+
+	return nil
+}
+
+func runIptables(args ...string) error {
+	// Prepare the command
+	if len(args) == 0 {
+		return fmt.Errorf("no iptables arguments provided")
+	}
+	log.Printf("Running iptables with args: %v", args)
+	// Use exec.Command to run iptables with the provided arguments
+	cmd := exec.Command("iptables", args...)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("iptables %v failed: %v, output: %s", args, err, string(out))
 	}
 	return nil
 }

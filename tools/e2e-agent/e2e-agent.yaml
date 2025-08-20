@@ -68,7 +68,7 @@ spec:
           securityContext:
             privileged: true
             allowPrivilegeEscalation: true
-          image: openebs/e2e-agent:v3.0.8
+          image: openebs/e2e-agent:v3.0.9
           imagePullPolicy: Always
           volumeMounts:
             - name: host-root
