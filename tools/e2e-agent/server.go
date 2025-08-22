@@ -161,6 +161,8 @@ func handleRequests() {
 	router.HandleFunc("/stats", GetStats).Methods("POST")
 	router.HandleFunc("/cmp", Cmp).Methods("POST")
 	router.HandleFunc("/hugepagezero", ZeroingHugePages).Methods("POST")
+	router.HandleFunc("/dropIncomingTrafficOnNode", dropIncomingTrafficOnNode).Methods("POST")
+	router.HandleFunc("/acceptIncomingTrafficOnNode", acceptIncomingTrafficOnNode).Methods("POST")
 	//LVM
 	router.HandleFunc("/lvmversion", LvmVersion).Methods("POST")
 	router.HandleFunc("/lvmlistvg", LvmListVg).Methods("POST")
@@ -242,6 +244,30 @@ func acceptConnectionsFromNodes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprint(w, "Successfully started network services\n")
+	klog.Info("Successfully started network services")
+}
+
+func dropIncomingTrafficOnNode(w http.ResponseWriter, r *http.Request) {
+
+	klog.Info("Dropping incoming traffic on node")
+	if err := DropIncomingTrafficOnNode(); err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to drop incoming traffic from node", "Error: ", err)
+		return
+	}
+	klog.Info("Successfully stopped network services")
+}
+
+func acceptIncomingTrafficOnNode(w http.ResponseWriter, r *http.Request) {
+	klog.Info("Accept incoming traffic on node ")
+	err := AcceptIncomingTrafficOnNode()
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to accept incoming traffic on node", "Error: ", err)
+		return
+	}
 	klog.Info("Successfully started network services")
 }
 

@@ -1354,3 +1354,19 @@ func DisableDevLink(serverAddr string, devLinkPortName string) (string, error) {
 	logf.Log.Info("DisableDevLink succeeded", "output", out)
 	return out, err
 }
+
+// DropIncomingTrafficOnNode drops incoming traffic on the node
+// This is used to simulate a network failure for testing purposes.
+func DropIncomingTrafficOnNode(serverAddr string) (string, error) {
+	url := "http://" + getAgentAddress(serverAddr) + "/dropIncomingTrafficOnNode"
+	logf.Log.Info("Executing dropIncomingTrafficOnNode", "addr", serverAddr)
+	return sendRequestGetResponse("POST", url, nil, true)
+}
+
+// AcceptIncomingTrafficOnNode accepts incoming traffic on the node
+// This is used to restore network connectivity after a simulated failure.
+func AcceptIncomingTrafficOnNode(serverAddr string) (string, error) {
+	url := "http://" + getAgentAddress(serverAddr) + "/acceptIncomingTrafficOnNode"
+	logf.Log.Info("Executing acceptIncomingTrafficOnNode", "addr", serverAddr)
+	return sendRequestGetResponse("POST", url, nil, true)
+}
