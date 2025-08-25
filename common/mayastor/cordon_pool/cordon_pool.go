@@ -8,9 +8,21 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+var (
+	InsufficientPoolToTakeVolume = "Not enough suitable pools available"
+)
+
 // VerifyPoolCordon verifies if a pool is cordoned with specific constraints
-func VerifyPoolCordon(poolID string, expectedConstraints ...string) (bool, error) {
-	logf.Log.Info("Verifying pool cordon", "pool", poolID, "expected constraints", expectedConstraints)
+func VerifyPoolCordon(poolID string, expectedConstraints ...common.PoolCordonConstraint) (bool, error) {
+	// Create a set of expected constraints for lookup
+	expectedSet := make(map[string]bool)
+	for _, c := range expectedConstraints {
+		if s := c.String(); s != "" {
+			expectedSet[s] = true
+		}
+	}
+
+	logf.Log.Info("Verifying pool cordon", "pool", poolID, "expected constraints", expectedSet)
 
 	status, err := controlplane.GetPoolCordonStatus(poolID)
 	if err != nil {
@@ -22,15 +34,8 @@ func VerifyPoolCordon(poolID string, expectedConstraints ...string) (bool, error
 	}
 
 	// Check if all expected constraints are present
-	for _, expectedConstraint := range expectedConstraints {
-		found := false
-		for _, actualConstraint := range status.Constraints {
-			if actualConstraint == expectedConstraint {
-				found = true
-				break
-			}
-		}
-		if !found {
+	for _, actualConstraint := range status.Constraints {
+		if !expectedSet[actualConstraint] {
 			return false, nil
 		}
 	}
