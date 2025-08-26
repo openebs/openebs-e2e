@@ -345,25 +345,25 @@ func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
 		tagRegexForReleaseBranch := `v?[0-9]+\.[0-9]+\.[0-9]+\+0`
 
 		// Create a regular expression object for the plugin version format regex for develop branch
-		pluginRegexDevelopBranch, err := regexp.Compile(tagRegexForDevelopBranch)
+		pluginRegexDevelopBranch, err = regexp.Compile(tagRegexForDevelopBranch)
 		if err != nil {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
 
 		// Create a regular expression object for the plugin version format regex for release branch
-		pluginRegexReleaseBranch, err := regexp.Compile(tagRegexForReleaseBranch)
+		pluginRegexReleaseBranch, err = regexp.Compile(tagRegexForReleaseBranch)
 		if err != nil {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
 
 		// Create a regular expression object for the plugin version format regex for pre release testing
-		pluginRegexPreReleaseTesting, err := regexp.Compile(tagRegexForPreReleaseTesting)
+		pluginRegexPreReleaseTesting, err = regexp.Compile(tagRegexForPreReleaseTesting)
 		if err != nil {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
 
 		// Create a regular expression object for the plugin version format regex for release candidate testing
-		pluginRegexReleaseCandidateTesting, err := regexp.Compile(tagRegexForReleaseCandidateTesting)
+		pluginRegexReleaseCandidateTesting, err = regexp.Compile(tagRegexForReleaseCandidateTesting)
 		if err != nil {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
@@ -405,25 +405,25 @@ func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
 		pluginVersionOutputFormatRegexForReleaseCandidateTesting := fmt.Sprintf(`\(%s\+0\)`, tagRegexForReleaseCandidateTesting)
 
 		// Create a regular expression object for the plugin version format regex for develop branch
-		pluginRegexDevelopBranch, err := regexp.Compile(pluginVersionOutputFormatRegexForDevelopBranch)
+		pluginRegexDevelopBranch, err = regexp.Compile(pluginVersionOutputFormatRegexForDevelopBranch)
 		if err != nil {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
 
 		// Create a regular expression object for the plugin version format regex for pre release testing
-		pluginRegexPreReleaseTesting, err := regexp.Compile(pluginVersionOutputFormatRegexForPreReleaseTesting)
+		pluginRegexPreReleaseTesting, err = regexp.Compile(pluginVersionOutputFormatRegexForPreReleaseTesting)
 		if err != nil {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
 
 		// Create a regular expression object for the plugin version format regex for release branch
-		pluginRegexReleaseBranch, err := regexp.Compile(pluginVersionOutputFormatRegexForReleaseBranch)
+		pluginRegexReleaseBranch, err = regexp.Compile(pluginVersionOutputFormatRegexForReleaseBranch)
 		if err != nil {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
 
 		// Create a regular expression object for the plugin version format regex for release branch
-		pluginRegexReleaseCandidateTesting, err := regexp.Compile(pluginVersionOutputFormatRegexForReleaseCandidateTesting)
+		pluginRegexReleaseCandidateTesting, err = regexp.Compile(pluginVersionOutputFormatRegexForReleaseCandidateTesting)
 		if err != nil {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
