@@ -324,9 +324,16 @@ func PostUpgradeWaitForRebuildCompletion(volUuid string) error {
 // with normal upgrade without any flag.
 func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
 
+	var pluginRegexDevelopBranch *regexp.Regexp
+	var pluginRegexReleaseBranch *regexp.Regexp
+	var pluginRegexPreReleaseTesting *regexp.Regexp
+	var pluginRegexReleaseCandidateTesting *regexp.Regexp
+	var pluginVersion string
+	var err error
+
 	binPath := mcpV1.GetPluginPath()
 	if filepath.Base(binPath) != "kubectl-mayastor" {
-		pluginVersion, err := mcpV1.GetPluginVersion()
+		pluginVersion, err = mcpV1.GetPluginVersion()
 		if err != nil {
 			return "", false, fmt.Errorf("failed to get plugin version, err:%v", err)
 		}
@@ -334,30 +341,30 @@ func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
 		logf.Log.Info("kubectl", "plugin", filepath.Base(binPath), "version", pluginVersion)
 
 		tagRegexForDevelopBranch := `v?[0-9]+\.[0-9]+\.[0-9]+-develop`
-		tagRegexForPreReleaseTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+-prerelease`
+		tagRegexForPreReleaseTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-prerelease`
 		tagRegexForReleaseCandidateTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+`
 		tagRegexForReleaseBranch := `v?[0-9]+\.[0-9]+\.[0-9]+\+0`
 
 		// Create a regular expression object for the plugin version format regex for develop branch
-		pluginRegexDevelopBranch, err := regexp.Compile(tagRegexForDevelopBranch)
+		pluginRegexDevelopBranch, err = regexp.Compile(tagRegexForDevelopBranch)
 		if err != nil {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
 
 		// Create a regular expression object for the plugin version format regex for release branch
-		pluginRegexReleaseBranch, err := regexp.Compile(tagRegexForReleaseBranch)
+		pluginRegexReleaseBranch, err = regexp.Compile(tagRegexForReleaseBranch)
 		if err != nil {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
 
 		// Create a regular expression object for the plugin version format regex for pre release testing
-		pluginRegexPreReleaseTesting, err := regexp.Compile(tagRegexForPreReleaseTesting)
+		pluginRegexPreReleaseTesting, err = regexp.Compile(tagRegexForPreReleaseTesting)
 		if err != nil {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
 
 		// Create a regular expression object for the plugin version format regex for release candidate testing
-		pluginRegexReleaseCandidateTesting, err := regexp.Compile(tagRegexForReleaseCandidateTesting)
+		pluginRegexReleaseCandidateTesting, err = regexp.Compile(tagRegexForReleaseCandidateTesting)
 		if err != nil {
 			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
 		}
@@ -374,67 +381,66 @@ func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
 			return pluginVersion, false, nil
 		}
 
+	} else {
+		pluginVersion, err = mcpV1.GetPluginVersion()
+		if err != nil {
+			return "", false, fmt.Errorf("failed to get plugin version, err:%v", err)
+		}
+
+		pluginVersion = strings.TrimSpace(pluginVersion)
+		logf.Log.Info("kubectl mayastor plugin", "version", pluginVersion)
+
+		// here starting "v?" part means that "v" is optional
+		// regex will work for both tags, with and without starting v
+		tagRegexForDevelopBranch := `v?[0-9]+\.[0-9]+\.[0-9]+-0-main-unstable(-[0-9]+){6}-0`
+		tagRegexForPreReleaseTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-0-release-unstable(-[0-9]+){6}-0`
+		tagRegexForReleaseCandidateTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+`
+		tagRegexForReleaseBranch := `v?[0-9]+\.[0-9]+\.[0-9]`
+
+		// Construct a new regular expression by surrounding tagRegex with parentheses and appending "+0)"
+		// this is needed because in the output format of kubectl-mayastor --version
+		// tag is not present in exactly the same form of tagRegex
+		pluginVersionOutputFormatRegexForDevelopBranch := fmt.Sprintf(`\(%s\+0\)`, tagRegexForDevelopBranch)
+		pluginVersionOutputFormatRegexForPreReleaseTesting := fmt.Sprintf(`\(%s\+0\)`, tagRegexForPreReleaseTesting)
+		pluginVersionOutputFormatRegexForReleaseBranch := fmt.Sprintf(`\(%s\+0\)`, tagRegexForReleaseBranch)
+		pluginVersionOutputFormatRegexForReleaseCandidateTesting := fmt.Sprintf(`\(%s\+0\)`, tagRegexForReleaseCandidateTesting)
+
+		// Create a regular expression object for the plugin version format regex for develop branch
+		pluginRegexDevelopBranch, err := regexp.Compile(pluginVersionOutputFormatRegexForDevelopBranch)
+		if err != nil {
+			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
+		}
+
+		// Create a regular expression object for the plugin version format regex for pre release testing
+		pluginRegexPreReleaseTesting, err := regexp.Compile(pluginVersionOutputFormatRegexForPreReleaseTesting)
+		if err != nil {
+			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
+		}
+
+		// Create a regular expression object for the plugin version format regex for release branch
+		pluginRegexReleaseBranch, err := regexp.Compile(pluginVersionOutputFormatRegexForReleaseBranch)
+		if err != nil {
+			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
+		}
+
+		// Create a regular expression object for the plugin version format regex for release branch
+		pluginRegexReleaseCandidateTesting, err := regexp.Compile(pluginVersionOutputFormatRegexForReleaseCandidateTesting)
+		if err != nil {
+			return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
+		}
+
+		// Match plugin version with regular expressions
+		// for develop branch and pre-release testing, version should be
+		// considered as unstable and will need --allow-unstable flag
+		if pluginRegexDevelopBranch.MatchString(pluginVersion) || pluginRegexPreReleaseTesting.MatchString(pluginVersion) || pluginRegexReleaseCandidateTesting.MatchString(pluginVersion) {
+			return pluginVersion, true, nil
+		}
+
+		// for released versions it should run without any flags
+		if pluginRegexReleaseBranch.MatchString(pluginVersion) {
+			return pluginVersion, false, nil
+		}
 	}
-
-	pluginVersion, err := mcpV1.GetPluginVersion()
-	if err != nil {
-		return "", false, fmt.Errorf("failed to get plugin version, err:%v", err)
-	}
-
-	pluginVersion = strings.TrimSpace(pluginVersion)
-	logf.Log.Info("kubectl mayastor plugin", "version", pluginVersion)
-
-	// here starting "v?" part means that "v" is optional
-	// regex will work for both tags, with and without starting v
-	tagRegexForDevelopBranch := `v?[0-9]+\.[0-9]+\.[0-9]+-0-main-unstable(-[0-9]+){6}-0`
-	tagRegexForPreReleaseTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-0-release-unstable(-[0-9]+){6}-0`
-	tagRegexForReleaseCandidateTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+`
-	tagRegexForReleaseBranch := `v?[0-9]+\.[0-9]+\.[0-9]`
-
-	// Construct a new regular expression by surrounding tagRegex with parentheses and appending "+0)"
-	// this is needed because in the output format of kubectl-mayastor --version
-	// tag is not present in exactly the same form of tagRegex
-	pluginVersionOutputFormatRegexForDevelopBranch := fmt.Sprintf(`\(%s\+0\)`, tagRegexForDevelopBranch)
-	pluginVersionOutputFormatRegexForPreReleaseTesting := fmt.Sprintf(`\(%s\+0\)`, tagRegexForPreReleaseTesting)
-	pluginVersionOutputFormatRegexForReleaseBranch := fmt.Sprintf(`\(%s\+0\)`, tagRegexForReleaseBranch)
-	pluginVersionOutputFormatRegexForReleaseCandidateTesting := fmt.Sprintf(`\(%s\+0\)`, tagRegexForReleaseCandidateTesting)
-
-	// Create a regular expression object for the plugin version format regex for develop branch
-	pluginRegexDevelopBranch, err := regexp.Compile(pluginVersionOutputFormatRegexForDevelopBranch)
-	if err != nil {
-		return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
-	}
-
-	// Create a regular expression object for the plugin version format regex for pre release testing
-	pluginRegexPreReleaseTesting, err := regexp.Compile(pluginVersionOutputFormatRegexForPreReleaseTesting)
-	if err != nil {
-		return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
-	}
-
-	// Create a regular expression object for the plugin version format regex for release branch
-	pluginRegexReleaseBranch, err := regexp.Compile(pluginVersionOutputFormatRegexForReleaseBranch)
-	if err != nil {
-		return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
-	}
-
-	// Create a regular expression object for the plugin version format regex for release branch
-	pluginRegexReleaseCandidateTesting, err := regexp.Compile(pluginVersionOutputFormatRegexForReleaseCandidateTesting)
-	if err != nil {
-		return pluginVersion, false, fmt.Errorf("failed to create valid regex, err:%v", err)
-	}
-
-	// Match plugin version with regular expressions
-	// for develop branch and pre-release testing, version should be
-	// considered as unstable and will need --allow-unstable flag
-	if pluginRegexDevelopBranch.MatchString(pluginVersion) || pluginRegexPreReleaseTesting.MatchString(pluginVersion) || pluginRegexReleaseCandidateTesting.MatchString(pluginVersion) {
-		return pluginVersion, true, nil
-	}
-
-	// for released versions it should run without any flags
-	if pluginRegexReleaseBranch.MatchString(pluginVersion) {
-		return pluginVersion, false, nil
-	}
-
 	return pluginVersion, false, fmt.Errorf("plugin version does not match with expected format")
 
 }
