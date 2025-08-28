@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -87,13 +88,20 @@ func (cp CPv1) runUpgrade(
 	)
 	cmd := exec.Command(upgradeMeta.KubectlPlugin, args...)
 	logf.Log.Info("Executing", "command", strings.Join(cmd.Args, " "))
-
 	var out []byte
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 
 	if out, err = cmd.Output(); err != nil {
 		// If the command fails, return the error message.
 		logf.Log.Info("Command failed", "command", strings.Join(cmd.Args, " "), "error", err.Error())
-		return "", fmt.Errorf("plugin failed to upgrade: %v", err)
+		stderrStr := strings.TrimSpace(stderr.String())
+		if stderrStr != "" {
+			logf.Log.Info("Command stderr", "stderr", stderrStr)
+			return stderrStr, fmt.Errorf("plugin failed to upgrade: %v", err)
+		}
+		logf.Log.Info("Command stdout", "output", string(out))
+		return string(out), fmt.Errorf("plugin failed to upgrade: %v", err)
 	}
 	return string(out), nil
 }

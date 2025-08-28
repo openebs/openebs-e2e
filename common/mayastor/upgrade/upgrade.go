@@ -47,9 +47,9 @@ func CalculateNoOfFioRunLoops(VolSizeMb int) int {
 }
 
 var (
-	UpgradingControlPlane        string = " Upgrading " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName) + " control-plane"
-	UpgradingDataPlane           string = " Upgrading " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName) + " data-plane"
-	UpgradingDataPlaneForOpenEBS string = " Upgrading data-plane"
+	UpgradingControlPlane        string = "Upgrading " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName) + " control-plane"
+	UpgradingDataPlane           string = "Upgrading " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName) + " data-plane"
+	UpgradingDataPlaneForOpenEBS string = "Upgrading data-plane"
 	UpgradeCompleted             string = "Successfully upgraded " + cases.Title(language.Und).String(e2e_config.GetConfig().Product.ProductName)
 	UpgradeSuccessful            string = "Upgrade successful"
 )
@@ -73,10 +73,6 @@ var MSAppLabels = []string{
 var PodPrefixOfUpgradeJob = e2e_config.GetConfig().Product.ProductName + "-upgrade"
 var LokiStatefulset = e2e_config.GetConfig().Product.LokiStatefulset
 var LokiStatefulsetOnControlNode = e2e_config.GetConfig().LokiStatefulsetOnControlNode
-
-type TestApp struct {
-	App k8stest.FioApp
-}
 
 func AreContainerImagesUpgraded(podList *coreV1.PodList, toUpgradeImageTag, dockerImageOrgName string) (bool, error) {
 	var localPVContainerName = e2e_config.GetConfig().Product.LocalPVContainerName
