@@ -292,3 +292,12 @@ func WaitForDiskPoolUsageToBeZero(poolName string, timeoutsecs int) error {
 
 	return err
 }
+
+// Get disk pool events
+func GetDiskPoolEvents(poolName string, namespace string) (*coreV1.EventList, error) {
+	options := metaV1.ListOptions{
+		TypeMeta:      metaV1.TypeMeta{Kind: "DiskPool"},
+		FieldSelector: fmt.Sprintf("involvedObject.name=%s", poolName),
+	}
+	return GetEvents(namespace, options)
+}
