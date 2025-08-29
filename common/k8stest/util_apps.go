@@ -89,6 +89,7 @@ type FioApp struct {
 	status                              dfaStatus
 	KeepStorageClass                    bool   // If true, don't cleanup storage class during Cleanup(). Default: false
 	PoolClusterSize                     string // Mayastor pool allocation cluster size eg: "4MiB", "64KiB", "1GiB"
+	SkipVolumeVerification              bool
 }
 
 func (dfa *FioApp) DeployApp() error {
@@ -521,10 +522,12 @@ func (dfa *FioApp) CreateVolume() error {
 			return err
 		}
 	} else {
-		dfa.status.volUuid, err = MakePVC(dfa.VolSizeMb, dfa.status.volName, dfa.status.scName, dfa.VolType, common.NSDefault, common.Mayastor, false)
+		dfa.status.volUuid, err = MakePVC(dfa.VolSizeMb, dfa.status.volName, dfa.status.scName, dfa.VolType, common.NSDefault, common.Mayastor, dfa.SkipVolumeVerification)
 		dfa.status.createdPVC = dfa.status.volUuid != ""
 		if err != nil {
 			return fmt.Errorf("failed to create pvc %s, %v", dfa.status.volName, err)
+		} else if dfa.SkipVolumeVerification {
+			return err
 		}
 	}
 	dfa.status.createdVolume = true
