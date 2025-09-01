@@ -11,8 +11,6 @@ import (
 	"github.com/openebs/openebs-e2e/common/event"
 	"github.com/openebs/openebs-e2e/common/k8stest"
 
-	"github.com/openebs/openebs-e2e/common/loki"
-
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
@@ -41,7 +39,6 @@ func InitTesting(t *testing.T, classname string, reportname string) {
 	}
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, classname)
-	loki.SendLokiMarker("Start of test " + classname)
 }
 
 func SetupTestEnvBasic() error {
