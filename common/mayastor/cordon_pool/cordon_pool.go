@@ -29,17 +29,29 @@ func VerifyPoolCordon(poolID string, expectedConstraints ...common.PoolCordonCon
 		return false, err
 	}
 
+	logf.Log.Info("Pool cordon status", "pool", poolID, "isCordoned", status.IsCordoned, "actual constraints", status.Constraints)
+
 	if !status.IsCordoned {
+		logf.Log.Info("Pool is not cordoned", "pool", poolID)
 		return false, nil
 	}
 
-	// Check if all expected constraints are present
-	for _, actualConstraint := range status.Constraints {
-		if !expectedSet[actualConstraint] {
+	// Check if all expected constraints are present in the actual constraints
+	for expectedConstraint := range expectedSet {
+		found := false
+		for _, actualConstraint := range status.Constraints {
+			if actualConstraint == expectedConstraint {
+				found = true
+				break
+			}
+		}
+		if !found {
+			logf.Log.Info("Expected constraint not found", "expected", expectedConstraint, "actual", status.Constraints)
 			return false, nil
 		}
 	}
 
+	logf.Log.Info("All expected constraints found", "pool", poolID, "expected", expectedSet, "actual", status.Constraints)
 	return true, nil
 }
 
@@ -108,6 +120,22 @@ func CancelAllCordonsOnPool(poolID string) bool {
 	}
 
 	return true
+}
+
+// CordonAllPools utility function to cordon all pools in the cluster with specified constraints
+func CordonAllPools(constraints ...common.PoolCordonConstraint) error {
+	pools, err := controlplane.ListMsPools()
+	if err != nil {
+		return err
+	}
+
+	for _, pool := range pools {
+		err = controlplane.CordonPool(pool.Name, constraints...)
+		if err != nil {
+			return fmt.Errorf("failed to cordon pool %s: %v", pool.Name, err)
+		}
+	}
+	return nil
 }
 
 // UncordonAllPools utility function to uncordon all pools in the cluster
