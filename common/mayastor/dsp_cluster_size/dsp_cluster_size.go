@@ -13,6 +13,7 @@ import (
 
 var poolOnlineTimeoutSec = 120 // seconds
 var DspClusterSizeInvalidSizeMessage = "Invalid cluster-size"
+var NotEnoughSuitablePoolsMessage = "Not enough suitable pools available"
 
 func SetMayastorDspClusterSize(size, helmChart, helmRelease, helmVersion string) error {
 	var values map[string]interface{}
