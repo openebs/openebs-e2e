@@ -27,6 +27,10 @@ func GetE2EServiceMonitorPath() string {
 
 // GetE2EScriptsPath return the path script directory
 func GetE2EScriptsPath() string {
+	rootDir, err := getE2ERootDirectoryFromEnv()
+	if err == nil {
+		return locationExists(rootDir + "/scripts")
+	}
 	return locationExists(e2e_config.GetConfig().OpenEbsE2eRootDir + "/scripts")
 }
 
@@ -37,4 +41,12 @@ func locationExists(path string) string {
 		panic("Error: directory not found")
 	}
 	return path
+}
+
+func getE2ERootDirectoryFromEnv() (string, error) {
+	e2eRootDir, haveE2ERootDir := os.LookupEnv("e2e_root_dir")
+	if !haveE2ERootDir {
+		return "", fmt.Errorf("e2e_root_dir environment variable is not set")
+	}
+	return locationExists(e2eRootDir), nil
 }
