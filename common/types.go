@@ -82,6 +82,8 @@ const (
 	CordonSnapshots PoolCordonConstraint = iota
 	// CordonRestores prevents restore operations on the pool
 	CordonRestores PoolCordonConstraint = iota
+	// CordonImport prevents importing the pool after node restart
+	CordonImport PoolCordonConstraint = iota
 )
 
 // String returns the CLI flag name corresponding to the constraint.
@@ -93,6 +95,8 @@ func (c PoolCordonConstraint) String() string {
 		return "snapshots"
 	case CordonRestores:
 		return "restores"
+	case CordonImport:
+		return "import"
 	default:
 		return ""
 	}

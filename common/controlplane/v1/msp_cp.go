@@ -38,11 +38,12 @@ type PoolCordonedState struct {
 	Replicas  bool `json:"replicas"`
 	Snapshots bool `json:"snapshots"`
 	Restores  bool `json:"restores"`
+	Import    bool `json:"import"`
 }
 
 // IsCordoned returns true if any constraint is enabled
 func (c *PoolCordonedState) IsCordoned() bool {
-	return c.Replicas || c.Snapshots || c.Restores
+	return c.Replicas || c.Snapshots || c.Restores || c.Import
 }
 
 type mspState struct {
@@ -172,6 +173,8 @@ func (cp CPv1) CordonPool(poolID string, constraints ...common.PoolCordonConstra
 			args = append(args, "--snapshots")
 		case common.CordonRestores:
 			args = append(args, "--restores")
+		case common.CordonImport:
+			args = append(args, "--import")
 		}
 	}
 	
@@ -216,6 +219,8 @@ func (cp CPv1) UnCordonPool(poolID string, constraints ...common.PoolCordonConst
 			args = append(args, "--snapshots")
 		case common.CordonRestores:
 			args = append(args, "--restores")
+		case common.CordonImport:
+			args = append(args, "--import")
 		}
 	}
 	
@@ -304,6 +309,9 @@ func parseCordonConstraints(cordoned *PoolCordonedState) []string {
 	}
 	if cordoned.Restores {
 		constraints = append(constraints, "restores")
+	}
+	if cordoned.Import {
+		constraints = append(constraints, "import")
 	}
 	
 	return constraints
