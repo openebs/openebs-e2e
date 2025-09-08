@@ -102,3 +102,36 @@ const (
 	SleepTime                        = 3    // in seconds
 	ToLocalpvProvisionerImage        = "4.3.0"
 )
+
+const (
+	VaultNamespace  = "vault"
+	VaultStoreName  = "vault-secretstore"
+	VaultSecretName = "vault-root-token"
+	VaultServer     = "http://vault.vault.svc.cluster.local:8200"
+	VaultPath       = "secret"
+	VaultKVVersion  = "v2"
+)
+
+const (
+	HashicorpRepoName     = "hashicorp"
+	HashicorpRepoURL      = "https://helm.releases.hashicorp.com"
+	HashicorpNamespace    = "vault"
+	HashicorpReleaseName  = "vault"
+	HashicorpChart        = "hashicorp/vault"
+	HashicorpVersion      = "" // empty means latest
+	HashicorpDevMode      = true
+	HashicorpPodName      = "vault-0"
+	HashicorpAppLabel     = "app.kubernetes.io/name=vault"
+	HashicorpSecretPath   = "secret"
+	HashicorpKVVersion    = "v2"
+	HashicorpRootTokenEnv = "VAULT_DEV_ROOT_TOKEN_ID"
+)
+
+const (
+	SecretStoreGroup      = "external-secrets.io"
+	SecretStoreVersion    = "v1"
+	SecretStoreResource   = "secretstores"
+	SecretStoreAPIVersion = "external-secrets.io/v1"
+	SecretStoreKind       = "SecretStore"
+	SecretStoreTokenKey   = "token"
+)
