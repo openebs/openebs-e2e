@@ -111,6 +111,8 @@ func CancelAllCordonsOnPool(poolID string) bool {
 			typed = append(typed, common.CordonSnapshots)
 		case "restores":
 			typed = append(typed, common.CordonRestores)
+		case "import":
+			typed = append(typed, common.CordonImport)
 		}
 	}
 	err = controlplane.UnCordonPool(poolID, typed...)
