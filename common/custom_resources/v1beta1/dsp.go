@@ -83,6 +83,11 @@ func (p v1beta1DSP) GetStatusUsed() uint64 {
 	return 0
 }
 
+// Not available in v1beta1
+func (p v1beta1DSP) GetStatusMaxExpandableSize() string {
+    return ""
+}
+
 func (p v1beta1DSP) CompareStatus(otherP *crtypes.DiskPool) bool {
 	other := *otherP
 	if p.GetType() != other.GetType() {
@@ -231,4 +236,37 @@ func (p v1beta1DSP) SetClusterSize(clusterSize string) (crtypes.DiskPool, error)
 
 func (p v1beta1DSP) GetClusterSize() string {
 	panic(fmt.Errorf("not implemented cluster size pool in v1beta1"))
+}
+
+// Advanced features (v1beta3+) - not supported in v1beta1
+func (p v1beta1DSP) GetAnnotations() map[string]string {
+	panic(fmt.Errorf("annotations not supported in v1beta1"))
+}
+
+func (p v1beta1DSP) SetAnnotations(annotations map[string]string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("annotations not supported in v1beta1"))
+}
+
+func (p v1beta1DSP) GetMaxExpansion() string {
+	panic(fmt.Errorf("max expansion not supported in v1beta1"))
+}
+
+func (p v1beta1DSP) SetMaxExpansion(maxExpansion string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("max expansion not supported in v1beta1"))
+}
+
+func (ifc v1beta1Ifc) CreateMsPoolWithMaxSize(poolName string, node string, disks []string, maxSize string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("max size not supported in v1beta1"))
+}
+
+func (ifc v1beta1Ifc) CreateMsPoolWithMaxSizeAndClusterSize(poolName string, node string, disks []string, maxSize string, clusterSize string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("max size and cluster size not supported in v1beta1"))
+}
+
+func (ifc v1beta1Ifc) AnnotatePoolForExpansion(poolName string) error {
+	panic(fmt.Errorf("pool expansion annotations not supported in v1beta1"))
+}
+
+func (ifc v1beta1Ifc) VerifyPoolCapacityAndMaxExpansion(poolName string, expectedCapacity uint64, expectedMaxExpansion string) error {
+	panic(fmt.Errorf("pool capacity and max expansion verification not supported in v1beta1"))
 }

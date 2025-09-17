@@ -2151,3 +2151,22 @@ func IsSubstringItemPresentInList(list []string, item string) bool {
 	}
 	return false
 }
+
+// ParseGiBOrBytesToGiB converts strings like "200GiB", "200 GIB", or "214748364800B" into GiB.
+// The returned value is a float64 to allow for fractional GiB values.
+func ParseGiBOrBytesToGiB(s string) (float64, error) {
+	s = strings.TrimSpace(strings.ToUpper(s))
+	re := regexp.MustCompile(`^([0-9]+(?:\.[0-9]+)?)\s*(GIB|B)$`)
+	m := re.FindStringSubmatch(s)
+	if len(m) != 3 {
+		return 0, fmt.Errorf("invalid size format (expect GiB or B): %s", s)
+	}
+	v, err := strconv.ParseFloat(m[1], 64)
+	if err != nil {
+		return 0, err
+	}
+	if m[2] == "B" {
+		return v / (1024 * 1024 * 1024), nil // Convert bytes to GiB
+	}
+	return v, nil // GiB
+}

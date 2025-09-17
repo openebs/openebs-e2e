@@ -94,6 +94,11 @@ func (p v1alpha1ExtDSP) GetStatusUsed() uint64 {
 	return 0
 }
 
+// Not available in v1alpha1Ext
+func (p v1alpha1ExtDSP) GetStatusMaxExpandableSize() string {
+    return ""
+}
+
 func (p v1alpha1ExtDSP) CompareStatus(otherP *crtypes.DiskPool) bool {
 	other := *otherP
 	if p.GetType() != other.GetType() {
@@ -266,4 +271,37 @@ func (p v1alpha1ExtDSP) SetClusterSize(clusterSize string) (crtypes.DiskPool, er
 
 func (p v1alpha1ExtDSP) GetClusterSize() string {
 	panic(fmt.Errorf("not implemented cluster size pool in v1alpha1Ext"))
+}
+
+// Advanced features (v1beta3+) - not supported in v1alpha1Ext
+func (p v1alpha1ExtDSP) GetAnnotations() map[string]string {
+	panic(fmt.Errorf("annotations not supported in v1alpha1Ext"))
+}
+
+func (p v1alpha1ExtDSP) SetAnnotations(annotations map[string]string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("annotations not supported in v1alpha1Ext"))
+}
+
+func (p v1alpha1ExtDSP) GetMaxExpansion() string {
+	panic(fmt.Errorf("max expansion not supported in v1alpha1Ext"))
+}
+
+func (p v1alpha1ExtDSP) SetMaxExpansion(maxExpansion string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("max expansion not supported in v1alpha1Ext"))
+}
+
+func (ifc v1alpha1ExtIfc) CreateMsPoolWithMaxSize(poolName string, node string, disks []string, maxSize string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("max size not supported in v1alpha1Ext"))
+}
+
+func (ifc v1alpha1ExtIfc) CreateMsPoolWithMaxSizeAndClusterSize(poolName string, node string, disks []string, maxSize string, clusterSize string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("max size and cluster size not supported in v1alpha1Ext"))
+}
+
+func (ifc v1alpha1ExtIfc) AnnotatePoolForExpansion(poolName string) error {
+	panic(fmt.Errorf("pool expansion annotations not supported in v1alpha1Ext"))
+}
+
+func (ifc v1alpha1ExtIfc) VerifyPoolCapacityAndMaxExpansion(poolName string, expectedCapacity uint64, expectedMaxExpansion string) error {
+	panic(fmt.Errorf("pool capacity and max expansion verification not supported in v1alpha1Ext"))
 }

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/openebs/openebs-e2e/common"
+	"github.com/openebs/openebs-e2e/common/controlplane"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 
 	apiExtV1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -246,6 +247,27 @@ func ListMsPools() ([]crtypes.DiskPool, error) {
 
 func CreateMsPoolWithEncryption(poolName string, node string, disks []string, secretName string) (crtypes.DiskPool, error) {
 	return getDspFuncs().CreateMsPoolWithEncryption(poolName, node, disks, secretName)
+}
+
+func CreateMsPoolWithMaxSize(poolName string, node string, disks []string, maxSize string) (crtypes.DiskPool, error) {
+	return getDspFuncs().CreateMsPoolWithMaxSize(poolName, node, disks, maxSize)
+}
+
+func CreateMsPoolWithMaxSizeAndClusterSize(poolName string, node string, disks []string, maxSize string, clusterSize string) (crtypes.DiskPool, error) {
+	return getDspFuncs().CreateMsPoolWithMaxSizeAndClusterSize(poolName, node, disks, maxSize, clusterSize)
+}
+
+func AnnotatePoolForExpansion(poolName string) error {
+	return getDspFuncs().AnnotatePoolForExpansion(poolName)
+}
+
+func VerifyPoolCapacityAndMaxExpansion(poolName string, expectedCapacity uint64, expectedMaxExpansion string) error {
+	return getDspFuncs().VerifyPoolCapacityAndMaxExpansion(poolName, expectedCapacity, expectedMaxExpansion)
+}
+
+// ExpandPoolViaPluginCP uses kubectl mayastor plugin to expand the pool via control plane
+func ExpandPoolViaPluginCP(poolName string) error {
+    return controlplane.ExpandPoolViaPlugin(poolName)
 }
 
 // CheckAllMsPoolsAreOnline checks if all mayastor pools are online

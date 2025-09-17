@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"os/exec"
+    "regexp"
 	"strings"
 
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
@@ -86,6 +87,18 @@ func (h *hcloud) AttachVolume(volName, node string) error {
 	return err
 }
 
+func (h *hcloud) ResizeVolume(volName string, newSizeGB int) error {
+	logf.Log.Info("Resize Volume", "volName", volName, "newSizeGB", newSizeGB)
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("hcloud volume resize --size %d %s", newSizeGB, volName))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logf.Log.Info("HCloud: Resize volume failed", "error", err.Error())
+		logf.Log.Info("HCloud: Resize volume output", "output", string(output))
+		return fmt.Errorf("hcloud resize volume failed: %v", err)
+	}
+	return nil
+}
+
 func (h *hcloud) GetNodeStatus(node string) (string, error) {
 	logf.Log.Info("Get status", "node", node)
 	cmd := exec.Command("bash", "-c", fmt.Sprintf("hcloud  server list | grep %s", node))
@@ -97,4 +110,23 @@ func (h *hcloud) GetNodeStatus(node string) (string, error) {
 		return "running", nil
 	}
 	return "off", nil
+}
+
+// ExtractVolumeIdFromDevicePath parses Hetzner by-id device path and extracts the numeric volume id.
+// Example inputs:
+//  - /dev/disk/by-id/scsi-0HC_Volume_12345678
+//  - /dev/disk/by-id/scsi-0HC-VOLUME-12345678
+//  - /dev/disk/by-id/scsi-0HC_Volume_12345678-part1
+func (h *hcloud) ExtractVolumeIdFromDevicePath(dev string) (string, error) {
+    re := regexp.MustCompile(`(?i)HC[_-]?VOLUME_(\d+)`)
+    m := re.FindStringSubmatch(dev)
+    if len(m) == 2 {
+        return m[1], nil
+    }
+    // Fallback: try to find trailing numeric id possibly followed by -partX
+    tail := regexp.MustCompile(`(\d+)(?:-?part\d+)?$`).FindStringSubmatch(strings.ToLower(dev))
+    if len(tail) == 2 {
+        return tail[1], nil
+    }
+    return "", fmt.Errorf("device path %s does not look like a Hetzner volume by-id path", dev)
 }

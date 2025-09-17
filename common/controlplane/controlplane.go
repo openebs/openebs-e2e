@@ -122,6 +122,9 @@ type ControlPlaneInterface interface {
 	GetZFSVolume(name string) (*common.ZFSVolume, error)
 	ListZFSVolumes() ([]common.ZFSVolume, error)
 	GetZFSVolumeStatus(name string) (string, error)
+
+    // Pool expansion abstraction
+    ExpandPoolViaPlugin(poolName string) error
 }
 
 var ifc ControlPlaneInterface
@@ -413,7 +416,7 @@ func UnCordonNode(nodeName string, cordonLabel string) error {
 	return getControlPlane().UnCordonNode(nodeName, cordonLabel)
 }
 
-//pool cordon
+// pool cordon
 func CordonPool(poolID string, constraints ...common.PoolCordonConstraint) error {
 	return getControlPlane().CordonPool(poolID, constraints...)
 }
@@ -505,4 +508,9 @@ func ListZFSVolumes() ([]common.ZFSVolume, error) {
 // GetZFSVolumeStatus returns the status.state of a ZFSVolume by name
 func GetZFSVolumeStatus(name string) (string, error) {
 	return getControlPlane().GetZFSVolumeStatus(name)
+}
+
+// GrowPoolViaPlugin uses kubectl mayastor plugin to grow the pool
+func ExpandPoolViaPlugin(poolName string) error {
+    return getControlPlane().ExpandPoolViaPlugin(poolName)
 }
