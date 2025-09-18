@@ -79,7 +79,12 @@ func AreContainerImagesUpgraded(podList *coreV1.PodList, toUpgradeImageTag, dock
 	mayastorVersion := e2e_config.GetConfig().Product.OpenebsToMayaVersionMap[toUpgradeImageTag]
 	openebsPlugin := e2e_config.GetConfig().Product.KubectlOpenebsPluginName
 	binPath := mcpV1.GetPluginPath()
+	etcdStsName := e2e_config.GetConfig().Product.ControlPlaneEtcd
 	for _, pod := range podList.Items {
+		// Skip etcd pods as they have different image naming convention
+		if strings.Contains(pod.Name, etcdStsName) {
+			continue
+		}
 		for _, container := range pod.Spec.Containers {
 			if strings.Contains(container.Image, dockerImageOrgName) {
 				imageTag := strings.Split(container.Image, ":")
