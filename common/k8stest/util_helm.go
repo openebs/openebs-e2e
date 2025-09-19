@@ -14,20 +14,39 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func UpgradeHelmChart(helmChart, namespace, releaseName, version string, values map[string]interface{}) ([]byte, error) {
+func UpgradeHelmChart(
+	helmChart, namespace, releaseName, version string,
+	values map[string]interface{},
+	globalFlags ...string,
+) ([]byte, error) {
+
 	var vals []string
 	for k, v := range values {
 		vals = append(vals, fmt.Sprintf("%s=%v", k, v))
 	}
 	setVals := strings.Join(vals, ",")
-	logf.Log.Info("executing helm upgrade ", "releaseName: ", releaseName, ", chart: ", helmChart, "version", version, "namespace: ", namespace, ", values: ", setVals)
-	// Define the Helm installation command.
-	cmd := exec.Command("helm", "upgrade", releaseName, helmChart, "-n", namespace, "--reuse-values", "--set", setVals, "--version", version)
-	// Execute the command.
+
+	logf.Log.Info("executing helm upgrade",
+		"releaseName", releaseName,
+		"chart", helmChart,
+		"version", version,
+		"namespace", namespace,
+		"values", setVals,
+		"extraFlags", globalFlags,
+	)
+
+	// Build Helm command arguments
+	args := []string{"upgrade", releaseName, helmChart, "-n", namespace, "--reuse-values", "--set", setVals, "--version", version}
+	// Append optional global flags
+	args = append(args, globalFlags...)
+
+	// Execute the command
+	cmd := exec.Command("helm", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return output, fmt.Errorf("failed to upgrade with Helm: %v\n%s", err, output)
 	}
+
 	return output, nil
 }
 
