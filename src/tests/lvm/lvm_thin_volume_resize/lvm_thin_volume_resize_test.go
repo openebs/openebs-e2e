@@ -1,6 +1,7 @@
 package lvm_thin_volume_resize
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/openebs/openebs-e2e/common"
@@ -52,7 +53,11 @@ var _ = Describe("lvm_thin_volume_resize", func() {
 		Expect(err).ToNot(HaveOccurred(), "failed to k8s resource")
 		if volumeResize.ThinPoolNode != "" {
 			out, err := e2e_agent.LvmLvRemoveThinPool(volumeResize.ThinPoolNode, "lvmvg")
-			Expect(err).To(BeNil(), "failed to remove lv thin pool on node %s with vg %s, output: %s", volumeResize.ThinPoolNode, "lvmvg", out)
+			if err != nil && strings.Contains(out, volumeResize.ThinPoolNotFound) {
+				logf.Log.Info("ERROR: failed to remove thin pool LV as it was not found", "node:", volumeResize.ThinPoolNode, "vg name:", "lvmvg", "output:", out)
+			} else if err != nil {
+				Expect(err).ToNot(HaveOccurred(), "failed to remove lv thin pool on node %s with vg %s, output: %s", volumeResize.ThinPoolNode, "lvmvg", out)
+			}
 		}
 
 		Expect(after_err).ToNot(HaveOccurred())
