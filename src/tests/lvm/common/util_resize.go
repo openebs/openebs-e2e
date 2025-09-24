@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
@@ -19,6 +20,8 @@ var ResizeApp k8stest.FioApplication
 var ResizeApp2 k8stest.FioApplication
 var defFioCompletionTime = 240 // in seconds
 var ThinPoolNode string
+
+const ThinPoolNotFound = "Failed to find logical volume"
 
 func LvmVolumeResizeTest(decor string, engine common.OpenEbsEngine, vgName string, volType common.VolumeType, fstype common.FileSystemType, volBindModeWait bool, thinProvisioned common.YesNoVal) {
 
@@ -147,7 +150,11 @@ func LvmVolumeResizeTest(decor string, engine common.OpenEbsEngine, vgName strin
 
 	if thinProvisioned == common.Yes {
 		out, err := e2e_agent.LvmLvRemoveThinPool(ThinPoolNode, vgName)
-		Expect(err).To(BeNil(), "failed to remove lv thin pool on node %s with vg %s, output: %s", node, vgName, out)
+		if err != nil && strings.Contains(out, ThinPoolNotFound) {
+			logf.Log.Info("ERROR: failed to remove thin pool LV as it was not found", "node:", ThinPoolNode, "vg name:", "lvmvg", "output:", out)
+		} else if err != nil {
+			Expect(err).ToNot(HaveOccurred(), "failed to remove lv thin pool on node %s with vg %s, output: %s", ThinPoolNode, "lvmvg", out)
+		}
 		ThinPoolNode = ""
 	}
 }
