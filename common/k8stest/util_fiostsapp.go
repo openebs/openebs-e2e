@@ -42,6 +42,7 @@ type FioStsApp struct {
 	VerifyReplicasOnDelete bool
 	AppNodeName            string
 	KeepStorageClass       bool // If true, don't cleanup storage class during Cleanup(). Default: false
+	CloneFsIdAsVolumeId    common.CloneFsIdAsVolumeIdType
 }
 
 var (
@@ -109,6 +110,8 @@ func (dfa *FioStsApp) StsApp() error {
 
 	if dfa.VolType == common.VolFileSystem {
 		scBuilder = scBuilder.WithFileSystemType(dfa.FsType)
+		// Use caller-provided CloneFsIdAsVolumeId setting when provided
+		scBuilder = scBuilder.WithCloneFsIdAsVolumeId(dfa.CloneFsIdAsVolumeId)
 	}
 
 	err = scBuilder.BuildAndCreate()
