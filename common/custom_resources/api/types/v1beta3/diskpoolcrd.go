@@ -23,7 +23,7 @@ type DiskPoolSpec struct {
 	Node             string            `json:"node"`
 	Topology         *Topology         `json:"topology,omitempty"`
 	EncryptionConfig *EncryptionConfig `json:"encryptionConfig,omitempty"`
-	ClusterSize      string            `json:"cluster_size,omitempty"`
+	ClusterSize      string            `json:"clusterSize,omitempty"`
 }
 
 type DiskPoolStatus struct {
@@ -36,7 +36,7 @@ type DiskPoolStatus struct {
 	CapacityQ   string `json:"capacity_q"`
 	AvailableQ  string `json:"available_q"`
 	UsedQ       string `json:"used_q"`
-	ClusterSize string `json:"cluster_size"`
+	ClusterSize string `json:"clusterSize"`
 }
 
 type DiskPool struct {
