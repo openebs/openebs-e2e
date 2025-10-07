@@ -40,6 +40,9 @@ func NewMongoBuilder() *mongoBuilder {
 	def["auth.database"] = e2e_config.GetConfig().Product.MongoAuthDatabase
 	def["architecture"] = Standalone.String()
 	def["replicaCount"] = 1
+	def["image.repository"] = e2e_config.GetConfig().Product.MongoImageRepository
+	def["image.tag"] = e2e_config.GetConfig().Product.MongoImageTag
+	def["global.security.allowInsecureImages"] = true
 
 	return &mongoBuilder{
 		architecture:            Standalone,
