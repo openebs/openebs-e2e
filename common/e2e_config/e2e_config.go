@@ -100,6 +100,8 @@ type ProductSpec struct {
 	MongoHelmRepoName                 string            `yaml:"mongoHelmRepoName" env-default:"bitnami"`
 	MongoHelmRepoUrl                  string            `yaml:"mongoHelmRepoUrl" env-default:"https://charts.bitnami.com/bitnami"`
 	MongoReleaseName                  string            `yaml:"mongoReleaseName" env-default:"ms-mongo"`
+	MongoImageRepository              string            `yaml:"mongoImageRepository" env-default:"bitnamilegacy/mongodb"`
+	MongoImageTag                     string            `yaml:"mongoImageTag" env-default:"8.0.6-debian-12-r1"`
 	NatsPort                          string            `yaml:"natsPort" env-default:"4222"`
 	NvmeControllerModel               string            `yaml:"nvmeControllerModel" env-default:"Mayastor NVMe controller"`
 	PartialRebuildCpTimeout           string            `yaml:"partialRebuildCpTimeout" env-default:"600s"`
