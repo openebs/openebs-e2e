@@ -156,6 +156,10 @@ func (h *gcp) AttachVolume(volName, node string) error {
 	return err
 }
 
+func (h *gcp) ResizeVolume(volName string, newSizeGB int) error {
+	panic(fmt.Errorf("GCP: resize volume not implemented for GCP platform"))
+}
+
 func (h *gcp) GetNodeStatus(node string) (string, error) {
 	logf.Log.Info("Get status", "node", node)
 	cmd := exec.Command("bash", "-c", fmt.Sprintf("gcloud compute instances list | grep %s", node))
@@ -168,4 +172,9 @@ func (h *gcp) GetNodeStatus(node string) (string, error) {
 		return "running", nil
 	}
 	return "off", nil
+}
+
+// ExtractVolumeIdFromDevicePath is not applicable for GCP in this suite.
+func (h *gcp) ExtractVolumeIdFromDevicePath(dev string) (string, error) {
+	panic(fmt.Errorf("GCP: device-path to volume-id extraction not implemented"))
 }

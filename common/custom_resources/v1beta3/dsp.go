@@ -181,6 +181,25 @@ func (p v1beta3DSP) IsPoolEncrypted() bool {
 	return false
 }
 
+func (p v1beta3DSP) GetAnnotations() map[string]string {
+	if p.v1beta3 != nil {
+		return p.v1beta3.Annotations
+	}
+	return map[string]string{}
+}
+
+func (p v1beta3DSP) SetAnnotations(annotations map[string]string) (crtypes.DiskPool, error) {
+	var err error
+	dsp := p
+	if p.v1beta3 != nil {
+		mspIn := *p.v1beta3
+		mspIn.Annotations = annotations
+		dsp.v1beta3, err = poolClientSet.DiskPools().Update(context.TODO(), &mspIn, metaV1.UpdateOptions{})
+		return dsp, err
+	}
+	return dsp, fmt.Errorf("uninitialised DiskPool")
+}
+
 func (p v1beta3DSP) SetClusterSize(clusterSize string) (crtypes.DiskPool, error) {
 	var err error
 	dsp := p
@@ -198,6 +217,33 @@ func (p v1beta3DSP) GetClusterSize() string {
 		return p.v1beta3.Status.ClusterSize
 	}
 	return ""
+}
+
+// Expose status.maxExpandableSize if available
+func (p v1beta3DSP) GetStatusMaxExpandableSize() string {
+    if p.v1beta3 != nil {
+        return p.v1beta3.Status.MaxExpandableSize
+    }
+    return ""
+}
+
+func (p v1beta3DSP) GetMaxExpansion() string {
+	if p.v1beta3 != nil {
+		return p.v1beta3.Spec.MaxExpansion
+	}
+	return ""
+}
+
+func (p v1beta3DSP) SetMaxExpansion(maxExpansion string) (crtypes.DiskPool, error) {
+	var err error
+	dsp := p
+	if p.v1beta3 != nil {
+		mspIn := *p.v1beta3
+		mspIn.Spec.MaxExpansion = maxExpansion
+		dsp.v1beta3, err = poolClientSet.DiskPools().Update(context.TODO(), &mspIn, metaV1.UpdateOptions{})
+		return dsp, err
+	}
+	return dsp, fmt.Errorf("uninitialised DiskPool")
 }
 
 //  DiskPoolFunctions implementation
@@ -262,6 +308,50 @@ func (ifc v1beta3Ifc) CreateMsPoolWithClusterSize(poolName string, node string, 
 	return dsp, err
 }
 
+// CreateMsPoolWithMaxSizeAndClusterSize creates a DiskPool CR with both MaxExpansion and ClusterSize set.
+func (ifc v1beta3Ifc) CreateMsPoolWithMaxSizeAndClusterSize(poolName string, node string, disks []string, maxSize string, clusterSize string) (crtypes.DiskPool, error) {
+	// Default cluster size to 4MiB if not provided
+	if clusterSize == "" {
+		clusterSize = "4 MiB"
+	}
+	
+	msp := v1beta3.DiskPool{
+		TypeMeta: metaV1.TypeMeta{Kind: "DiskPool"},
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      poolName,
+			Namespace: common.NSMayastor(),
+		},
+		Spec: v1beta3.DiskPoolSpec{
+			Node:         node,
+			Disks:        disks,
+			MaxExpansion: maxSize,
+			ClusterSize:  clusterSize,
+		},
+	}
+	mspOut, err := poolClientSet.DiskPools().Create(context.TODO(), &msp, metaV1.CreateOptions{})
+	dsp := v1beta3DSP{mspOut}
+	return dsp, err
+}
+
+// CreateMsPoolWithMaxSize creates a DiskPool CR with MaxExpansion set.
+func (ifc v1beta3Ifc) CreateMsPoolWithMaxSize(poolName string, node string, disks []string, maxSize string) (crtypes.DiskPool, error) {
+    msp := v1beta3.DiskPool{
+        TypeMeta: metaV1.TypeMeta{Kind: "DiskPool"},
+        ObjectMeta: metaV1.ObjectMeta{
+            Name:      poolName,
+            Namespace: common.NSMayastor(),
+        },
+        Spec: v1beta3.DiskPoolSpec{
+            Node:         node,
+            Disks:        disks,
+            MaxExpansion: maxSize,
+        },
+    }
+	mspOut, err := poolClientSet.DiskPools().Create(context.TODO(), &msp, metaV1.CreateOptions{})
+	dsp := v1beta3DSP{mspOut}
+	return dsp, err
+}
+
 func (ifc v1beta3Ifc) GetMsPool(poolName string) (crtypes.DiskPool, error) {
 	msp := v1beta3.DiskPool{}
 	res, err := poolClientSet.DiskPools().Get(context.TODO(), poolName, metaV1.GetOptions{})
@@ -312,4 +402,53 @@ func (ifc v1beta3Ifc) CreateMsPoolWithEncryption(poolName string, node string, d
 	mspOut, err := poolClientSet.DiskPools().Create(context.TODO(), &msp, metaV1.CreateOptions{})
 	dsp := v1beta3DSP{mspOut}
 	return dsp, err
+}
+
+// AnnotatePoolForExpansion adds the openebs.io/expand: true annotation to enable pool expansion
+func (ifc v1beta3Ifc) AnnotatePoolForExpansion(poolName string) error {
+	res, err := poolClientSet.DiskPools().Get(context.TODO(), poolName, metaV1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get pool %s: %v", poolName, err)
+	}
+	if res == nil {
+		return fmt.Errorf("pool %s not found", poolName)
+	}
+	
+	// Add or update the expand annotation
+	if res.Annotations == nil {
+		res.Annotations = make(map[string]string)
+	}
+	res.Annotations["openebs.io/expand"] = "true"
+	
+	_, err = poolClientSet.DiskPools().Update(context.TODO(), res, metaV1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to annotate pool %s for expansion: %v", poolName, err)
+	}
+	
+	logf.Log.Info("Successfully annotated pool for expansion", "pool", poolName)
+	return nil
+}
+
+// VerifyPoolCapacityAndMaxExpansion verifies that the pool has the expected capacity and max expansion settings
+func (ifc v1beta3Ifc) VerifyPoolCapacityAndMaxExpansion(poolName string, expectedCapacity uint64, expectedMaxExpansion string) error {
+	pool, err := ifc.GetMsPool(poolName)
+	if err != nil {
+		return fmt.Errorf("failed to get pool %s: %v", poolName, err)
+	}
+	
+	actualCapacity := pool.GetStatusCapacity()
+	if actualCapacity != expectedCapacity {
+		return fmt.Errorf("pool %s capacity mismatch: expected %d, got %d", poolName, expectedCapacity, actualCapacity)
+	}
+	
+	actualMaxExpansion := pool.GetMaxExpansion()
+	if actualMaxExpansion != expectedMaxExpansion {
+		return fmt.Errorf("pool %s max expansion mismatch: expected %s, got %s", poolName, expectedMaxExpansion, actualMaxExpansion)
+	}
+	
+	logf.Log.Info("Pool capacity and max expansion verified successfully", 
+		"pool", poolName, 
+		"capacity", actualCapacity, 
+		"maxExpansion", actualMaxExpansion)
+	return nil
 }

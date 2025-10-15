@@ -135,3 +135,11 @@ func (h *maas) GetNodeStatus(node string) (string, error) {
 	}
 	return "off", nil
 }
+
+func (h *maas) ResizeVolume(volName string, newSizeGB int) error {
+	panic(fmt.Errorf("MAAS: resize volume not implemented for MAAS platform"))
+}
+
+func (h *maas) ExtractVolumeIdFromDevicePath(dev string) (string, error) {
+	panic(fmt.Errorf("MAAS: device-path to volume-id extraction not implemented"))
+}

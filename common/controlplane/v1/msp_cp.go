@@ -54,6 +54,9 @@ type mspState struct {
 	Status    string   `json:"status"`
 	Used      uint64   `json:"used"`
 	Committed uint64   `json:"committed"`
+    // Additional fields exposed by plugin JSON
+    DiskCapacityBytes  uint64 `json:"diskCapacity"`
+    MaxExpandableBytes uint64 `json:"maxExpandableSize"`
 }
 
 func (cp CPv1) CreatePoolOnInstall() bool {
@@ -81,6 +84,15 @@ func GetMayastorCpPool(name string) (*MayastorCpPool, error) {
 		return nil, fmt.Errorf("%s", msg)
 	}
 	return &response, nil
+}
+
+// Expose disk capacity and max expandable size in bytes for tests
+func (cp CPv1) GetPoolDiskCapacityAndMaxExpandable(name string) (uint64, uint64, error) {
+    p, err := GetMayastorCpPool(name)
+    if err != nil {
+        return 0, 0, err
+    }
+    return p.State.DiskCapacityBytes, p.State.MaxExpandableBytes, nil
 }
 
 func ListMayastorCpPools() ([]MayastorCpPool, error) {
@@ -315,4 +327,28 @@ func parseCordonConstraints(cordoned *PoolCordonedState) []string {
 	}
 	
 	return constraints
+}
+
+// ExpandPoolViaPlugin uses kubectl mayastor plugin to expand the pool
+func (cp CPv1) ExpandPoolViaPlugin(poolName string) error {
+    logf.Log.Info("Expanding pool via plugin", "pool", poolName)
+    
+    args := []string{"-n", common.NSMayastor(), "expand", "pool", poolName}
+    
+    // Log the actual command being executed
+    logf.Log.Info("Executing command", "command", "kubectl mayastor", "args", args)
+    
+    cmd := GetMayastorPluginCmd(args...)
+    
+    var out bytes.Buffer
+    cmd.Stdout = &out
+    cmd.Stderr = &out
+    
+    err := cmd.Run()
+    if err != nil {
+        return fmt.Errorf("plugin failed to expand pool %s, error %v, output: %s", poolName, err, out.String())
+    }
+    
+    logf.Log.Info("Successfully expanded pool via plugin", "pool", poolName, "output", out.String())
+    return nil
 }

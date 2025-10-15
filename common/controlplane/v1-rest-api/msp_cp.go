@@ -1,6 +1,8 @@
 package v1_rest_api
 
 import (
+	"fmt"
+
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/generated/openapi"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -57,4 +59,10 @@ func (cp CPv1RestApi) ListMsPools() ([]common.MayastorPool, error) {
 	}
 
 	return msPools, err
+}
+
+// ExpandPoolViaPlugin uses kubectl mayastor plugin to expand the pool
+// Note: This method is not implemented in REST API mode, returns an error
+func (cp CPv1RestApi) ExpandPoolViaPlugin(poolName string) error {
+	panic(fmt.Errorf("pool expand via plugin is not implemented in REST API mode, use kubectl plugin mode"))
 }
