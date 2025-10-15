@@ -217,6 +217,7 @@ type E2EConfig struct {
 	ReplicatedEngine    bool   `yaml:"replicatedEngine" env:"replicatedEngine"`
 	OciInstall          bool   `yaml:"ociInstall" env:"e2e_oci_install" env-default:"false"`
 	OpenebsChartVersion string `yaml:"openebsChartVersion" env:"e2e_openebs_chart_version"`
+	SkipInstallVerification bool `yaml:"skipInstallVerification" env:"e2e_skip_install_verification" env-default:"false"`
 
 	// Operational parameters
 	Cores int `yaml:"cores,omitempty"`
