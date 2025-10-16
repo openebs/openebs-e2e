@@ -257,6 +257,10 @@ func CreateMsPoolWithMaxSizeAndClusterSize(poolName string, node string, disks [
 	return getDspFuncs().CreateMsPoolWithMaxSizeAndClusterSize(poolName, node, disks, maxSize, clusterSize)
 }
 
+func CreateMsPoolWithEncryptionAndMaxSize(poolName string, node string, disks []string, encryptionSecretName string, maxSize string, clusterSize string) (crtypes.DiskPool, error) {
+	return getDspFuncs().CreateMsPoolWithEncryptionAndMaxSize(poolName, node, disks, encryptionSecretName, maxSize, clusterSize)
+}
+
 func AnnotatePoolForExpansion(poolName string) error {
 	return getDspFuncs().AnnotatePoolForExpansion(poolName)
 }
@@ -267,7 +271,7 @@ func VerifyPoolCapacityAndMaxExpansion(poolName string, expectedCapacity uint64,
 
 // ExpandPoolViaPluginCP uses kubectl mayastor plugin to expand the pool via control plane
 func ExpandPoolViaPluginCP(poolName string) error {
-    return controlplane.ExpandPoolViaPlugin(poolName)
+	return controlplane.ExpandPoolViaPlugin(poolName)
 }
 
 // CheckAllMsPoolsAreOnline checks if all mayastor pools are online
