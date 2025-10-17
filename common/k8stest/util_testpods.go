@@ -1290,3 +1290,32 @@ func RestartCsiNodePodOnNode(nodeName string, readyTOSecs int, poolsTOSecs int) 
 
 	return err
 }
+
+// WaitForPodsByPrefixToComplete periodically checks for timeoutSecs seconds to verify
+//  if pods with the specified prefix are at Completed status
+func WaitForPodsByPrefixToComplete(namespace string, podPrefix string, timeoutSecs int) error {
+	const sleepTime = 5
+	for ix := 0; ix < (timeoutSecs+sleepTime-1)/sleepTime; ix++ {
+		time.Sleep(sleepTime * time.Second)
+
+		pods, err := ListPodsByPrefix(namespace, podPrefix)
+		if err != nil {
+			return fmt.Errorf("failed to list pods with prefix %s in namespace %s: %v", podPrefix, namespace, err)
+		}
+
+		allCompleted := true
+		for _, pod := range pods {
+			switch pod.Status.Phase {
+			case coreV1.PodSucceeded, coreV1.PodFailed:
+				// pod is done, continue
+			default:
+				allCompleted = false
+			}
+		}
+
+		if allCompleted {
+			return nil
+		}
+	}
+	return fmt.Errorf("timeout waiting for pods with prefix %s in namespace %s to complete", podPrefix, namespace)
+}

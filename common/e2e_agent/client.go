@@ -114,6 +114,11 @@ type DevLinkPort struct {
 	DevLinkPort string `json:"devLinkPort"`
 }
 
+type KernelModule struct {
+	Name           string `json:"name"`
+	PersistentPath string `json:"persistentPath"`
+}
+
 func sendRequest(reqType, url string, data interface{}) error {
 	_, err := sendRequestGetResponse(reqType, url, data, true)
 	return err
@@ -1369,4 +1374,55 @@ func AcceptIncomingTrafficOnNode(serverAddr string) (string, error) {
 	url := "http://" + getAgentAddress(serverAddr) + "/acceptIncomingTrafficOnNode"
 	logf.Log.Info("Executing acceptIncomingTrafficOnNode", "addr", serverAddr)
 	return sendRequestGetResponse("POST", url, nil, true)
+}
+
+// IsKernelModuleLoaded checks if a kernel module is installed and loaded
+func IsKernelModuleLoaded(serverAddr string, moduleName string) (bool, error) {
+	data := KernelModule{
+		Name: moduleName,
+	}
+	logf.Log.Info("Executing IsKernelModuleLoaded", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/isKernelModuleLoaded"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		// return a bool (false) on error
+		return false, fmt.Errorf("failed to send command to e2e-agent, error: %s", err.Error())
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return false, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return false, fmt.Errorf("failed to check if module is loaded, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("IsKernelModuleLoaded succeeded", "output", out)
+	return out == "1", err
+}
+
+// IsKernelModulePersistent checks if a kernel module is set to load persistently on boot
+func IsKernelModulePersistent(serverAddr string, moduleName string, filename string) (bool, error) {
+	data := KernelModule{
+		Name:           moduleName,
+		PersistentPath: "/etc/modules-load.d/" + filename + ".conf",
+	}
+	logf.Log.Info("Executing IsKernelModulePersistent", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/isKernelModulePersistent"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		// return a bool (false) on error
+		return false, fmt.Errorf("failed to send command to e2e-agent, error: %s", err.Error())
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return false, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return false, fmt.Errorf("failed to check if module is persistent, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("IsKernelModulePersistent succeeded", "output", out)
+	return out == "1", err
 }

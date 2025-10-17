@@ -82,6 +82,11 @@ type CmdList struct {
 	Cmd string `json:"cmd"`
 }
 
+type KernelModule struct {
+	Name           string `json:"name"`
+	PersistentPath string `json:"persistentPath"`
+}
+
 var Version = "undefined"
 
 const (
@@ -163,6 +168,8 @@ func handleRequests() {
 	router.HandleFunc("/hugepagezero", ZeroingHugePages).Methods("POST")
 	router.HandleFunc("/dropIncomingTrafficOnNode", dropIncomingTrafficOnNode).Methods("POST")
 	router.HandleFunc("/acceptIncomingTrafficOnNode", acceptIncomingTrafficOnNode).Methods("POST")
+	router.HandleFunc("/isKernelModuleLoaded", IsKernelModuleLoaded).Methods("POST")
+	router.HandleFunc("/isKernelModulePersistent", IsKernelModulePersistent).Methods("POST")
 	//LVM
 	router.HandleFunc("/lvmversion", LvmVersion).Methods("POST")
 	router.HandleFunc("/lvmlistvg", LvmListVg).Methods("POST")
@@ -269,6 +276,59 @@ func acceptIncomingTrafficOnNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	klog.Info("Successfully started network services")
+}
+
+func IsKernelModuleLoaded(w http.ResponseWriter, r *http.Request) {
+	var module KernelModule
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&module); err != nil {
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to read JSON encoded data, Error: ", err)
+		return
+	}
+	klog.Info("Checking if module is loaded ", module)
+	params := fmt.Sprintf("lsmod | grep -w '^%s' | wc -l", module.Name)
+	klog.Info("Checking if module is loaded")
+	output, err := bashLocal(params)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to check if module is loaded:", module, "Error: ", err)
+		return
+	}
+	klog.Info("Successfully checked if module is loaded")
+	WrapResult(output, ErrNone, w)
+}
+
+func IsKernelModulePersistent(w http.ResponseWriter, r *http.Request) {
+	var module KernelModule
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&module); err != nil {
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to read JSON encoded data, Error: ", err)
+		return
+	}
+	klog.Info("Checking if module is persistent ", module)
+	params := fmt.Sprintf(
+		"if [ -f /host%s ]; then "+
+			"grep -w '^%s$' /host%s | wc -l; "+
+			"else "+
+			"echo 0; "+
+			"fi",
+		module.PersistentPath,
+		module.Name,
+		module.PersistentPath,
+	)
+	klog.Info("Checking if module is persistent")
+	output, err := bashLocal(params)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to check if module is persistent:", module, "Error: ", err)
+		return
+	}
+	klog.Info("Successfully checked if module is persistent")
+	WrapResult(output, ErrNone, w)
 }
 
 func createFaultyDevice(w http.ResponseWriter, r *http.Request) {
