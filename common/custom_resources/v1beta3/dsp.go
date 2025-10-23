@@ -221,10 +221,10 @@ func (p v1beta3DSP) GetClusterSize() string {
 
 // Expose status.maxExpandableSize if available
 func (p v1beta3DSP) GetStatusMaxExpandableSize() string {
-    if p.v1beta3 != nil {
-        return p.v1beta3.Status.MaxExpandableSize
-    }
-    return ""
+	if p.v1beta3 != nil {
+		return p.v1beta3.Status.MaxExpandableSize
+	}
+	return ""
 }
 
 func (p v1beta3DSP) GetMaxExpansion() string {
@@ -314,7 +314,7 @@ func (ifc v1beta3Ifc) CreateMsPoolWithMaxSizeAndClusterSize(poolName string, nod
 	if clusterSize == "" {
 		clusterSize = "4 MiB"
 	}
-	
+
 	msp := v1beta3.DiskPool{
 		TypeMeta: metaV1.TypeMeta{Kind: "DiskPool"},
 		ObjectMeta: metaV1.ObjectMeta{
@@ -333,20 +333,53 @@ func (ifc v1beta3Ifc) CreateMsPoolWithMaxSizeAndClusterSize(poolName string, nod
 	return dsp, err
 }
 
+// CreateMsPoolWithEncryptionAndMaxSize creates a DiskPool CR with encryption, MaxExpansion and ClusterSize set.
+func (ifc v1beta3Ifc) CreateMsPoolWithEncryptionAndMaxSize(poolName string, node string, disks []string, encryptionSecretName string, maxSize string, clusterSize string) (crtypes.DiskPool, error) {
+	// Default cluster size to 4MiB if not provided
+	if clusterSize == "" {
+		clusterSize = "4 MiB"
+	}
+
+	logf.Log.Info("Creating DiskPool with encryption, max size and cluster size", "poolName", poolName, "node", node, "disks", disks, "encryptionSecretName", encryptionSecretName, "maxSize", maxSize, "clusterSize", clusterSize)
+	msp := v1beta3.DiskPool{
+		TypeMeta: metaV1.TypeMeta{Kind: "DiskPool"},
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      poolName,
+			Namespace: common.NSMayastor(),
+		},
+		Spec: v1beta3.DiskPoolSpec{
+			Node:         node,
+			Disks:        disks,
+			MaxExpansion: maxSize,
+			ClusterSize:  clusterSize,
+			EncryptionConfig: &v1beta3.EncryptionConfig{
+				Source: v1beta3.Source{
+					Secret: v1beta3.Secret{
+						Name: encryptionSecretName,
+					},
+				},
+			},
+		},
+	}
+	mspOut, err := poolClientSet.DiskPools().Create(context.TODO(), &msp, metaV1.CreateOptions{})
+	dsp := v1beta3DSP{mspOut}
+	return dsp, err
+}
+
 // CreateMsPoolWithMaxSize creates a DiskPool CR with MaxExpansion set.
 func (ifc v1beta3Ifc) CreateMsPoolWithMaxSize(poolName string, node string, disks []string, maxSize string) (crtypes.DiskPool, error) {
-    msp := v1beta3.DiskPool{
-        TypeMeta: metaV1.TypeMeta{Kind: "DiskPool"},
-        ObjectMeta: metaV1.ObjectMeta{
-            Name:      poolName,
-            Namespace: common.NSMayastor(),
-        },
-        Spec: v1beta3.DiskPoolSpec{
-            Node:         node,
-            Disks:        disks,
-            MaxExpansion: maxSize,
-        },
-    }
+	msp := v1beta3.DiskPool{
+		TypeMeta: metaV1.TypeMeta{Kind: "DiskPool"},
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      poolName,
+			Namespace: common.NSMayastor(),
+		},
+		Spec: v1beta3.DiskPoolSpec{
+			Node:         node,
+			Disks:        disks,
+			MaxExpansion: maxSize,
+		},
+	}
 	mspOut, err := poolClientSet.DiskPools().Create(context.TODO(), &msp, metaV1.CreateOptions{})
 	dsp := v1beta3DSP{mspOut}
 	return dsp, err
@@ -413,18 +446,18 @@ func (ifc v1beta3Ifc) AnnotatePoolForExpansion(poolName string) error {
 	if res == nil {
 		return fmt.Errorf("pool %s not found", poolName)
 	}
-	
+
 	// Add or update the expand annotation
 	if res.Annotations == nil {
 		res.Annotations = make(map[string]string)
 	}
 	res.Annotations["openebs.io/expand"] = "true"
-	
+
 	_, err = poolClientSet.DiskPools().Update(context.TODO(), res, metaV1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to annotate pool %s for expansion: %v", poolName, err)
 	}
-	
+
 	logf.Log.Info("Successfully annotated pool for expansion", "pool", poolName)
 	return nil
 }
@@ -435,20 +468,20 @@ func (ifc v1beta3Ifc) VerifyPoolCapacityAndMaxExpansion(poolName string, expecte
 	if err != nil {
 		return fmt.Errorf("failed to get pool %s: %v", poolName, err)
 	}
-	
+
 	actualCapacity := pool.GetStatusCapacity()
 	if actualCapacity != expectedCapacity {
 		return fmt.Errorf("pool %s capacity mismatch: expected %d, got %d", poolName, expectedCapacity, actualCapacity)
 	}
-	
+
 	actualMaxExpansion := pool.GetMaxExpansion()
 	if actualMaxExpansion != expectedMaxExpansion {
 		return fmt.Errorf("pool %s max expansion mismatch: expected %s, got %s", poolName, expectedMaxExpansion, actualMaxExpansion)
 	}
-	
-	logf.Log.Info("Pool capacity and max expansion verified successfully", 
-		"pool", poolName, 
-		"capacity", actualCapacity, 
+
+	logf.Log.Info("Pool capacity and max expansion verified successfully",
+		"pool", poolName,
+		"capacity", actualCapacity,
 		"maxExpansion", actualMaxExpansion)
 	return nil
 }

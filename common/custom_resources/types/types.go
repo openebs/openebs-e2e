@@ -31,9 +31,9 @@ type DiskPool interface {
 	SetAnnotations(annotations map[string]string) (DiskPool, error)
 	GetMaxExpansion() string
 	SetMaxExpansion(maxExpansion string) (DiskPool, error)
-    // Optional: returns status maxExpandableSize as a human-readable string (e.g., "255.8 GiB").
-    // May return empty string for CR versions that don't expose it.
-    GetStatusMaxExpandableSize() string
+	// Optional: returns status maxExpandableSize as a human-readable string (e.g., "255.8 GiB").
+	// May return empty string for CR versions that don't expose it.
+	GetStatusMaxExpandableSize() string
 }
 
 // DiskPoolFunctions interface to implement support for a DiskPool CRD version
@@ -48,6 +48,7 @@ type DiskPoolFunctions interface {
 	// Advanced features (v1beta3+)
 	CreateMsPoolWithMaxSize(poolName string, node string, disks []string, maxSize string) (DiskPool, error)
 	CreateMsPoolWithMaxSizeAndClusterSize(poolName string, node string, disks []string, maxSize string, clusterSize string) (DiskPool, error)
+	CreateMsPoolWithEncryptionAndMaxSize(poolName string, node string, disks []string, encryptionSecretName string, maxSize string, clusterSize string) (DiskPool, error)
 	AnnotatePoolForExpansion(poolName string) error
 	VerifyPoolCapacityAndMaxExpansion(poolName string, expectedCapacity uint64, expectedMaxExpansion string) error
 }

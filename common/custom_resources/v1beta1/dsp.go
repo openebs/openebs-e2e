@@ -85,7 +85,7 @@ func (p v1beta1DSP) GetStatusUsed() uint64 {
 
 // Not available in v1beta1
 func (p v1beta1DSP) GetStatusMaxExpandableSize() string {
-    return ""
+	return ""
 }
 
 func (p v1beta1DSP) CompareStatus(otherP *crtypes.DiskPool) bool {
@@ -261,6 +261,10 @@ func (ifc v1beta1Ifc) CreateMsPoolWithMaxSize(poolName string, node string, disk
 
 func (ifc v1beta1Ifc) CreateMsPoolWithMaxSizeAndClusterSize(poolName string, node string, disks []string, maxSize string, clusterSize string) (crtypes.DiskPool, error) {
 	panic(fmt.Errorf("max size and cluster size not supported in v1beta1"))
+}
+
+func (ifc v1beta1Ifc) CreateMsPoolWithEncryptionAndMaxSize(poolName string, node string, disks []string, encryptionSecretName string, maxSize string, clusterSize string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("encryption with max size and cluster size not supported in v1beta1"))
 }
 
 func (ifc v1beta1Ifc) AnnotatePoolForExpansion(poolName string) error {
