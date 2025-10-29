@@ -2,6 +2,9 @@ package pool_expansion
 
 import (
 	"fmt"
+	"math"
+	"strconv"
+	"strings"
 	"time"
 
 	v1cp "github.com/openebs/openebs-e2e/common/controlplane/v1"
@@ -13,6 +16,43 @@ import (
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+// Common error substrings returned by control-plane/plugin for pool expansion flows.
+// Keep these substrings in sync with server-side errors to make tests resilient.
+var (
+	// When attempting to expand beyond configured MaxExpandable size
+	DiskBeyondMaxSizeSubstring         = "DiskBeyondMaxSize"
+	ExceededMaxExpandableSizeSubstring = "exceeded max expandable size"
+
+	// When attempting to expand without extending the underlying disk/device
+	DiskNotExtendedSubstring           = "DiskNotExtended"
+	UnderlyingDiskNotExtendedSubstring = "underlying disk has not been extended"
+
+	// Generic HTTP status mapping sometimes present in responses
+	RangeNotSatisfiableSubstring = "416 Range Not Satisfiable"
+)
+
+// Default expansion timeout configurations
+const (
+	DefaultExpansionWaitTimeout     = 120 * time.Second
+	DefaultExpansionPollInterval    = 5 * time.Second
+	DefaultPoolOnlineTimeoutSeconds = 180
+)
+
+// Helper constants and converters for GiB
+const (
+	bytesPerGiB = 1024 * 1024 * 1024
+)
+
+// BytesToGiB converts bytes to GiB (returns float64 for precision)
+func BytesToGiB(bytes uint64) float64 {
+	return float64(bytes) / bytesPerGiB
+}
+
+// GiBToBytes converts GiB to bytes (takes float64 to allow fractional GiB)
+func GiBToBytes(gib float64) uint64 {
+	return uint64(gib * bytesPerGiB)
+}
 
 // resizeVolumeByDevicePath extracts the Hetzner volume id from a device path and resizes it.
 func resizeVolumeByDevicePath(plat plattypes.Platform, devicePath string, targetGiB int) error {
@@ -63,7 +103,101 @@ func VerifyMaxExpandableInOriginalUnit(poolName string, maxExpansionStr string, 
 	}
 
 	// Also verify actual maxExpandable in bytes is >= provided expectedCapacity (bytes)
-	actualCapacityBytes := uint64(actualCapacityGiB * 1024 * 1024 * 1024)
+	actualCapacityBytes := GiBToBytes(actualCapacityGiB)
+	if actualCapacityBytes < expectedCapacity {
+		return fmt.Errorf("max expandable too small: expected >= %d bytes (current capacity) got %d bytes", expectedCapacity, actualCapacityBytes)
+	}
+	return nil
+}
+
+// VerifyCapacityDiskAndMaxExpansion perform verification after pool expansion:
+// 1) cp capacity equals expandCap
+// 2) ceil(capGiB) == diskCapacityGiB
+// 3) disk capacity >= parsed maxExpansion and changed from initialDiskCapBytes
+// 4) ceil(capGiB) == diskCapacityGiB == parsed maxExpansion GiB
+func VerifyCapacityDiskAndMaxExpansion(poolName string, maxExpansionStr string, expandCap uint64) error {
+	// Read control-plane pool
+	cpPoolAfter, err := v1cp.GetMayastorCpPool(poolName)
+	if err != nil {
+		return err
+	}
+	if cpPoolAfter.State.Capacity != expandCap {
+		return fmt.Errorf("capacity mismatch: cp=%d expandCap=%d", cpPoolAfter.State.Capacity, expandCap)
+	}
+
+	// Parse expected GiB from maxExpansion
+	expectedGiB, err := k8stest.ParseGiBOrBytesToGiB(maxExpansionStr)
+	if err != nil {
+		return err
+	}
+
+	// Verify capacity, disk capacity, and maxExpandable in GiB
+	capGiB := BytesToGiB(expandCap)
+	capCeilGiB := math.Ceil(capGiB)
+	diskGiB := BytesToGiB(cpPoolAfter.State.DiskCapacityBytes)
+	maxExpandableGiB := BytesToGiB(cpPoolAfter.State.MaxExpandableBytes)
+	logf.Log.Info("Verifying capacity and disk capacity in GiB",
+		"capacityGiB", capGiB, "ceilCapacityGiB", capCeilGiB, "diskCapacityGiB", diskGiB, "maxExpandableGiB", maxExpandableGiB, "expectedGiB", expectedGiB)
+
+	if !(capCeilGiB == diskGiB) {
+		return fmt.Errorf("ceil(capGiB) != diskGiB: ceil=%v disk=%v", capCeilGiB, diskGiB)
+	}
+	if !(capCeilGiB == expectedGiB) {
+		return fmt.Errorf("ceil(capGiB) %v != expectedGiB %v", capCeilGiB, expectedGiB)
+	}
+	if !(diskGiB == expectedGiB) {
+		return fmt.Errorf("diskGiB %v != expectedGiB %v", diskGiB, expectedGiB)
+	}
+	if !(maxExpandableGiB >= expectedGiB) {
+		return fmt.Errorf("maxExpandableGiB %v < expectedGiB %v", maxExpandableGiB, expectedGiB)
+	}
+	return nil
+}
+
+// VerifyMaxExpandableWithFactorSize handles both absolute sizes and factor-based expansions
+func VerifyMaxExpandableWithFactorSize(poolName string, maxExpansionStr string, expectedCapacity uint64, initialDiskCapacityBytes uint64) error {
+	// Read DiskPool CR (version-agnostic via custom_resources)
+	poolCR, err := custom_resources.GetMsPool(poolName)
+	if err != nil {
+		return err
+	}
+	// Status value is a human-readable string (e.g., "255.8 GiB"). May be empty on older CRDs.
+	statusMaxExpandable := poolCR.GetStatusMaxExpandableSize()
+	if statusMaxExpandable == "" {
+		return fmt.Errorf("status.maxExpandableSize not available on this DiskPool version")
+	}
+
+	var expectedCapacityGiB float64
+	if strings.Contains(maxExpansionStr, "x") {
+		// Factor specification (e.g., "20.2x")
+		factorStr := strings.TrimSuffix(maxExpansionStr, "x")
+		factor, err := strconv.ParseFloat(factorStr, 64)
+		if err != nil {
+			return fmt.Errorf("failed to parse factor from %s: %v", maxExpansionStr, err)
+		}
+		// Calculate: initial disk size * expansion factor
+		initialDiskGiB := BytesToGiB(initialDiskCapacityBytes)
+		expectedCapacityGiB = initialDiskGiB * factor
+	} else {
+		// Direct size specification (e.g., "200GiB") - use the standard parsing function
+		expectedCapacityGiB, err = k8stest.ParseGiBOrBytesToGiB(maxExpansionStr)
+		if err != nil {
+			return err
+		}
+	}
+
+	actualCapacityGiB, err := k8stest.ParseGiBOrBytesToGiB(statusMaxExpandable)
+	if err != nil {
+		return err
+	}
+
+	// Check that actual maxExpandable is at least the parsed MaxExpansion value
+	if actualCapacityGiB < expectedCapacityGiB {
+		return fmt.Errorf("max expandable too small: expected at least %.1fGiB got %.1fGiB", expectedCapacityGiB, actualCapacityGiB)
+	}
+
+	// Also verify actual maxExpandable in bytes is >= provided expectedCapacity (bytes)
+	actualCapacityBytes := GiBToBytes(actualCapacityGiB)
 	if actualCapacityBytes < expectedCapacity {
 		return fmt.Errorf("max expandable too small: expected >= %d bytes (current capacity) got %d bytes", expectedCapacity, actualCapacityBytes)
 	}
@@ -98,7 +232,7 @@ func ResizeAllVolumesBeyondPoolMax(pools []string, plusGiB int) error {
 		if err != nil {
 			return err
 		}
-		maxExpGiB := int(cpPool.State.MaxExpandableBytes / (1024 * 1024 * 1024))
+		maxExpGiB := int(BytesToGiB(cpPool.State.MaxExpandableBytes))
 		targetGiB := maxExpGiB + plusGiB
 
 		// Map pool -> node -> disk
@@ -141,7 +275,7 @@ func VerifyExpandAnnotationClearedForPools(pools []string) error {
 
 // VerifyExpandAnnotationClearedWithRetry polls until the expand annotation is cleared or timeout elapses.
 // It returns nil as soon as the annotation is cleared; otherwise an error after the timeout.
-func VerifyExpandAnnotationClearedWithRetry(poolName string, timeout time.Duration, interval time.Duration) error {
+func VerifyExpandAnnotationClearedWithRetry(poolName string, timeout, pollInterval time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	var lastErr error
 	for {
@@ -153,12 +287,12 @@ func VerifyExpandAnnotationClearedWithRetry(poolName string, timeout time.Durati
 		if time.Now().After(deadline) {
 			return lastErr
 		}
-		time.Sleep(interval)
+		time.Sleep(pollInterval)
 	}
 }
 
 // VerifyExpandAnnotationClearedForPoolsWithRetry polls all pools until their expand annotations are cleared or timeout elapses.
-func VerifyExpandAnnotationClearedForPoolsWithRetry(pools []string, timeout time.Duration, interval time.Duration) error {
+func VerifyExpandAnnotationClearedForPoolsWithRetry(pools []string, timeout, pollInterval time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for {
 		var lastErr error
@@ -179,27 +313,32 @@ func VerifyExpandAnnotationClearedForPoolsWithRetry(pools []string, timeout time
 			}
 			return fmt.Errorf("expand annotation not cleared on all pools before timeout")
 		}
-		time.Sleep(interval)
+		time.Sleep(pollInterval)
 	}
 }
 
 // AnnotatePoolsAndWaitForExpansion annotates each pool for expansion and waits until capacity increases.
-// Returns the expanded capacity of the primary pool once its expansion is observed.
-func AnnotatePoolsAndWaitForExpansion(pools []string, primaryPool string, waitTimeout time.Duration, pollInterval time.Duration) (uint64, error) {
-	var expandedPrimaryCap uint64
+// Returns a map of poolName -> expanded capacity once each pool's expansion is observed.
+func AnnotatePoolsAndWaitForExpansion(pools []string, waitTimeout, pollInterval time.Duration) (map[string]uint64, error) {
+	expandedCaps := make(map[string]uint64, len(pools))
 	for _, poolName := range pools {
 		// Read initial capacity
 		msp, err := k8stest.GetMsPool(poolName)
 		if err != nil {
-			return 0, fmt.Errorf("failed to get pool %s: %w", poolName, err)
+			return nil, fmt.Errorf("failed to get pool %s: %w", poolName, err)
 		}
 		initial := msp.Status.Capacity
 
 		// Annotate for expansion
 		if err := custom_resources.AnnotatePoolForExpansion(poolName); err != nil {
-			return 0, fmt.Errorf("failed to annotate pool %s for expansion: %w", poolName, err)
+			return nil, fmt.Errorf("failed to annotate pool %s for expansion: %w", poolName, err)
 		}
 		logf.Log.Info("Annotated pool for expansion", "poolName", poolName, "initialCapacity", initial)
+
+		// Ensure pools are online before verifying capacity changes
+		if err := k8stest.WaitForPoolsToBeOnline(DefaultPoolOnlineTimeoutSeconds); err != nil {
+			return nil, fmt.Errorf("pools did not reach online state after annotation: %w", err)
+		}
 
 		// Wait for capacity to increase
 		var capAfter uint64
@@ -213,19 +352,61 @@ func AnnotatePoolsAndWaitForExpansion(pools []string, primaryPool string, waitTi
 				}
 			}
 			if time.Now().After(deadline) {
-				return 0, fmt.Errorf("pool %s capacity did not increase after expansion", poolName)
+				return nil, fmt.Errorf("pool %s capacity did not increase after expansion", poolName)
 			}
 			time.Sleep(pollInterval)
 		}
 		logf.Log.Info("Pool capacity increased after expansion", "poolName", poolName, "from", initial, "to", capAfter)
-		if poolName == primaryPool {
-			expandedPrimaryCap = capAfter
+		expandedCaps[poolName] = capAfter
+	}
+	return expandedCaps, nil
+}
+
+// ExpandPoolsViaPluginAndWait expands each pool via the plugin method and waits until capacity increases.
+// Returns a map of poolName -> expanded capacity once each pool's expansion is observed.
+func ExpandPoolsViaPluginAndWait(pools []string, waitTimeout, pollInterval time.Duration) (map[string]uint64, error) {
+	expandedCaps := make(map[string]uint64, len(pools))
+	for _, poolName := range pools {
+		// Read initial capacity
+		msp, err := k8stest.GetMsPool(poolName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get pool %s: %w", poolName, err)
 		}
+		initial := msp.Status.Capacity
+
+		// Trigger expansion via plugin
+		if err := custom_resources.ExpandPoolViaPluginCP(poolName); err != nil {
+			return nil, fmt.Errorf("failed to expand pool %s via plugin: %w", poolName, err)
+		}
+		logf.Log.Info("Triggered pool expansion via plugin", "poolName", poolName, "initialCapacity", initial)
+
+		// Ensure pools are online before verifying capacity changes
+		if err := k8stest.WaitForPoolsToBeOnline(DefaultPoolOnlineTimeoutSeconds); err != nil {
+			return nil, fmt.Errorf("pools did not reach online state after plugin expand request: %w", err)
+		}
+
+		// Wait for capacity to increase
+		var capAfter uint64
+		deadline := time.Now().Add(waitTimeout)
+		for {
+			latest, err := k8stest.GetMsPool(poolName)
+			if err == nil && latest != nil {
+				capAfter = latest.Status.Capacity
+				if capAfter > initial {
+					logf.Log.Info("Pool capacity increased via plugin", "poolName", poolName, "from", initial, "to", capAfter)
+					break
+				}
+			}
+			if time.Now().After(deadline) {
+				return nil, fmt.Errorf("pool %s capacity did not increase after plugin expansion", poolName)
+			}
+			time.Sleep(pollInterval)
+		}
+
+		// Store expanded capacity for this pool
+		expandedCaps[poolName] = capAfter
 	}
-	if expandedPrimaryCap == 0 {
-		return 0, fmt.Errorf("primary pool %s did not report expanded capacity", primaryPool)
-	}
-	return expandedPrimaryCap, nil
+	return expandedCaps, nil
 }
 
 // CaptureDiskCapacities returns a map of poolName -> DiskCapacityBytes from control-plane.
@@ -244,7 +425,7 @@ func CaptureDiskCapacities(pools []string) (map[string]uint64, error) {
 // VerifyNoFurtherExpansionAndDiskBehavior verifies that pool capacity does not change after a second expansion
 // annotation and that disk capacity behavior is correct: it never decreases, and increases only if previous disk
 // capacity was below MaxExpandable.
-func VerifyNoFurtherExpansionAndDiskBehavior(pools []string, waitTimeout time.Duration, pollInterval time.Duration, prevDiskCaps map[string]uint64) error {
+func VerifyNoFurtherExpansionAndDiskBehavior(pools []string, waitTimeout, pollInterval time.Duration, prevDiskCaps map[string]uint64) error {
 	for _, poolName := range pools {
 		// Baseline capacity before second annotation
 		ms, err := k8stest.GetMsPool(poolName)
@@ -290,65 +471,57 @@ func VerifyNoFurtherExpansionAndDiskBehavior(pools []string, waitTimeout time.Du
 }
 
 // CreatePoolsWithMaxExpansionAndClusterSizeOnAllNodes creates a pool on each provided node using
-// the given MaxExpansion and ClusterSize values. It returns the created pool names and the primary pool info.
-func CreatePoolsWithMaxExpansionOnAllNodes(allNodes []string, maxExpansionStr string, clusterSizeArg string) (createdPools []string, primaryPoolName, primaryDisk string, err error) {
+// the given MaxExpansion and ClusterSize values. It returns the created pool names.
+func CreatePoolsWithMaxExpansionOnAllNodes(allNodes []string, maxExpansionStr string, clusterSizeArg string) (createdPools []string, err error) {
 	createdPools = make([]string, 0)
 
-	for _, n := range allNodes {
+	for _, nodeName := range allNodes {
 		// Get the first available disk on this node
-		devs, derr := k8stest.GetConfiguredNodePoolDevices(n)
-		if derr != nil || len(devs) == 0 {
-			logf.Log.Info("Skipping node without configured pool device", "node", n, "err", derr)
+		devices, deviceErr := k8stest.GetConfiguredNodePoolDevices(nodeName)
+		if deviceErr != nil || len(devices) == 0 {
+			logf.Log.Info("Skipping node without configured pool device", "node", nodeName, "err", deviceErr)
 			continue
 		}
-		disk := devs[0]
-		pName := fmt.Sprintf("pool-expansion-test-%s", n)
+		diskDevice := devices[0]
+		poolName := fmt.Sprintf("pool-expansion-test-%s", nodeName)
 
-		logf.Log.Info("Creating pool with MaxExpansion and ClusterSize", "poolName", pName, "clusterSize", clusterSizeArg)
-		if err = CreatePoolWithMaxAndCluster(pName, n, disk, maxExpansionStr, clusterSizeArg); err != nil {
+		logf.Log.Info("Creating pool with MaxExpansion and ClusterSize", "poolName", poolName, "clusterSize", clusterSizeArg)
+		if err = CreatePoolWithMaxAndCluster(poolName, nodeName, diskDevice, maxExpansionStr, clusterSizeArg); err != nil {
 			return
 		}
-		createdPools = append(createdPools, pName)
-		if primaryPoolName == "" {
-			primaryPoolName = pName
-			primaryDisk = disk
-		}
+		createdPools = append(createdPools, poolName)
 	}
 	if len(createdPools) == 0 {
 		err = fmt.Errorf("no pools could be created on any node")
 		return
 	}
-	return createdPools, primaryPoolName, primaryDisk, nil
+	return createdPools, nil
 }
 
 // CreateEncryptedPoolsWithMaxExpansionOnAllNodes creates an encrypted pool on each provided node using
-// the given encryption secret, MaxExpansion and ClusterSize values. It returns the created pool names and the primary pool info.
-func CreateEncryptedPoolsWithMaxExpansionOnAllNodes(allNodes []string, encryptionSecretName string, maxExpansionStr string, clusterSizeArg string) (createdPools []string, primaryPoolName, primaryDisk string, err error) {
+// the given encryption secret, MaxExpansion and ClusterSize values. It returns the created pool names.
+func CreateEncryptedPoolsWithMaxExpansionOnAllNodes(allNodes []string, encryptionSecretName string, maxExpansionStr string, clusterSizeArg string) (createdPools []string, err error) {
 	createdPools = make([]string, 0)
 
-	for _, n := range allNodes {
+	for _, nodeName := range allNodes {
 		// Get the first available disk on this node
-		devs, derr := k8stest.GetConfiguredNodePoolDevices(n)
-		if derr != nil || len(devs) == 0 {
-			logf.Log.Info("Skipping node without configured pool device", "node", n, "err", derr)
+		devices, deviceErr := k8stest.GetConfiguredNodePoolDevices(nodeName)
+		if deviceErr != nil || len(devices) == 0 {
+			logf.Log.Info("Skipping node without configured pool device", "node", nodeName, "err", deviceErr)
 			continue
 		}
-		disk := devs[0]
-		pName := fmt.Sprintf("enc-pool-expansion-test-%s", n)
+		diskDevice := devices[0]
+		poolName := fmt.Sprintf("enc-pool-expansion-test-%s", nodeName)
 
-		logf.Log.Info("Creating encrypted pool with MaxExpansion and ClusterSize", "poolName", pName, "clusterSize", clusterSizeArg, "encryptionSecret", encryptionSecretName)
-		if err = CreateEncryptedPoolWithMaxAndCluster(pName, n, disk, encryptionSecretName, maxExpansionStr, clusterSizeArg); err != nil {
+		logf.Log.Info("Creating encrypted pool with MaxExpansion and ClusterSize", "poolName", poolName, "clusterSize", clusterSizeArg, "encryptionSecret", encryptionSecretName)
+		if err = CreateEncryptedPoolWithMaxAndCluster(poolName, nodeName, diskDevice, encryptionSecretName, maxExpansionStr, clusterSizeArg); err != nil {
 			return
 		}
-		createdPools = append(createdPools, pName)
-		if primaryPoolName == "" {
-			primaryPoolName = pName
-			primaryDisk = disk
-		}
+		createdPools = append(createdPools, poolName)
 	}
 	if len(createdPools) == 0 {
 		err = fmt.Errorf("no pools could be created on any node")
 		return
 	}
-	return createdPools, primaryPoolName, primaryDisk, nil
+	return createdPools, nil
 }
