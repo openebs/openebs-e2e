@@ -529,3 +529,33 @@ func DisableNetworkInterfaceOnNode(node string) error {
 	logf.Log.Info("Disable network interface", "node", node, "output", out, "interface", iface)
 	return nil
 }
+
+// verify kernel module is installed and loaded on node
+func VerifyKernelModuleOnNode(node string, module string) (bool, error) {
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return false, fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	// verify kernel module
+	out, err := e2e_agent.IsKernelModuleLoaded(*nodeIp, module)
+	if err != nil {
+		return false, fmt.Errorf("failed to verify kernel module %s on node %s, error: %v", module, node, err)
+	}
+	return out, nil
+}
+
+// verify kernel module is persistent on node after reboot
+func VerifyKernelModulePersistenceOnNode(node string, module string, filename string) (bool, error) {
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return false, fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	// verify kernel module
+	out, err := e2e_agent.IsKernelModulePersistent(*nodeIp, module, filename)
+	if err != nil {
+		return false, fmt.Errorf("failed to verify kernel module %s persistence on node %s, error: %v", module, node, err)
+	}
+	return out, nil
+}

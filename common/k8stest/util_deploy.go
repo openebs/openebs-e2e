@@ -537,3 +537,30 @@ func RemoveNodeSelectorFromDeployments(deployments []string, namespace string) e
 	}
 	return errs.GetError()
 }
+
+// WaitForDeployment checks whether deployment is present in the given namespace
+// If not present, it waits for the given duration
+// checking at every sleepTime interval
+// returns true if deployment is found else false
+func WaitForDeployment(deploymentName string, namespace string, sleepTime int, duration int) bool {
+	found := false
+	count := (duration + sleepTime - 1) / sleepTime
+
+	logf.Log.Info("DeploymentCheck", "Deployment", deploymentName, "namespace", namespace)
+	for ix := 0; ix < count && !found; ix++ {
+		time.Sleep(time.Duration(sleepTime) * time.Second)
+
+		_, err := GetDeployment(deploymentName, namespace)
+		if err == nil {
+			found = true
+			break
+		}
+		logf.Log.Info("DeploymentFound: ", "deployment", deploymentName, "found", found)
+	}
+
+	if !found {
+		logf.Log.Info("Deployment not found", "Deployment", deploymentName, "namespace", namespace)
+		return false
+	}
+	return true
+}
