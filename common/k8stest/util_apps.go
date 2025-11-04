@@ -306,7 +306,7 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 		var running bool
 		// Wait for pods to be running
 		for i := 0; i < DefTimeoutSecs && !running; i++ {
-			running, err = VerifyDeploymentReadyReplicaCount(dfa.DeployName, common.NSDefault, 1)
+			running, err = VerifyDeploymentReadyReplicaCount(dfa.DeployName, common.NSDefault)
 			if err != nil {
 				return err
 			}
@@ -382,7 +382,7 @@ func (dfa *FioApp) WaitDeploymentRunning() (bool, error) {
 
 	// Wait for pods to be running
 	for i := 0; i < DefTimeoutSecs && !running; i++ {
-		running, err = VerifyDeploymentReadyReplicaCount(dfa.DeployName, common.NSDefault, 1)
+		running, err = VerifyDeploymentReadyReplicaCount(dfa.DeployName, common.NSDefault)
 		if err != nil {
 			return running, err
 		}
