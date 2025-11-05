@@ -17,6 +17,26 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// DeviceSchema represents the device schema/prefix to use for pool disk paths
+// (e.g., "uring://", "aio://").
+type DeviceSchema int
+
+const (
+	SchemaAIO   DeviceSchema = iota
+	SchemaUring DeviceSchema = iota
+)
+
+func (schema DeviceSchema) String() string {
+	switch schema {
+	case SchemaAIO:
+		return "aio"
+	case SchemaUring:
+		return "uring"
+	default:
+		return ""
+	}
+}
+
 // Common error substrings returned by control-plane/plugin for pool expansion flows.
 // Keep these substrings in sync with server-side errors to make tests resilient.
 var (
@@ -52,6 +72,28 @@ func BytesToGiB(bytes uint64) float64 {
 // GiBToBytes converts GiB to bytes (takes float64 to allow fractional GiB)
 func GiBToBytes(gib float64) uint64 {
 	return uint64(gib * bytesPerGiB)
+}
+
+// ParseMaxExpansionToGiB parses max expansion string to GiB, handling both absolute sizes and factors.
+// It supports "x" suffix and trims whitespace.
+func ParseMaxExpansionToGiB(maxExpansionStr string, initialDiskCapacityBytes uint64) (float64, error) {
+	// Trim whitespace first before checking for factor suffix
+	trimmedStr := strings.TrimSpace(maxExpansionStr)
+	if strings.HasSuffix(trimmedStr, "x") {
+		// Factor specification (e.g., "20.2x")
+		factorStr := strings.TrimSuffix(trimmedStr, "x")
+		factorStr = strings.TrimSpace(factorStr)
+		factor, err := strconv.ParseFloat(factorStr, 64)
+		if err != nil {
+			return 0, fmt.Errorf("failed to parse factor from %s: %v", maxExpansionStr, err)
+		}
+		// Calculate: initial disk size * expansion factor
+		initialDiskGiB := BytesToGiB(initialDiskCapacityBytes)
+		return initialDiskGiB * factor, nil
+	} else {
+		// Direct size specification (e.g., "200GiB") - use the standard parsing function
+		return k8stest.ParseGiBOrBytesToGiB(maxExpansionStr)
+	}
 }
 
 // resizeVolumeByDevicePath extracts the Hetzner volume id from a device path and resizes it.
@@ -515,6 +557,42 @@ func CreateEncryptedPoolsWithMaxExpansionOnAllNodes(allNodes []string, encryptio
 
 		logf.Log.Info("Creating encrypted pool with MaxExpansion and ClusterSize", "poolName", poolName, "clusterSize", clusterSizeArg, "encryptionSecret", encryptionSecretName)
 		if err = CreateEncryptedPoolWithMaxAndCluster(poolName, nodeName, diskDevice, encryptionSecretName, maxExpansionStr, clusterSizeArg); err != nil {
+			return
+		}
+		createdPools = append(createdPools, poolName)
+	}
+	if len(createdPools) == 0 {
+		err = fmt.Errorf("no pools could be created on any node")
+		return
+	}
+	return createdPools, nil
+}
+
+// CreatePoolsWithSpecificSchemaOnAllNodes creates a pool on each provided node using
+// the given schema prefix for the device path (e.g., "uring://"), MaxExpansion and ClusterSize.
+// It returns the created pool names.
+func CreatePoolsWithSpecificSchemaOnAllNodes(allNodes []string, schema DeviceSchema, maxExpansionStr string, clusterSizeArg string) (createdPools []string, err error) {
+	createdPools = make([]string, 0)
+
+	for _, nodeName := range allNodes {
+		// Get the first available disk on this node
+		devices, deviceErr := k8stest.GetConfiguredNodePoolDevices(nodeName)
+		if deviceErr != nil || len(devices) == 0 {
+			logf.Log.Info("Skipping node without configured pool device", "node", nodeName, "err", deviceErr)
+			continue
+		}
+		// Prefix the device path with the requested schema (e.g., uring://<device>)
+		schemaStr := schema.String()
+		var schemaDevice string
+		if schemaStr == "" {
+			schemaDevice = devices[0]
+		} else {
+			schemaDevice = fmt.Sprintf("%s://%s", schemaStr, devices[0])
+		}
+
+		poolName := fmt.Sprintf("pool-expansion-test-%s", nodeName)
+		logf.Log.Info("Creating pool with schema, MaxExpansion and ClusterSize", "poolName", poolName, "clusterSize", clusterSizeArg, "schema", schemaStr)
+		if err = CreatePoolWithMaxAndCluster(poolName, nodeName, schemaDevice, maxExpansionStr, clusterSizeArg); err != nil {
 			return
 		}
 		createdPools = append(createdPools, poolName)
