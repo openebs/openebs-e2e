@@ -182,3 +182,4 @@ product:
     lokiIngesterChunkRetainPeriodTime: "15s"
     lokiIngesterMaxChunkAgeTime: "150s"
     ociRegistryUrl: "oci://ghcr.io/openebs/helm/openebs"
+    ignoreLocalPvPodCheck: false

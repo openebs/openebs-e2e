@@ -303,12 +303,32 @@ func CheckForTestPods() (bool, error) {
 
 // isPodHealthCheckCandidate is a filter function for health check on pod,
 func isPodHealthCheckCandidate(podName string, namespace string) bool {
-	if namespace == common.NSMayastor() {
-		if strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneEtcd) ||
-			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneLoki) ||
-			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneMinio) ||
-			strings.HasPrefix(podName, e2e_config.GetConfig().Product.ControlPlaneAlloy) ||
-			strings.HasPrefix(podName, e2e_config.GetConfig().Product.EventBusNatsSts) {
+	if namespace != common.NSMayastor() {
+		return true
+	}
+	cfg := e2e_config.GetConfig().Product // Cache config access
+
+	// Control plane components to exclude
+	excludedPrefixes := []string{
+		cfg.ControlPlaneEtcd,
+		cfg.ControlPlaneLoki,
+		cfg.ControlPlaneMinio,
+		cfg.ControlPlaneAlloy,
+		cfg.EventBusNatsSts,
+	}
+
+	// Optional local PV engine pods to exclude
+	if cfg.IgnoreLocalPvPodCheck {
+		excludedPrefixes = append(excludedPrefixes,
+			cfg.LvmEngineControllerDeploymentName,
+			cfg.ZfsEngineControllerDeploymentName,
+			cfg.LvmEngineDaemonSetName,
+			cfg.ZfsEngineDaemonSetName,
+		)
+	}
+
+	for _, prefix := range excludedPrefixes {
+		if strings.HasPrefix(podName, prefix) {
 			return false
 		}
 	}
@@ -1292,7 +1312,7 @@ func RestartCsiNodePodOnNode(nodeName string, readyTOSecs int, poolsTOSecs int) 
 }
 
 // WaitForPodsByPrefixToComplete periodically checks for timeoutSecs seconds to verify
-//  if pods with the specified prefix are at Completed status
+// if pods with the specified prefix are at Completed status
 func WaitForPodsByPrefixToComplete(namespace string, podPrefix string, timeoutSecs int) error {
 	const sleepTime = 5
 	for ix := 0; ix < (timeoutSecs+sleepTime-1)/sleepTime; ix++ {
