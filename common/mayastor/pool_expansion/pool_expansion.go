@@ -603,3 +603,106 @@ func CreatePoolsWithSpecificSchemaOnAllNodes(allNodes []string, schema DeviceSch
 	}
 	return createdPools, nil
 }
+
+// VerifyPoolDiskSchema verifies that all pools have the expected disk schema (e.g., "uring" or "aio").
+// It checks that each pool has exactly one disk and that the disk path contains the expected schema string.
+func VerifyPoolDiskSchema(pools []string, expectedSchema DeviceSchema) error {
+	schemaStr := expectedSchema.String()
+	for _, poolName := range pools {
+		poolObj, err := k8stest.GetMsPool(poolName)
+		if err != nil {
+			return fmt.Errorf("failed to get pool %s: %w", poolName, err)
+		}
+		if len(poolObj.Status.Disks) != 1 {
+			return fmt.Errorf("unexpected pool disks count for %s: expected 1, got %d: %v", poolName, len(poolObj.Status.Disks), poolObj.Status.Disks)
+		}
+		if !strings.Contains(poolObj.Status.Disks[0], schemaStr) {
+			return fmt.Errorf("unexpected pool disk schema for %s: expected %s, got %v", poolName, schemaStr, poolObj.Status.Disks)
+		}
+		logf.Log.Info("Verified pool has expected disk schema", "poolName", poolName, "schema", schemaStr, "disk", poolObj.Status.Disks[0])
+	}
+	return nil
+}
+
+// CaptureInitialPoolAndDiskCapacities captures initial pool capacities and disk capacities for all pools.
+// Returns two maps: poolName -> pool capacity, and poolName -> disk capacity.
+func CaptureInitialPoolAndDiskCapacities(pools []string) (map[string]uint64, map[string]uint64, error) {
+	initialPoolCapacities := make(map[string]uint64)
+	initialDiskCapacities := make(map[string]uint64)
+
+	for _, poolName := range pools {
+		// Get initial pool capacity
+		pool, err := k8stest.GetMsPool(poolName)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to get initial capacity for pool %s: %w", poolName, err)
+		}
+		initialPoolCapacities[poolName] = pool.Status.Capacity
+
+		// Get disk capacity from control-plane
+		controlPlanePool, err := v1cp.GetMayastorCpPool(poolName)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to get pool %s from control-plane: %w", poolName, err)
+		}
+		initialDiskCapacities[poolName] = controlPlanePool.State.DiskCapacityBytes
+
+		logf.Log.Info("Captured initial pool state",
+			"poolName", poolName,
+			"initialCapacity", initialPoolCapacities[poolName],
+			"diskCapacityBytes", initialDiskCapacities[poolName],
+			"maxExpandableBytes", controlPlanePool.State.MaxExpandableBytes)
+	}
+	return initialPoolCapacities, initialDiskCapacities, nil
+}
+
+// VerifyInitialCapacityAndMaxExpandable verifies that initial pool capacity is less than MaxExpansion
+// and that status.maxExpandable is consistent with the provided maxExpansion.
+// Returns a map of poolName -> initial capacity.
+func VerifyInitialCapacityAndMaxExpandable(pools []string, maxExpansionStr string) (map[string]uint64, error) {
+	initialCaps := make(map[string]uint64, len(pools))
+
+	// Parse MaxExpansion for bytes/GiB comparisons
+	parsedMaxExpGiB, err := k8stest.ParseGiBOrBytesToGiB(maxExpansionStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid MAX_EXPANSION: %s: %w", maxExpansionStr, err)
+	}
+	parsedMaxExpBytes := GiBToBytes(parsedMaxExpGiB)
+
+	for _, poolName := range pools {
+		poolObj, err := k8stest.GetMsPool(poolName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get pool %s: %w", poolName, err)
+		}
+		initialCaps[poolName] = poolObj.Status.Capacity
+
+		// Verify the initial capacity is less than the expected MaxExpansion
+		if initialCaps[poolName] >= parsedMaxExpBytes {
+			return nil, fmt.Errorf("initial pool capacity should be less than MaxExpansion: pool=%s capacity=%d maxExpansion=%d", poolName, initialCaps[poolName], parsedMaxExpBytes)
+		}
+
+		// Verify status.maxExpandable is consistent with provided maxExpansion
+		if err := VerifyMaxExpandableInOriginalUnit(poolName, maxExpansionStr, initialCaps[poolName]); err != nil {
+			return nil, fmt.Errorf("failed to verify maxExpandable for pool %s: %w", poolName, err)
+		}
+	}
+	return initialCaps, nil
+}
+
+// VerifyExpansionErrorBeyondMaxExpansion verifies that attempting to expand a pool beyond MaxExpansion
+// via plugin results in the expected error (DiskBeyondMaxSize).
+func VerifyExpansionErrorBeyondMaxExpansion(pools []string) error {
+	for _, poolName := range pools {
+		// Attempt expansion via plugin (should fail with DiskBeyondMaxSize error)
+		expandErr := custom_resources.ExpandPoolViaPluginCP(poolName)
+		if expandErr == nil {
+			return fmt.Errorf("expected error when expanding pool %s via plugin beyond MaxExpansion, but got no error", poolName)
+		}
+		if !strings.Contains(expandErr.Error(), DiskBeyondMaxSizeSubstring) {
+			return fmt.Errorf("expected DiskBeyondMaxSize error for pool %s, but got: %v", poolName, expandErr)
+		}
+		if !strings.Contains(expandErr.Error(), ExceededMaxExpandableSizeSubstring) {
+			return fmt.Errorf("expected error message containing '%s' for pool %s, but got: %v", ExceededMaxExpandableSizeSubstring, poolName, expandErr)
+		}
+		logf.Log.Info("Expected error received from plugin", "poolName", poolName, "error", expandErr.Error())
+	}
+	return nil
+}
