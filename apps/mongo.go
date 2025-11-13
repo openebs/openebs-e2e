@@ -31,6 +31,10 @@ type MongoApp struct {
 	Mongo k8stest.MongoApp
 }
 
+const (
+	FipsModeOff = "off"
+)
+
 // NewMongoBuilder creates new mongo builder with default standalone settings
 func NewMongoBuilder() *mongoBuilder {
 	def := make(map[string]interface{})
@@ -175,6 +179,11 @@ func (mb *mongoBuilder) WithAnotherValuesParameters(values map[string]interface{
 // WithYcsb Also install YCSB benchmark app
 func (mb *mongoBuilder) WithYcsb() *mongoBuilder {
 	mb.ycsb = true
+	return mb
+}
+
+func (mb *mongoBuilder) WithFipsMode(mode string) *mongoBuilder {
+	mb.values["global.defaultFips"] = mode
 	return mb
 }
 
