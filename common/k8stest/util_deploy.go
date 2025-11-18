@@ -28,6 +28,11 @@ type DeploymentBuilder struct {
 	errors     []error
 }
 
+const (
+	podCheckWait     = 90
+	podCheckInterval = 1
+)
+
 // NewBuilder returns a new instance of builder meant for deployment
 func NewDeploymentBuilder() *DeploymentBuilder {
 	return &DeploymentBuilder{
@@ -271,15 +276,26 @@ func (d *Deployment) IsTerminationInProgress() bool {
 
 // VerifyReplicaStatus verifies whether all the replicas
 // of the deployment are up and running
-func (d *Deployment) VerifyReplicaStatus() error {
+func (d *Deployment) VerifyReplicaStatus(namespace string) error {
 	if d.object.Spec.Replicas == nil {
 		return errors.New("failed to verify replica status for deployment: nil replicas")
 	}
-	if d.object.Status.ReadyReplicas != *d.object.Spec.Replicas {
-		return errors.Errorf(d.object.Name+" deployment pods are not in running state expected: %d got: %d",
-			*d.object.Spec.Replicas, d.object.Status.ReadyReplicas)
+
+	for i := 0; i < podCheckWait; i++ {
+		latestDeploy, err := GetDeployment(d.object.Name, namespace)
+		if err != nil {
+			return err
+		}
+		d.object = latestDeploy
+
+		if d.object.Status.ReadyReplicas == *d.object.Spec.Replicas {
+			return nil
+		}
+		time.Sleep(podCheckInterval * time.Second)
 	}
-	return nil
+
+	return errors.Errorf(d.object.Name+" deployment pods are not in running state expected: %d got: %d",
+		*d.object.Spec.Replicas, d.object.Status.ReadyReplicas)
 }
 
 // IsNotSyncSpec compare generation in status and spec and check if
@@ -474,7 +490,7 @@ func VerifyDeploymentReadyReplicaCount(name, namespace string) (bool, error) {
 		return false, err
 	}
 	deployStruct := NewForAPIObject(deployment)
-	err = deployStruct.VerifyReplicaStatus()
+	err = deployStruct.VerifyReplicaStatus(namespace)
 	if err != nil {
 		return false, err
 	}
