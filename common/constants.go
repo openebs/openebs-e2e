@@ -10,6 +10,8 @@ const DefaultFioSizeMb = 250
 const SmallClaimSizeMb = 312
 const LargeClaimSizeMb = 1024
 
+const KubeletProcessName = "kubelet"
+
 //  These variables match the settings used in createFioPodDef
 
 const FioFsMountPoint = "/volume"

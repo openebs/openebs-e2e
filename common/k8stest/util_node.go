@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
 
 	"github.com/openebs/openebs-e2e/common/e2e_config"
@@ -530,6 +531,38 @@ func DisableNetworkInterfaceOnNode(node string) error {
 	return nil
 }
 
+// load kernel module on node
+func LoadKernelModuleOnNode(node string, module string) error {
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	// load kernel module
+	out, err := e2e_agent.LoadKernelModule(*nodeIp, module)
+	if err != nil {
+		return fmt.Errorf("failed to load kernel module %s on node %s, error: %v", module, node, err)
+	}
+	logf.Log.Info("Load kernel module", "node", node, "output", out, "module", module)
+	return nil
+}
+
+// unload kernel module on node
+func UnloadKernelModuleOnNode(node string, module string) error {
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	// unload kernel module
+	out, err := e2e_agent.UnloadKernelModule(*nodeIp, module)
+	if err != nil {
+		return fmt.Errorf("failed to unload kernel module %s on node %s, error: %v", module, node, err)
+	}
+	logf.Log.Info("Unload kernel module", "node", node, "output", out, "module", module)
+	return nil
+}
+
 // verify kernel module is installed and loaded on node
 func VerifyKernelModuleOnNode(node string, module string) (bool, error) {
 	nodeIp, err := GetNodeIPAddress(node)
@@ -557,5 +590,51 @@ func VerifyKernelModulePersistenceOnNode(node string, module string, filename st
 	if err != nil {
 		return false, fmt.Errorf("failed to verify kernel module %s persistence on node %s, error: %v", module, node, err)
 	}
+	return out, nil
+}
+
+// verify hugepages is configured on node
+func VerifyHugePagesOnNode(node string) (bool, error) {
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return false, fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	// verify hugepages
+	out, err := e2e_agent.IsHugePagesConfigured(*nodeIp)
+	if err != nil {
+		return false, fmt.Errorf("failed to verify hugepages on node %s, error: %v", node, err)
+	}
+	return out, nil
+}
+
+// verify hugepages is persistent on node after reboot
+func VerifyHugePagesPersistenceOnNode(node string) (bool, error) {
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return false, fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	// verify hugepages
+	out, err := e2e_agent.IsHugePagesPersistent(*nodeIp)
+	if err != nil {
+		return false, fmt.Errorf("failed to verify hugepages on node %s, error: %v", node, err)
+	}
+	return out, nil
+}
+
+// GetKubeletProcessIDOnNode returns the kubelet process id on the specified node
+func GetKubeletProcessIDOnNode(node string) (string, error) {
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return "", fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	// get kubelet process id
+	out, err := e2e_agent.GetProcessID(*nodeIp, common.KubeletProcessName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get kubelet process id on node %s, error: %v", node, err)
+	}
+	logf.Log.Info("Get kubelet process id", "node", node, "kubelet pid", out)
 	return out, nil
 }

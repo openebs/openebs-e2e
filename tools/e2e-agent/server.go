@@ -168,8 +168,15 @@ func handleRequests() {
 	router.HandleFunc("/hugepagezero", ZeroingHugePages).Methods("POST")
 	router.HandleFunc("/dropIncomingTrafficOnNode", dropIncomingTrafficOnNode).Methods("POST")
 	router.HandleFunc("/acceptIncomingTrafficOnNode", acceptIncomingTrafficOnNode).Methods("POST")
+	router.HandleFunc("/loadKernelModule", LoadKernelModule).Methods("POST")
+	router.HandleFunc("/unloadKernelModule", UnloadKernelModule).Methods("POST")
+	router.HandleFunc("/getProcessID", GetProcessID).Methods("POST")
 	router.HandleFunc("/isKernelModuleLoaded", IsKernelModuleLoaded).Methods("POST")
 	router.HandleFunc("/isKernelModulePersistent", IsKernelModulePersistent).Methods("POST")
+	router.HandleFunc("/configureNonPersistentHugePages", ConfigureNonPersistentHugePages).Methods("POST")
+	router.HandleFunc("/isHugePagesPersistent", IsHugePagesPersistent).Methods("POST")
+	router.HandleFunc("/isHugePagesConfigured", IsHugePagesConfigured).Methods("POST")
+
 	//LVM
 	router.HandleFunc("/lvmversion", LvmVersion).Methods("POST")
 	router.HandleFunc("/lvmlistvg", LvmListVg).Methods("POST")
@@ -278,6 +285,49 @@ func acceptIncomingTrafficOnNode(w http.ResponseWriter, r *http.Request) {
 	klog.Info("Successfully started network services")
 }
 
+func LoadKernelModule(w http.ResponseWriter, r *http.Request) {
+	var module KernelModule
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&module); err != nil {
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to read JSON encoded data, Error: ", err)
+		return
+	}
+	klog.Info("Loading kernel module ", module.Name)
+	params := fmt.Sprintf("chroot /host ; /sbin/modprobe -d /host %s ; echo $?", module.Name)
+	output, err := bashLocal(params)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to load kernel module:", module, "Error: ", err)
+		return
+	}
+	klog.Info("Successfully loaded kernel module", module.Name)
+	WrapResult(output, ErrNone, w)
+}
+
+func UnloadKernelModule(w http.ResponseWriter, r *http.Request) {
+	var module KernelModule
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&module); err != nil {
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to read JSON encoded data, Error: ", err)
+		return
+	}
+	klog.Info("Unloading kernel module ", module.Name)
+	params := fmt.Sprintf("chroot /host ; /sbin/modprobe -r -d /host %s ; echo $?", module.Name)
+	klog.Info("Unloading kernel module")
+	output, err := bashLocal(params)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to unload kernel module:", module, "Error: ", err)
+		return
+	}
+	klog.Info("Successfully unloaded kernel module", module.Name)
+	WrapResult(output, ErrNone, w)
+}
+
 func IsKernelModuleLoaded(w http.ResponseWriter, r *http.Request) {
 	var module KernelModule
 	d := json.NewDecoder(r.Body)
@@ -329,6 +379,77 @@ func IsKernelModulePersistent(w http.ResponseWriter, r *http.Request) {
 	}
 	klog.Info("Successfully checked if module is persistent")
 	WrapResult(output, ErrNone, w)
+}
+
+func ConfigureNonPersistentHugePages(w http.ResponseWriter, r *http.Request) {
+	params := "echo 1024 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages; echo $?"
+	klog.Info("Configuring non-persistent hugepages")
+	output, err := bashLocal(params)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to configure non-persistent hugepages", "Error: ", err)
+		return
+	}
+	klog.Info("Successfully configured non-persistent hugepages")
+	WrapResult(output, ErrNone, w)
+}
+
+func IsHugePagesConfigured(w http.ResponseWriter, r *http.Request) {
+	params := "cat /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages"
+	klog.Info("Checking if hugepages are configured")
+	output, err := bashLocal(params)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to check if hugepages are configured", "Error: ", err)
+		return
+	}
+	klog.Info("Successfully checked if hugepages are configured")
+	WrapResult(output, ErrNone, w)
+}
+
+func IsHugePagesPersistent(w http.ResponseWriter, r *http.Request) {
+	params := `grep -h -E '^vm\.nr_hugepages' /host/etc/sysctl.conf /host/etc/sysctl.d/*.conf 2>/dev/null | awk -F'=' '{gsub(/ /,"",$2); print $2}' | tail -n1 || echo 0`
+	klog.Info("Checking if hugepages are persistent")
+	output, err := bashLocal(params)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to check if hugepages are persistent", "Error: ", err)
+		return
+	}
+	klog.Info("Successfully checked if hugepages are persistent")
+	WrapResult(output, ErrNone, w)
+}
+
+func GetProcessID(w http.ResponseWriter, r *http.Request) {
+	d := json.NewDecoder(r.Body)
+	var process string
+	if err := d.Decode(&process); err != nil {
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to read JSON encoded data, Error: ", err)
+		return
+	}
+	params := fmt.Sprintf("pidof %s", process)
+	klog.Info("Retrieving process ID for ", process)
+	output, err := bashLocal(params)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to retrieve process ID for:", process, "Error: ", err)
+		return
+	}
+	processBytes, err := base64.StdEncoding.DecodeString(output)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to decode process ID for:", process, "Error: ", err)
+		return
+	}
+	process = string(processBytes)
+	klog.Info("Successfully retrieved process ID")
+	WrapResult(process, ErrNone, w)
 }
 
 func createFaultyDevice(w http.ResponseWriter, r *http.Request) {

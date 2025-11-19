@@ -382,8 +382,8 @@ func CheckIfUpgradingToUnstableBranch() (string, bool, error) {
 
 		// here starting "v?" part means that "v" is optional
 		// regex will work for both tags, with and without starting v
-		tagRegexForDevelopBranch := `v?[0-9]+\.[0-9]+\.[0-9]+-0-main-unstable(-[0-9]+){6}-0`
-		tagRegexForPreReleaseTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-0-release-unstable(-[0-9]+){6}-0`
+		tagRegexForDevelopBranch := `v?[0-9]+\.[0-9]+\.[0-9]+(?:-0)?-main-unstable(-[0-9]+){6}(?:-0)?`
+		tagRegexForPreReleaseTesting := `v?[0-9]+\.[0-9]+\.[0-9]+(?:-0)?-release-unstable(-[0-9]+){6}(?:-0)?`
 		tagRegexForReleaseCandidateTesting := `v?[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+`
 		tagRegexForReleaseBranch := `v?[0-9]+\.[0-9]+\.[0-9]`
 
