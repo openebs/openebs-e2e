@@ -19,6 +19,9 @@ import (
 // RestPort is the port on which e2e-agent is listening
 const RestPort = 10012
 
+// HugePageCount is the default number of 2MB hugepages created on each node
+const HugePageCount = "1024"
+
 // NodeList is the list of nodes to be passed to e2e-agent
 type NodeList struct {
 	Nodes            []string `json:"nodes"`
@@ -1376,6 +1379,52 @@ func AcceptIncomingTrafficOnNode(serverAddr string) (string, error) {
 	return sendRequestGetResponse("POST", url, nil, true)
 }
 
+// LoadKernelModule loads a kernel module
+func LoadKernelModule(serverAddr string, moduleName string) (string, error) {
+	data := KernelModule{
+		Name: moduleName,
+	}
+	logf.Log.Info("Executing LoadKernelModule", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/loadKernelModule"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to load kernel module, errcode %d", e2eagenterrcode)
+	}
+	return out, nil
+}
+
+// UnloadKernelModule unloads a kernel module
+func UnloadKernelModule(serverAddr string, moduleName string) (string, error) {
+	data := KernelModule{
+		Name: moduleName,
+	}
+	logf.Log.Info("Executing UnloadKernelModule", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/unloadKernelModule"
+	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to unload kernel module, errcode %d", e2eagenterrcode)
+	}
+	return out, err
+}
+
 // IsKernelModuleLoaded checks if a kernel module is installed and loaded
 func IsKernelModuleLoaded(serverAddr string, moduleName string) (bool, error) {
 	data := KernelModule{
@@ -1425,4 +1474,88 @@ func IsKernelModulePersistent(serverAddr string, moduleName string, filename str
 	}
 	logf.Log.Info("IsKernelModulePersistent succeeded", "output", out)
 	return out == "1", err
+}
+
+func GetProcessID(serverAddr string, processName string) (string, error) {
+
+	logf.Log.Info("Executing GetProcessID", "addr", serverAddr, "data", processName)
+	url := "http://" + getAgentAddress(serverAddr) + "/getprocessid"
+	encodedresult, err := sendRequestGetResponse("POST", url, processName, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to get process ID, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("GetProcessID succeeded", "output", out)
+	return out, nil
+}
+
+func ConfigureNonPersistentHugePages(serverAddr string) (string, error) {
+	logf.Log.Info("Executing ConfigureNonPersistentHugePages", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/configurenonpersistenthugepages"
+	encodedresult, err := sendRequestGetResponse("POST", url, nil, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to configure non-persistent huge pages, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("ConfigureNonPersistentHugePages succeeded", "output", out)
+	return out, err
+}
+
+func IsHugePagesConfigured(serverAddr string) (bool, error) {
+	logf.Log.Info("Executing IsHugePagesConfigured", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/isHugePagesConfigured"
+	encodedresult, err := sendRequestGetResponse("POST", url, nil, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		// return a bool (false) on error
+		return false, fmt.Errorf("failed to send command to e2e-agent, error: %s", err.Error())
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return false, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return false, fmt.Errorf("failed to check if huge pages are configured, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("IsHugePagesConfigured succeeded", "output", out)
+	return out == HugePageCount, err
+}
+
+// IsHugePagesPersistent checks if huge pages are persistent on the node
+func IsHugePagesPersistent(serverAddr string) (bool, error) {
+	logf.Log.Info("Executing IsHugePagesPersistent", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/isHugePagesPersistent"
+	encodedresult, err := sendRequestGetResponse("POST", url, nil, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		// return a bool (false) on error
+		return false, fmt.Errorf("failed to send command to e2e-agent, error: %s", err.Error())
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return false, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return false, fmt.Errorf("failed to check if huge pages are persistent, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("IsHugePagesPersistent succeeded", "output", out)
+	return out == HugePageCount, err
 }
