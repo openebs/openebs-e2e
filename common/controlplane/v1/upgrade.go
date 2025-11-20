@@ -208,7 +208,7 @@ func (cp CPv1) GetToUpgradeVersion() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("plugin failed to get `to upgrade` version, error %v", err)
 	}
-	for _, line := range strings.Split(string(output), "\n") {
+	for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
 		if strings.Contains(line, "Upgrade To") {
 			fields := strings.Fields(line)
 			if len(fields) > 0 {
