@@ -25,7 +25,9 @@ func CreateStorageClass(mb *mongoBuilder) (string, error) {
 	var err error
 	var poolsInCluster []common.MayastorPool
 	const sleepTime = 3
-
+	logf.Log.Info("Using Helm Chart Version", "replicaCount", mb.values["replicaCount"],
+		"mb.replicaCount", mb.replicaCount,
+		"arch", mb.architecture)
 	if mb.replicaCount == 0 && mb.architecture == Replicaset {
 		for ix := 0; ix < (k8stest.DefTimeoutSecs+sleepTime-1)/sleepTime; ix++ {
 			poolsInCluster, err = k8stest.ListMsPools()
@@ -40,7 +42,6 @@ func CreateStorageClass(mb *mongoBuilder) (string, error) {
 			return "", fmt.Errorf("failed to list disk pools, error %v", err)
 		}
 		mb.replicaCount = len(poolsInCluster)
-		mb.values["replicaCount"] = mb.replicaCount
 	} else if mb.replicaCount == 0 && mb.architecture == Standalone {
 		mb.replicaCount = 1
 	}

@@ -830,3 +830,21 @@ func WaitForPodDeletion(podName string, namespace string, podDeletionTimeoutSecs
 	// If the pod still exists after the timeout, return false
 	return false, fmt.Errorf("timeout reached: pod %s in namespace %s was not deleted within %v", podName, namespace, podDeletionTimeoutSecs)
 }
+
+func GetPvcNameFromPod(podName string, namespace string) (string, error) {
+	pod, err := GetPod(podName, namespace)
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod %s in namespace %s, error: %v", podName, namespace, err)
+	}
+
+	if len(pod.Spec.Volumes) == 0 {
+		return "", fmt.Errorf("no volumes found in pod %s in namespace %s", podName, namespace)
+	}
+
+	for _, vol := range pod.Spec.Volumes {
+		if vol.PersistentVolumeClaim != nil {
+			return vol.PersistentVolumeClaim.ClaimName, nil
+		}
+	}
+	return "", fmt.Errorf("no PVC found in pod %s in namespace %s", podName, namespace)
+}

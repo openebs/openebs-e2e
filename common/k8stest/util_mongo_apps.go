@@ -34,7 +34,13 @@ type MongoApp struct {
 	Standalone   bool
 	PvcName      string
 	Ycsb         bool
+	StsName      string
 }
+
+const (
+	defaultPodTimeoutSecs       = 120
+	defaultMongodbStsimeoutSecs = 180
+)
 
 func (mongo *MongoApp) MongoDump() (string, error) {
 	// Convert the output to a string
@@ -104,42 +110,33 @@ func (mongo *MongoApp) MongoInstallReady() error {
 	ready := false
 
 	if !mongo.Standalone {
-		arbiterReady := false
-		stateful, err := gTestEnv.KubeInt.AppsV1().StatefulSets(mongo.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/name=mongodb"})
+		err := WaitForStsReady(mongo.StsName, mongo.Namespace, time.Duration(defaultMongodbStsimeoutSecs)*time.Second)
+		if err != nil {
+			return fmt.Errorf("mongoDB sts %s not ready: %v", mongo.StsName, err)
+		}
+		// wait for volume to provision
+		// wait for pods to be running
+		pods, err := GetStsPodNames(mongo.StsName, mongo.Namespace)
 		if err != nil {
 			return err
 		}
-		for _, ss := range stateful.Items {
-			if strings.Contains(ss.Name, "arbiter") {
-				arbiterReady = ss.Status.ReadyReplicas == ss.Status.Replicas &&
-					ss.Status.AvailableReplicas == ss.Status.Replicas
-				logf.Log.Info("StatefulSet",
-					"app", "MongoDB",
-					"ready", arbiterReady,
-					"name", ss.Name,
-					"availableReplicas", ss.Status.AvailableReplicas,
-					"readyReplicas", ss.Status.ReadyReplicas,
-					"currentReplicas", ss.Status.CurrentReplicas,
-				)
-			} else {
-				ready = ss.Status.ReadyReplicas == ss.Status.Replicas &&
-					ss.Status.AvailableReplicas == ss.Status.Replicas
-				logf.Log.Info("StatefulSet",
-					"app", "MongoDB",
-					"ready", ready,
-					"name", ss.Name,
-					"availableReplicas", ss.Status.AvailableReplicas,
-					"readyReplicas", ss.Status.ReadyReplicas,
-					"currentReplicas", ss.Status.CurrentReplicas,
-				)
+		for _, pod := range pods {
+			var pvcName, uuid string
+			pvcName, err = GetPvcNameFromPod(pod, mongo.Namespace)
+			if err != nil {
+				return err
+			} else if pvcName == "" {
+				return fmt.Errorf("pvc name not found for pod %s", pod)
 			}
+			logf.Log.Info("Verify volume provision", "pvc name", pvcName, "namespace", mongo.Namespace)
+			uuid, err = VerifyVolumeProvision(pvcName, mongo.Namespace)
+			if err != nil {
+				return fmt.Errorf("failed to verify volume provisioning")
+			}
+			logf.Log.Info("mongoDB HA installation is ready", "pod", pod,
+				"pvcName", pvcName,
+				"volumeUUID", uuid)
 		}
-		if ready && arbiterReady {
-			logf.Log.Info("mongoDB HA installation and all replicas are ready")
-			return nil
-		}
-		logf.Log.Info("not all apps are ready yet")
-		time.Sleep(10 * time.Second)
 	} else {
 
 		// verify mongo deployment and pod ready

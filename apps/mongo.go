@@ -72,6 +72,7 @@ func (mb *mongoBuilder) WithReplicaCount(replicaCount int) *mongoBuilder {
 	if arch, ok := mb.values["architecture"].(string); ok {
 		if arch == Replicaset.String() {
 			mb.values["replicaCount"] = replicaCount
+			logf.Log.Info("Set mongo replicaCount", "mb.values.replica", mb.values["replicaCount"])
 			return mb
 		}
 		logf.Log.Info("cannot set mongo.replicaCount with standalone architecture")
@@ -189,7 +190,8 @@ func (mb *mongoBuilder) WithFipsMode(mode string) *mongoBuilder {
 
 func (mb *mongoBuilder) Build() (MongoApp, error) {
 	mb.helmVersion = e2e_config.GetConfig().Product.MongoDefaultChartVersion
-	logf.Log.Info("Using Helm Chart Version", "version", mb.helmVersion)
+	logf.Log.Info("Using Helm Chart Version", "version", mb.helmVersion, "replicaCount", mb.values["replicaCount"])
+
 	if mb.scName == "" {
 		scName, err := CreateStorageClass(mb)
 		if err != nil {
@@ -203,6 +205,9 @@ func (mb *mongoBuilder) Build() (MongoApp, error) {
 	if err != nil {
 		return MongoApp{}, err
 	}
+	logf.Log.Info("Helm values", "val", mb.values)
+	logf.Log.Info("Installing MongoDB Helm Chart", "replica count", mb.values["replicaCount"])
+
 	err = k8stest.InstallHelmChart(e2e_config.GetConfig().Product.MongoHelmRepo, mb.helmVersion, mb.namespace, mb.releaseName, mb.values)
 	if err != nil {
 		return MongoApp{}, err
@@ -215,6 +220,7 @@ func (mb *mongoBuilder) Build() (MongoApp, error) {
 		ScName:       mb.values["global.storageClass"].(string),
 		Standalone:   mb.values["architecture"].(string) == Standalone.String(),
 		PvcName:      mb.pvcName,
+		StsName:      mb.releaseName + "-mongodb",
 	}
 	err = ma.MongoInstallReady()
 	if err != nil {
@@ -240,7 +246,28 @@ func (mb *mongoBuilder) Build() (MongoApp, error) {
 		}
 		ycsb.Name = name
 		ycsb.PodName = podName
-		ycsb.MongoConnUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb.%s.svc.cluster.local:%d/%s", e2e_config.GetConfig().Product.MongoAuthUsername, e2e_config.GetConfig().Product.MongoAuthPassword, mb.releaseName, mb.namespace, e2e_config.GetConfig().Product.MongoDatabasePort, e2e_config.GetConfig().Product.MongoAuthDatabase)
+		var mongoUrl string
+		if mb.architecture != Standalone {
+			mongoUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb-headless.%s.svc.cluster.local:%d/%s",
+				e2e_config.GetConfig().Product.MongoAuthUsername,
+				e2e_config.GetConfig().Product.MongoAuthPassword,
+				mb.releaseName,
+				mb.namespace,
+				e2e_config.GetConfig().Product.MongoDatabasePort,
+				e2e_config.GetConfig().Product.MongoAuthDatabase,
+			)
+		} else {
+			mongoUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb.%s.svc.cluster.local:%d/%s",
+				e2e_config.GetConfig().Product.MongoAuthUsername,
+				e2e_config.GetConfig().Product.MongoAuthPassword,
+				mb.releaseName,
+				mb.namespace,
+				e2e_config.GetConfig().Product.MongoDatabasePort,
+				e2e_config.GetConfig().Product.MongoAuthDatabase,
+			)
+		}
+		logf.Log.Info("YCSB Mongo Connection URL", "url", mongoUrl)
+		ycsb.MongoConnUrl = mongoUrl
 	}
 
 	ma.Ycsb = mb.ycsb
@@ -272,6 +299,37 @@ func (mb *mongoBuilder) Upgrade(app *MongoApp) (MongoApp, error) {
 		}
 		ycsb.Name = name
 		ycsb.PodName = podName
+		var mongoUrl string
+		if mb.architecture != Standalone {
+			mongoUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb-headless.%s.svc.cluster.local:%d/%s",
+				// ?connectTimeoutMS=%d&socketTimeoutMS=%d&serverSelectionTimeoutMS=%d&wtimeoutMS=%d",
+				e2e_config.GetConfig().Product.MongoAuthUsername,
+				e2e_config.GetConfig().Product.MongoAuthPassword,
+				mb.releaseName,
+				mb.namespace,
+				e2e_config.GetConfig().Product.MongoDatabasePort,
+				e2e_config.GetConfig().Product.MongoAuthDatabase,
+				// connectTimeoutMS,
+				// socketTimeoutMS,
+				// serverSelectionTimeoutMS,
+				// wtimeoutMS,
+			)
+		} else {
+			mongoUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb.%s.svc.cluster.local:%d/%s",
+				// 	?connectTimeoutMS=%d&socketTimeoutMS=%d&serverSelectionTimeoutMS=%d&wtimeoutMS=%d",
+				e2e_config.GetConfig().Product.MongoAuthUsername,
+				e2e_config.GetConfig().Product.MongoAuthPassword,
+				mb.releaseName,
+				mb.namespace,
+				e2e_config.GetConfig().Product.MongoDatabasePort,
+				e2e_config.GetConfig().Product.MongoAuthDatabase,
+				// connectTimeoutMS,
+				// socketTimeoutMS,
+				// serverSelectionTimeoutMS,
+				// wtimeoutMS,
+			)
+		}
+		logf.Log.Info("YCSB Mongo Connection URL", "url", mongoUrl)
 		ycsb.MongoConnUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb.%s.svc.cluster.local:%d/%s", e2e_config.GetConfig().Product.MongoAuthUsername, e2e_config.GetConfig().Product.MongoAuthPassword, mb.releaseName, mb.namespace, e2e_config.GetConfig().Product.MongoDatabasePort, e2e_config.GetConfig().Product.MongoAuthDatabase)
 	}
 	upgradedMongoApp.Ycsb = *ycsb
