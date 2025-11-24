@@ -144,6 +144,7 @@ product:
       2.9.2: "openebs.io/v1beta3"
       2.9.3: "openebs.io/v1beta3"
       2.10.0: "openebs.io/v1beta3"
+      4.4.0: "openebs.io/v1beta3"
     openebsToMayaVersionMap:
       4.3.0: "2.9.0"
       4.3.1: "2.9.1"
