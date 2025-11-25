@@ -401,7 +401,7 @@ func StatefulSetReady(statefulSetName string, namespace string) bool {
 		metaV1.GetOptions{},
 	)
 	if err != nil {
-		logf.Log.Info("Failed to get daemonset", "error", err)
+		logf.Log.Info("Failed to get StatefulSet", "error", err)
 		return false
 	}
 	status := statefulSet.Status
@@ -508,4 +508,61 @@ func GetStsPodNames(statefulSetName string, namespace string) ([]string, error) 
 
 	// Return the list of pod names
 	return podNames, nil
+}
+
+func GetStsPvcNames(statefulSetName string, namespace string) ([]v1.PersistentVolumeClaim, error) {
+	// Get the StatefulSet to ensure it exists
+	sts, err := GetSts(statefulSetName, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get statefulset %s in namespace %s: %v", statefulSetName, namespace, err)
+	}
+
+	// List all PVCs in the namespace
+	pvcList, err := ListPVCs(namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list PVCs in namespace %s: %v", namespace, err)
+	}
+
+	// Filter PVCs based on owner references
+	var pvcs []v1.PersistentVolumeClaim
+	for _, pvc := range pvcList.Items {
+		for _, owner := range pvc.OwnerReferences {
+			// Check if the owner is the target StatefulSet
+			if owner.Kind == "StatefulSet" && owner.Name == sts.Name {
+				pvcs = append(pvcs, pvc)
+				break
+			}
+		}
+	}
+
+	// Return the list of PVC
+	return pvcs, nil
+}
+
+func WaitForStsReady(statefulSetName string, namespace string, timeout time.Duration) error {
+	logf.Log.Info("Waiting for statefulset to be ready", "statefulset", statefulSetName, "namespace", namespace)
+	start := time.Now()
+	for {
+		if StatefulSetReady(statefulSetName, namespace) {
+			logf.Log.Info("Statefulset is ready", "statefulset", statefulSetName, "namespace", namespace)
+			break
+		}
+		if time.Since(start) > timeout {
+			return fmt.Errorf("timed out waiting for statefulset %s to be ready in namespace %s", statefulSetName, namespace)
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	// Additional wait for pods to be in running
+	listStsPods, err := GetStsPodNames(statefulSetName, namespace)
+	if err != nil {
+		return fmt.Errorf("failed to get pods for statefulset %s in namespace %s: %v", statefulSetName, namespace, err)
+	}
+	for _, podName := range listStsPods {
+		err = WaitForPodRunning(podName, namespace, int(timeout.Seconds()))
+		if err != nil {
+			return fmt.Errorf("timed out waiting for pod %s of statefulset %s to be running in namespace %s", podName, statefulSetName, namespace)
+		}
+	}
+	return nil
 }
