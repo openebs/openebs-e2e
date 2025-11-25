@@ -338,6 +338,27 @@ func RebootNode(nodeName string) (string, error) {
 	return rebootNode, nil
 }
 
+// RebootCsiNodes reboots all csi nodes
+func RebootCsiNodes() error {
+	// Reboot all nodes having csi-node pods
+	csiNodeDaemonSet := e2e_config.GetConfig().Product.CsiDaemonsetName
+	csiNodePods, err := k8stest.ListPodsByPrefix(common.NSMayastor(), csiNodeDaemonSet)
+	if err != nil {
+		return fmt.Errorf("failed to list csi node daemonset pods: %v", err)
+	}
+	for _, pod := range csiNodePods {
+		nodeName := pod.Spec.NodeName
+		logf.Log.Info("Rebooting node", "node", nodeName)
+
+		rebootedNode, err := RebootNode(nodeName)
+		if err != nil {
+			return fmt.Errorf("failed to reboot node %s: %v", nodeName, err)
+		}
+		logf.Log.Info("Node rebooted successfully", "node", rebootedNode)
+	}
+	return nil
+}
+
 func RescheduleControlPlaneToNode(cpNode string) error {
 	//reschedule loki sts to nexus node
 	if !LokiStatefulsetOnControlNode {
