@@ -302,31 +302,21 @@ func (mb *mongoBuilder) Upgrade(app *MongoApp) (MongoApp, error) {
 		var mongoUrl string
 		if mb.architecture != Standalone {
 			mongoUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb-headless.%s.svc.cluster.local:%d/%s",
-				// ?connectTimeoutMS=%d&socketTimeoutMS=%d&serverSelectionTimeoutMS=%d&wtimeoutMS=%d",
 				e2e_config.GetConfig().Product.MongoAuthUsername,
 				e2e_config.GetConfig().Product.MongoAuthPassword,
 				mb.releaseName,
 				mb.namespace,
 				e2e_config.GetConfig().Product.MongoDatabasePort,
 				e2e_config.GetConfig().Product.MongoAuthDatabase,
-				// connectTimeoutMS,
-				// socketTimeoutMS,
-				// serverSelectionTimeoutMS,
-				// wtimeoutMS,
 			)
 		} else {
 			mongoUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb.%s.svc.cluster.local:%d/%s",
-				// 	?connectTimeoutMS=%d&socketTimeoutMS=%d&serverSelectionTimeoutMS=%d&wtimeoutMS=%d",
 				e2e_config.GetConfig().Product.MongoAuthUsername,
 				e2e_config.GetConfig().Product.MongoAuthPassword,
 				mb.releaseName,
 				mb.namespace,
 				e2e_config.GetConfig().Product.MongoDatabasePort,
 				e2e_config.GetConfig().Product.MongoAuthDatabase,
-				// connectTimeoutMS,
-				// socketTimeoutMS,
-				// serverSelectionTimeoutMS,
-				// wtimeoutMS,
 			)
 		}
 		logf.Log.Info("YCSB Mongo Connection URL", "url", mongoUrl)
