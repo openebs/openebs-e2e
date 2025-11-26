@@ -638,3 +638,52 @@ func GetKubeletProcessIDOnNode(node string) (string, error) {
 	logf.Log.Info("Get kubelet process id", "node", node, "kubelet pid", out)
 	return out, nil
 }
+
+// AddAnnotationToNode adds annotations to a node
+func AddAnnotationToNode(nodeName string, annotations map[string]string) error {
+	// Get the node object
+	node, err := gTestEnv.KubeInt.CoreV1().Nodes().Get(context.TODO(), nodeName, metaV1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("error getting node: %v", err)
+	}
+
+	// Add the annotations to the node
+	if node.Annotations == nil {
+		node.Annotations = make(map[string]string)
+	}
+	for key, value := range annotations {
+		node.Annotations[key] = value
+	}
+
+	// Update the node object with the new annotations
+	_, err = gTestEnv.KubeInt.CoreV1().Nodes().Update(context.TODO(), node, metaV1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("error updating node annotations: %v", err)
+	}
+
+	logf.Log.Info("Added annotations to node", "nodeName", nodeName, "annotations", annotations)
+	return nil
+}
+
+// RemoveAnnotationFromNode removes annotations from a node
+func RemoveAnnotationFromNode(nodeName string, annotationKeys []string) error {
+	// Get the node object
+	node, err := gTestEnv.KubeInt.CoreV1().Nodes().Get(context.TODO(), nodeName, metaV1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("error getting node: %v", err)
+	}
+
+	// Remove the specified annotations from the node
+	for _, key := range annotationKeys {
+		delete(node.Annotations, key)
+	}
+
+	// Update the node object with the new annotations
+	_, err = gTestEnv.KubeInt.CoreV1().Nodes().Update(context.TODO(), node, metaV1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("error updating node annotations: %v", err)
+	}
+
+	logf.Log.Info("Removed annotations from node", "nodeName", nodeName, "annotationKeys", annotationKeys)
+	return nil
+}

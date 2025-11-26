@@ -848,3 +848,45 @@ func GetPvcNameFromPod(podName string, namespace string) (string, error) {
 	}
 	return "", fmt.Errorf("no PVC found in pod %s in namespace %s", podName, namespace)
 }
+
+// AddAnnotationToPod adds the provided annotations to the specified pod.
+func AddAnnotationToPod(podName string, namespace string, annotations map[string]string) error {
+	podAPI := gTestEnv.KubeInt.CoreV1().Pods
+	pod, err := podAPI(namespace).Get(context.TODO(), podName, metaV1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get pod %s in namespace %s, error: %v", podName, namespace, err)
+	}
+
+	if pod.Annotations == nil {
+		pod.Annotations = make(map[string]string)
+	}
+
+	for key, value := range annotations {
+		pod.Annotations[key] = value
+	}
+	_, err = podAPI(namespace).Update(context.TODO(), pod, metaV1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update pod %s in namespace %s with annotations, error: %v", podName, namespace, err)
+	}
+	logf.Log.Info("Added annotations to pod", "podName", podName, "namespace", namespace, "annotations", annotations)
+	return nil
+}
+
+// RemoveAnnotationFromPod removes the specified annotation keys from the pod.
+func RemoveAnnotationFromPod(podName string, namespace string, annotationKeys []string) error {
+	podAPI := gTestEnv.KubeInt.CoreV1().Pods
+	pod, err := podAPI(namespace).Get(context.TODO(), podName, metaV1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get pod %s in namespace %s, error: %v", podName, namespace, err)
+	}
+
+	for _, key := range annotationKeys {
+		delete(pod.Annotations, key)
+	}
+	_, err = podAPI(namespace).Update(context.TODO(), pod, metaV1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update pod %s in namespace %s to remove annotations, error: %v", podName, namespace, err)
+	}
+	logf.Log.Info("Removed annotations from pod", "podName", podName, "namespace", namespace, "annotationKeys", annotationKeys)
+	return nil
+}

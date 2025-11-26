@@ -46,7 +46,7 @@ type FioStsApp struct {
 }
 
 var (
-	StsDefTimeoutSecs = 90 // in seconds
+	StsDefTimeoutSecs = 180 // in seconds
 )
 
 func (dfa *FioStsApp) StsApp() error {
