@@ -687,3 +687,23 @@ func RemoveAnnotationFromNode(nodeName string, annotationKeys []string) error {
 	logf.Log.Info("Removed annotations from node", "nodeName", nodeName, "annotationKeys", annotationKeys)
 	return nil
 }
+
+func CordonNode(nodeName string) error {
+	cmd := exec.Command("kubectl", "cordon", nodeName)
+	cmd.Dir = ""
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to cordon node %s, error: %v", nodeName, err)
+	}
+	return nil
+}
+
+func UncordonNode(nodeName string) error {
+	cmd := exec.Command("kubectl", "uncordon", nodeName)
+	cmd.Dir = ""
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to uncordon node %s, error: %v", nodeName, err)
+	}
+	return nil
+}
