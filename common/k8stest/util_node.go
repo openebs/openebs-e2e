@@ -688,6 +688,7 @@ func RemoveAnnotationFromNode(nodeName string, annotationKeys []string) error {
 	return nil
 }
 
+// CordonNode cordons a node
 func CordonNode(nodeName string) error {
 	cmd := exec.Command("kubectl", "cordon", nodeName)
 	cmd.Dir = ""
@@ -698,12 +699,45 @@ func CordonNode(nodeName string) error {
 	return nil
 }
 
+// UncordonNode uncordons a node
 func UncordonNode(nodeName string) error {
 	cmd := exec.Command("kubectl", "uncordon", nodeName)
 	cmd.Dir = ""
 	_, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to uncordon node %s, error: %v", nodeName, err)
+	}
+	return nil
+}
+
+type TaintEffect string
+
+const (
+	TaintEffectNoSchedule       TaintEffect = "NoSchedule"
+	TaintEffectPreferNoSchedule TaintEffect = "PreferNoSchedule"
+	TaintEffectNoExecute        TaintEffect = "NoExecute"
+)
+
+// TaintNode adds a taint to a node
+func TaintNode(nodeName string, taintkey string, taintValue string, effect TaintEffect) error {
+	taintCmd := fmt.Sprintf("%s=%s:%s", taintkey, taintValue, effect)
+	cmd := exec.Command("kubectl", "taint", "node", nodeName, taintCmd, "--overwrite=true")
+	cmd.Dir = ""
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to taint node %s with taint: %s, error: %v", nodeName, taintCmd, err)
+	}
+	return nil
+}
+
+// RemoveTaintNode removes a taint from a node
+func RemoveTaintNode(nodeName string, taintkey string, taintValue string, effect TaintEffect) error {
+	removeTaintCmd := fmt.Sprintf("%s=%s:%s-", taintkey, taintValue, effect)
+	cmd := exec.Command("kubectl", "taint", "node", nodeName, removeTaintCmd)
+	cmd.Dir = ""
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to untaint node %s with taint key: %s, error: %v", nodeName, removeTaintCmd, err)
 	}
 	return nil
 }
