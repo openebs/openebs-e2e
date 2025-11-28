@@ -133,3 +133,21 @@ func WaitForVolumeAttachment(podName, namespace string, timeoutSecs int) (string
 	}
 	return "", fmt.Errorf("volume attachment not found for pod %s/%s within timeout %d seconds", namespace, podName, timeoutSecs)
 }
+
+func GetVolumeAttachmentByName(volAttachName string) (v1.VolumeAttachment, error) {
+	volumeAttachment, err := gTestEnv.KubeInt.StorageV1().VolumeAttachments().Get(context.TODO(), volAttachName, metaV1.GetOptions{})
+	return *volumeAttachment, err
+}
+
+func CheckVolumeAttachmentDeleted(volAttachName string) (bool, error) {
+	volAttachment, err := GetVolumeAttachmentByName(volAttachName)
+	if err != nil {
+		if k8serror.IsNotFound(err) {
+			logf.Log.Info("CheckVolumeAttachmentDeleted: volume attachment not found", "volumeAttachment", volAttachName)
+			return true, nil
+		}
+		return false, fmt.Errorf("failed to get volume attachment %s, error: %v", volAttachName, err)
+	}
+	logf.Log.Info("CheckVolumeAttachmentDeleted: volume attachment still exists", "volumeAttachment", volAttachName, "status", volAttachment.Status)
+	return false, nil
+}
