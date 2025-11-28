@@ -152,6 +152,18 @@ func (cp CPv1) UpgradeWithSkipCordonNodeValidation(isUpgradingToUnstableBranch, 
 	return err
 }
 
+// UpgradeWithExtraFlags issues an upgrade command with custom extra flags
+// This allows callers to pass any additional flags they need
+func (cp CPv1) UpgradeWithExtraFlags(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool, extraFlags []string) error {
+	opts := upgradeOptions{
+		IsUpgradingToUnstableBranch:   isUpgradingToUnstableBranch,
+		IsPartialRebuildDisableNeeded: isPartialRebuildDisableNeeded,
+		ExtraFlags:                    extraFlags,
+	}
+	_, err := cp.runUpgrade(opts)
+	return err
+}
+
 // Helper for command selection for upgrade status/delete
 func getUpgradeStatusCmdArgs(cmdType string) ([]string, error) {
 	kubectlPlugin := GetPluginPath()
