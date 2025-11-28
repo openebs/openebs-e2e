@@ -176,6 +176,7 @@ func handleRequests() {
 	router.HandleFunc("/configureNonPersistentHugePages", ConfigureNonPersistentHugePages).Methods("POST")
 	router.HandleFunc("/isHugePagesPersistent", IsHugePagesPersistent).Methods("POST")
 	router.HandleFunc("/isHugePagesConfigured", IsHugePagesConfigured).Methods("POST")
+	router.HandleFunc("/restartService", RestartService).Methods("POST")
 
 	//LVM
 	router.HandleFunc("/lvmversion", LvmVersion).Methods("POST")
@@ -420,6 +421,27 @@ func IsHugePagesPersistent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	klog.Info("Successfully checked if hugepages are persistent")
+	WrapResult(output, ErrNone, w)
+}
+
+func RestartService(w http.ResponseWriter, r *http.Request) {
+	d := json.NewDecoder(r.Body)
+	var service string
+	if err := d.Decode(&service); err != nil {
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to read JSON encoded data, Error: ", err)
+		return
+	}
+	params := fmt.Sprintf("nsenter --target 1 --mount --uts --ipc --net --pid -- systemctl restart %s ; echo $?", service)
+	klog.Info("Restarting service ", service)
+	output, err := bashLocal(params)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to restart service:", service, "Error: ", err)
+		return
+	}
+	klog.Info("Successfully restarted service", service)
 	WrapResult(output, ErrNone, w)
 }
 

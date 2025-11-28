@@ -563,6 +563,22 @@ func UnloadKernelModuleOnNode(node string, module string) error {
 	return nil
 }
 
+// configure hugepages on node which is non-persistent across reboots
+func ConfigureNonPersistentHugePagesOnNode(node string) error {
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	// configure hugepages
+	out, err := e2e_agent.ConfigureNonPersistentHugePages(*nodeIp)
+	if err != nil {
+		return fmt.Errorf("failed to configure non-persistent hugepages on node %s, error: %v", node, err)
+	}
+	logf.Log.Info("Configure non-persistent hugepages", "node", node, "output", out)
+	return nil
+}
+
 // verify kernel module is installed and loaded on node
 func VerifyKernelModuleOnNode(node string, module string) (bool, error) {
 	nodeIp, err := GetNodeIPAddress(node)
@@ -637,6 +653,22 @@ func GetKubeletProcessIDOnNode(node string) (string, error) {
 	}
 	logf.Log.Info("Get kubelet process id", "node", node, "kubelet pid", out)
 	return out, nil
+}
+
+// RestartKubeletOnNode restarts the kubelet on the specified node
+func RestartKubeletOnNode(node string) error {
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	// restart kubelet
+	out, err := e2e_agent.RestartService(*nodeIp, common.KubeletProcessName)
+	if err != nil {
+		return fmt.Errorf("failed to restart kubelet on node %s, error: %v", node, err)
+	}
+	logf.Log.Info("Restart kubelet", "node", node, "output", out)
+	return nil
 }
 
 // AddAnnotationToNode adds annotations to a node
