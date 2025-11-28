@@ -1476,10 +1476,30 @@ func IsKernelModulePersistent(serverAddr string, moduleName string, filename str
 	return out == "1", err
 }
 
+func RestartService(serverAddr string, serviceName string) (string, error) {
+	logf.Log.Info("Executing RestartService", "addr", serverAddr, "data", serviceName)
+	url := "http://" + getAgentAddress(serverAddr) + "/restartService"
+	encodedresult, err := sendRequestGetResponse("POST", url, serviceName, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return encodedresult, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return out, fmt.Errorf("failed to restart service, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("RestartService succeeded", "output", out)
+	return out, nil
+}
+
 func GetProcessID(serverAddr string, processName string) (string, error) {
 
 	logf.Log.Info("Executing GetProcessID", "addr", serverAddr, "data", processName)
-	url := "http://" + getAgentAddress(serverAddr) + "/getprocessid"
+	url := "http://" + getAgentAddress(serverAddr) + "/getProcessID"
 	encodedresult, err := sendRequestGetResponse("POST", url, processName, false)
 	if err != nil {
 		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
@@ -1499,7 +1519,7 @@ func GetProcessID(serverAddr string, processName string) (string, error) {
 
 func ConfigureNonPersistentHugePages(serverAddr string) (string, error) {
 	logf.Log.Info("Executing ConfigureNonPersistentHugePages", "addr", serverAddr)
-	url := "http://" + getAgentAddress(serverAddr) + "/configurenonpersistenthugepages"
+	url := "http://" + getAgentAddress(serverAddr) + "/configureNonPersistentHugePages"
 	encodedresult, err := sendRequestGetResponse("POST", url, nil, false)
 	if err != nil {
 		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
