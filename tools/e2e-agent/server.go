@@ -172,6 +172,7 @@ func handleRequests() {
 	router.HandleFunc("/unloadKernelModule", UnloadKernelModule).Methods("POST")
 	router.HandleFunc("/getProcessID", GetProcessID).Methods("POST")
 	router.HandleFunc("/isKernelModuleLoaded", IsKernelModuleLoaded).Methods("POST")
+	router.HandleFunc("/isPackageInstalled", IsPackageInstalled).Methods("POST")
 	router.HandleFunc("/isKernelModulePersistent", IsKernelModulePersistent).Methods("POST")
 	router.HandleFunc("/configureNonPersistentHugePages", ConfigureNonPersistentHugePages).Methods("POST")
 	router.HandleFunc("/isHugePagesPersistent", IsHugePagesPersistent).Methods("POST")
@@ -351,6 +352,28 @@ func IsKernelModuleLoaded(w http.ResponseWriter, r *http.Request) {
 	WrapResult(output, ErrNone, w)
 }
 
+func IsPackageInstalled(w http.ResponseWriter, r *http.Request) {
+	var packageName string
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&packageName); err != nil {
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to read JSON encoded data, Error: ", err)
+		return
+	}
+	klog.Info("Checking if package is installed ", packageName)
+	params := fmt.Sprintf("nsenter --mount=/proc/1/ns/mnt dpkg -s %s >/dev/null 2>&1 && echo 0 || echo 1", packageName)
+	klog.Info("Checking if package is installed")
+	output, err := bashLocal(params)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		fmt.Fprint(w, err.Error())
+		klog.Error("failed to check if package is installed:", packageName, "Error: ", err)
+		return
+	}
+	klog.Info("Successfully checked if package is installed")
+	WrapResult(output, ErrNone, w)
+}
+
 func IsKernelModulePersistent(w http.ResponseWriter, r *http.Request) {
 	var module KernelModule
 	d := json.NewDecoder(r.Body)
@@ -462,16 +485,8 @@ func GetProcessID(w http.ResponseWriter, r *http.Request) {
 		klog.Error("failed to retrieve process ID for:", process, "Error: ", err)
 		return
 	}
-	processBytes, err := base64.StdEncoding.DecodeString(output)
-	if err != nil {
-		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
-		klog.Error("failed to decode process ID for:", process, "Error: ", err)
-		return
-	}
-	process = string(processBytes)
 	klog.Info("Successfully retrieved process ID")
-	WrapResult(process, ErrNone, w)
+	WrapResult(output, ErrNone, w)
 }
 
 func createFaultyDevice(w http.ResponseWriter, r *http.Request) {

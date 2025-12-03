@@ -594,6 +594,21 @@ func VerifyKernelModuleOnNode(node string, module string) (bool, error) {
 	return out, nil
 }
 
+// verify if package is installed on node
+func VerifyPackageInstalledOnNode(node string, packageName string) (bool, error) {
+	nodeIp, err := GetNodeIPAddress(node)
+	if err != nil {
+		return false, fmt.Errorf("failed to get node %s ip, error: %v", node, err)
+	}
+
+	// verify package installation
+	out, err := e2e_agent.IsPackageInstalled(*nodeIp, packageName)
+	if err != nil {
+		return false, fmt.Errorf("failed to verify package %s installation on node %s, error: %v", packageName, node, err)
+	}
+	return out, nil
+}
+
 // verify kernel module is persistent on node after reboot
 func VerifyKernelModulePersistenceOnNode(node string, module string, filename string) (bool, error) {
 	nodeIp, err := GetNodeIPAddress(node)

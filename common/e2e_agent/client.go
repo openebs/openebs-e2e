@@ -1450,6 +1450,27 @@ func IsKernelModuleLoaded(serverAddr string, moduleName string) (bool, error) {
 	return out == "1", err
 }
 
+// IsPackageInstalled checks if an os package is installed
+func IsPackageInstalled(serverAddr string, packageName string) (bool, error) {
+	logf.Log.Info("Executing IsPackageInstalled", "addr", serverAddr, "packageName", packageName)
+	url := "http://" + getAgentAddress(serverAddr) + "/isPackageInstalled"
+	encodedresult, err := sendRequestGetResponse("POST", url, packageName, false)
+	if err != nil {
+		logf.Log.Info("sendRequestGetResponse", "encodedresult", encodedresult, "error", err.Error())
+		return false, fmt.Errorf("failed to send command to e2e-agent, error: %s", err.Error())
+	}
+	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
+	if err != nil {
+		logf.Log.Info("unwrap failed", "encodedresult", encodedresult, "error", err.Error())
+		return false, err
+	}
+	if e2eagenterrcode != ErrNone {
+		return false, fmt.Errorf("failed to check if package is installed, errcode %d", e2eagenterrcode)
+	}
+	logf.Log.Info("IsPackageInstalled succeeded", "output", out)
+	return out == "0", err
+}
+
 // IsKernelModulePersistent checks if a kernel module is set to load persistently on boot
 func IsKernelModulePersistent(serverAddr string, moduleName string, filename string) (bool, error) {
 	data := KernelModule{
