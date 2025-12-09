@@ -427,6 +427,7 @@ func CleanUp() bool {
 	podCount := 0
 	pvcCount := 0
 	snapshotCount := 0
+	statefulsetCount := 0
 
 	nameSpaces, err := gTestEnv.KubeInt.CoreV1().Namespaces().List(context.TODO(), metaV1.ListOptions{})
 	if err == nil {
@@ -437,6 +438,11 @@ func CleanUp() bool {
 					errs = append(errs, err)
 				}
 				deploymentCount += tmp
+				tmp, err = DeleteAllStatefulset(ns.Name)
+				if err != nil {
+					errs = append(errs, err)
+				}
+				statefulsetCount += tmp
 				tmp, err = DeleteAllPods(ns.Name)
 				if err != nil {
 					errs = append(errs, err)
@@ -580,4 +586,38 @@ func DeleteAllSnapshots(nameSpace string) (int, error) {
 
 	logf.Log.Info("DeleteAllSnapshots:", "number of Snapshot", numSnapshots, "error", err)
 	return numSnapshots, err
+}
+
+func DeleteAllStatefulset(nameSpace string) (int, error) {
+	logf.Log.Info("DeleteAllStatefulset")
+	numStatefulsets := 0
+
+	statefulsets, err := gTestEnv.KubeInt.AppsV1().StatefulSets(nameSpace).List(context.TODO(), metaV1.ListOptions{})
+	if err == nil {
+		logf.Log.Info("DeleteAllStatefulset: found", "sts", statefulsets)
+		for _, sts := range statefulsets.Items {
+			logf.Log.Info("DeleteAllStatefulset: Deleting", "statefulset", sts.Name)
+			delErr := gTestEnv.KubeInt.AppsV1().StatefulSets(nameSpace).Delete(context.TODO(), sts.Name, metaV1.DeleteOptions{})
+			if delErr != nil {
+				logf.Log.Info("DeleteAllStatefulset: failed to delete the statefulset", "statefulset", sts.Name, "error", delErr)
+			}
+		}
+	}
+
+	// Wait 2 minutes for Statefulset to be deleted
+	for attempts := 0; attempts < 120; attempts++ {
+		numStatefulsets = 0
+		statefulsets, err := ListSts(nameSpace)
+		if err == nil {
+			for _, sts := range statefulsets {
+				logf.Log.Info("Statefulset found", "name", sts.Name)
+				numStatefulsets += 1
+			}
+			if numStatefulsets == 0 {
+				break
+			}
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return numStatefulsets, err
 }
