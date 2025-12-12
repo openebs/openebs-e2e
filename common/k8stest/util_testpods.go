@@ -1323,6 +1323,10 @@ func WaitForPodsByPrefixToComplete(namespace string, podPrefix string, timeoutSe
 			return fmt.Errorf("failed to list pods with prefix %s in namespace %s: %v", podPrefix, namespace, err)
 		}
 
+		if len(pods) == 0 {
+			continue
+		}
+
 		allCompleted := true
 		for _, pod := range pods {
 			switch pod.Status.Phase {
