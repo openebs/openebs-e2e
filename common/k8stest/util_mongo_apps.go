@@ -15,7 +15,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"regexp"
 
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -43,35 +42,49 @@ const (
 )
 
 func (mongo *MongoApp) MongoDump() (string, error) {
-	// Convert the output to a string
-	_, stderr, err := ExecuteCommandInPod(mongo.Namespace, mongo.Pod.Name, fmt.Sprintf("mongodump --host localhost --username %s --password %s --db %s --out %s", e2e_config.GetConfig().Product.MongoAuthUsername, e2e_config.GetConfig().Product.MongoAuthPassword, e2e_config.GetConfig().Product.MongoAuthDatabase, "/tmp/dump/"))
+	log := logf.Log.WithName("mongo-dump")
+
+	dumpFile := "/tmp/mongo.dump.archive"
+	cmd := fmt.Sprintf(
+		"rm -f %s && mongodump --host localhost --db %s --archive=%s",
+		dumpFile,
+		e2e_config.GetConfig().Product.MongoAuthDatabase,
+		dumpFile,
+	)
+
+	_, stderr, err := ExecuteCommandInPod(
+		mongo.Namespace,
+		mongo.Pod.Name,
+		cmd,
+	)
 	if err != nil {
+		log.Error(err, "mongodump failed", "stderr", stderr)
 		return "", err
 	}
-	// regexp looks for the name of the bson dump file that we get from the dump output
-	re := regexp.MustCompile(`to (/[^ ]+\.bson)`)
-	matches := re.FindStringSubmatch(stderr)
-	if len(matches) < 2 {
-		return "", errors.New("cannot find dump file path")
-	}
-	path := matches[1]
+
 	p, err := common.GetTestCaseLogsPath()
 	if err != nil {
 		return "", err
 	}
-	dumpPath := fmt.Sprintf("%s/tmp/%s.bson", p, mongo.Pod.Name)
-	// Convert the output to a string
-	cmd := exec.Command("kubectl", "cp", "-n", mongo.Namespace, fmt.Sprintf("%s:%s", mongo.Pod.Name, path), dumpPath)
-	// Convert the output to a string
-	// Get the output of the command
-	outputBytes, err := cmd.CombinedOutput()
+
+	localDumpPath := fmt.Sprintf("%s/tmp/%s-mongo.dump.archive", p, mongo.Pod.Name)
+
+	copyCmd := exec.Command(
+		"kubectl",
+		"cp",
+		"-n", mongo.Namespace,
+		fmt.Sprintf("%s:%s", mongo.Pod.Name, dumpFile),
+		localDumpPath,
+	)
+
+	output, err := copyCmd.CombinedOutput()
 	if err != nil {
-		logf.Log.Error(err, string(outputBytes))
+		log.Error(err, "kubectl cp failed", "output", string(output))
 		return "", err
 	}
-	// Convert the output to a string and return
-	logf.Log.Info(string(outputBytes))
-	return dumpPath, nil
+
+	log.Info("Mongo dump copied", "path", localDumpPath)
+	return localDumpPath, nil
 }
 
 func calculateChecksum(filePath string) (string, error) {
@@ -106,81 +119,48 @@ func (mongo *MongoApp) CompareBSONChecksums(file1, file2 string) bool {
 }
 
 func (mongo *MongoApp) MongoInstallReady() error {
-	logf.Log.Info("checking mongoDB application to be installed")
-	ready := false
+	logf.Log.Info("Checking MongoDB application installation")
 
-	if !mongo.Standalone {
-		err := WaitForStsReady(mongo.StsName, mongo.Namespace, time.Duration(defaultMongodbStsimeoutSecs)*time.Second)
-		if err != nil {
-			return fmt.Errorf("mongoDB sts %s not ready: %v", mongo.StsName, err)
-		}
-		// wait for volume to provision
-		// wait for pods to be running
-		pods, err := GetStsPodNames(mongo.StsName, mongo.Namespace)
-		if err != nil {
-			return err
-		}
-		for _, pod := range pods {
-			var pvcName, uuid string
-			pvcName, err = GetPvcNameFromPod(pod, mongo.Namespace)
-			if err != nil {
-				return err
-			} else if pvcName == "" {
-				return fmt.Errorf("pvc name not found for pod %s", pod)
-			}
-			logf.Log.Info("Verify volume provision", "pvc name", pvcName, "namespace", mongo.Namespace)
-			uuid, err = VerifyVolumeProvision(pvcName, mongo.Namespace)
-			if err != nil {
-				return fmt.Errorf("failed to verify volume provisioning")
-			}
-			logf.Log.Info("mongoDB HA installation is ready", "pod", pod,
-				"pvcName", pvcName,
-				"volumeUUID", uuid)
-		}
-	} else {
-
-		// verify mongo deployment and pod ready
-		mongoDeployName := fmt.Sprintf("%s-mongodb", mongo.ReleaseName)
-		ready = WaitForDeploymentReady(mongoDeployName, mongo.Namespace, 5, defaultTimeoutSecs)
-		if !ready {
-			return fmt.Errorf("mongo deployment %s not ready, ready status: %v", mongoDeployName, ready)
-		}
-		if ready {
-			pods, err := ListPod(mongo.Namespace)
-			if err != nil {
-				return err
-			}
-			for _, pod := range pods.Items {
-				if strings.Contains(pod.Name, mongoDeployName) && pod.Name != mongo.Pod.Name {
-					logf.Log.Info("Pod",
-						"app", "MongoDB",
-						"ready", ready,
-						"name", pod.Name,
-						"status", pod.Status.Phase,
-					)
-					mongo.Pod = pod
-					break
-				}
-			}
-
-			// wait for volume to provision
-			var pvcName = mongoDeployName
-			if mongo.PvcName != "" {
-				pvcName = mongo.PvcName
-			}
-			logf.Log.Info("Verify volume provision", "pvc name", pvcName, "namespace", mongo.Namespace)
-			uuid, err := VerifyVolumeProvision(pvcName, mongo.Namespace)
-			if err != nil {
-				return fmt.Errorf("failed to verify volume provisioning")
-			}
-
-			mongo.VolUuid = uuid
-			logf.Log.Info("mongoDB standalone installation is ready")
-			return nil
-		}
-
+	err := WaitForStsReady(mongo.StsName, mongo.Namespace, time.Duration(defaultMongodbStsimeoutSecs)*time.Second)
+	if err != nil {
+		return fmt.Errorf("MongoDB StatefulSet %s not ready: %v", mongo.StsName, err)
 	}
-	//}
+
+	// Get all pods in the StatefulSet
+	pods, err := GetStsPodNames(mongo.StsName, mongo.Namespace)
+	if err != nil {
+		return fmt.Errorf("Failed to list MongoDB StatefulSet pods: %v", err)
+	}
+
+	// Wait for volume provisioning and confirm MongoDB pods are ready
+	for _, pod := range pods {
+		var pvcName, uuid string
+
+		pvcName, err = GetPvcNameFromPod(pod, mongo.Namespace)
+		if err != nil {
+			return fmt.Errorf("Failed to get PVC name from pod %s: %v", pod, err)
+		}
+		if pvcName == "" {
+			return fmt.Errorf("PVC name not found for pod %s", pod)
+		}
+
+		logf.Log.Info("Verifying volume provisioning", "pvcName", pvcName, "namespace", mongo.Namespace)
+		uuid, err = VerifyVolumeProvision(pvcName, mongo.Namespace)
+		if err != nil {
+			return fmt.Errorf("Failed to verify volume provisioning for %s: %v", pvcName, err)
+		}
+
+		logf.Log.Info("MongoDB pod ready",
+			"pod", pod,
+			"pvcName", pvcName,
+			"volumeUUID", uuid,
+		)
+
+		mongo.Pod.Name = pod
+		mongo.VolUuid = uuid
+	}
+
+	logf.Log.Info("MongoDB installation is ready", "statefulset", mongo.StsName)
 	return nil
 }
 
