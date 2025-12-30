@@ -145,7 +145,8 @@ func installPrometheus(namespace string) error {
 			helmArgs,
 			[]string{
 				"--set", "kube-state-metrics.image.registry=" + k8sRegistryMirror,
-				"--set", "prometheusOperator.admissionWebhooks.patch.image.registry=" + k8sRegistryMirror,
+				// admissionWebhooks image are hosted in ghcr so commenting it for now
+				//"--set", "prometheusOperator.admissionWebhooks.patch.image.registry=" + k8sRegistryMirror,
 			}...,
 		)
 	}
