@@ -2147,3 +2147,18 @@ func ParseGiBOrBytesToGiB(s string) (float64, error) {
 	}
 	return v, nil // GiB
 }
+
+func KubectlDelete(resourceType, name, namespace string) error {
+	args := []string{"delete", resourceType, name}
+	if namespace != "" {
+		args = append(args, "-n", namespace)
+	}
+	cmd := exec.Command("kubectl", args...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to delete %s/%s in namespace %s: %s, err: %v",
+			resourceType, name, namespace, string(out), err)
+	}
+	logf.Log.Info("kubectl delete", "resource", resourceType, "name", name, "namespace", namespace)
+	return nil
+}

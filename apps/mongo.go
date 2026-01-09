@@ -2,330 +2,405 @@ package apps
 
 import (
 	"fmt"
+	"sort"
+	"strings"
+	"time"
+
+	"github.com/openebs/openebs-e2e/common/e2e_config"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openebs/openebs-e2e/common"
-	"github.com/openebs/openebs-e2e/common/e2e_config"
 	"github.com/openebs/openebs-e2e/common/k8stest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const (
+	MongoPod            = "mongo"
+	MongoPort           = 27017
+	MongoReplicaSetName = "rs0"
+	MongoMountPath      = "/data/db"
+	MongoPVCName        = "mongo-data"
+	MongoStsName        = "mongo"
+	MongoSvcName        = "mongo"
+	MongoHeadlessSvc    = "mongo-headless"
+	MongoReadyTimeout   = 10 * time.Minute
+)
+
 type mongoBuilder struct {
-	architecture            Architecture
-	CloneFsIdAsVolumeIdType common.CloneFsIdAsVolumeIdType
-	filesystemType          common.FileSystemType
-	helmVersion             string
-	namespace               string
-	nodeSelector            string
-	provisioningType        common.ProvisioningType
-	pvcName                 string
-	pvcSize                 int
-	releaseName             string
-	replicaCount            int
-	scName                  string
-	values                  map[string]interface{}
-	ycsb                    bool
+	namespace      string
+	replicaCount   int
+	pvcSizeGi      int
+	scName         string
+	ycsb           bool
+	releaseName    string
+	useExistingPVC bool
+	existingPVC    string
+	nodeSelector   string
 }
 
 type MongoApp struct {
-	Ycsb  k8stest.YcsbApp
 	Mongo k8stest.MongoApp
+	Ycsb  k8stest.YcsbApp
 }
 
-const (
-	FipsModeOff = "off"
-)
-
-// NewMongoBuilder creates new mongo builder with default standalone settings
 func NewMongoBuilder() *mongoBuilder {
-	def := make(map[string]interface{})
-	def["auth.rootPassword"] = e2e_config.GetConfig().Product.MongoAuthRootPassword
-	def["auth.username"] = e2e_config.GetConfig().Product.MongoAuthUsername
-	def["auth.password"] = e2e_config.GetConfig().Product.MongoAuthPassword
-	def["auth.database"] = e2e_config.GetConfig().Product.MongoAuthDatabase
-	def["architecture"] = Standalone.String()
-	def["replicaCount"] = 1
-	def["image.repository"] = e2e_config.GetConfig().Product.MongoImageRepository
-	def["image.tag"] = e2e_config.GetConfig().Product.MongoImageTag
-	def["global.security.allowInsecureImages"] = true
-
 	return &mongoBuilder{
-		architecture:            Standalone,
-		CloneFsIdAsVolumeIdType: common.CloneFsIdAsVolumeIdNone,
-		filesystemType:          common.Ext4FsType,
-		namespace:               common.NSDefault,
-		provisioningType:        common.ThinProvisioning,
-		releaseName:             e2e_config.GetConfig().Product.MongoReleaseName,
-		replicaCount:            0,
-		values:                  def,
+		namespace:    common.NSDefault,
+		replicaCount: 1,
+		pvcSizeGi:    5,
 	}
 }
 
-// WithHaMode Enables HA mode
+func (mb *mongoBuilder) WithNamespace(ns string) *mongoBuilder {
+	mb.namespace = ns
+	return mb
+}
+
+func (mb *mongoBuilder) WithReplicaCount(n int) *mongoBuilder {
+	mb.replicaCount = n
+	return mb
+}
+
 func (mb *mongoBuilder) WithHaMode() *mongoBuilder {
-	mb.architecture = Replicaset
-	mb.values["architecture"] = Replicaset.String()
 	return mb
 }
 
-// WithReplicaCount available only for HA mode - default = 2
-func (mb *mongoBuilder) WithReplicaCount(replicaCount int) *mongoBuilder {
-	if arch, ok := mb.values["architecture"].(string); ok {
-		if arch == Replicaset.String() {
-			mb.values["replicaCount"] = replicaCount
-			logf.Log.Info("Set mongo replicaCount", "mb.values.replica", mb.values["replicaCount"])
-			return mb
-		}
-		logf.Log.Info("cannot set mongo.replicaCount with standalone architecture")
-	}
-	return mb
-}
-
-// WithMongoVersion Could specify mongo image version - default = "mongo image version"
-func (mb *mongoBuilder) WithMongoVersion(version string) *mongoBuilder {
-	mb.values["image.tag"] = version
-	return mb
-}
-
-// WithStatefulSet able to set up statefulSet mode for standalone architecture - default = false
-func (mb *mongoBuilder) WithStatefulSet() *mongoBuilder {
-	if arch, ok := mb.values["architecture"].(string); ok {
-		if arch == Standalone.String() {
-			mb.values["useStatefulSet"] = true
-			n, err := k8stest.GetIOEngineHostNameLabel()
-			if err != nil {
-				panic(err)
-			}
-			mb.values["nodeSelector.kubernetes\\.io/hostname"] = n
-			mb.nodeSelector = n
-			return mb
-		}
-		logf.Log.Info("cannot set statefulSet with replicaset architecture")
-	}
-	return mb
-}
-
-// WithNamespace Could specify namespace default = "default"
-func (mb *mongoBuilder) WithNamespace(namespace string) *mongoBuilder {
-	mb.namespace = namespace
-	return mb
-}
-
-// WithNodeSelector able set a node selector for deploying an application to a specific node
-func (mb *mongoBuilder) WithNodeSelector(nodeName string) *mongoBuilder {
-	if arch, ok := mb.values["architecture"].(string); ok {
-		if arch == Standalone.String() {
-			mb.values["nodeSelector.kubernetes\\.io/hostname"] = nodeName
-			mb.nodeSelector = nodeName
-			return mb
-		}
-		logf.Log.Info("cannot set statefulSet with replicaset architecture")
-	}
-	return mb
-}
-
-// WithPvcSize Could specify PVC size - default = 9Gi
 func (mb *mongoBuilder) WithPvcSize(sizeGi int) *mongoBuilder {
-	mb.pvcSize = sizeGi
-	mb.values["persistence.size"] = fmt.Sprintf("%dGi", sizeGi)
+	mb.pvcSizeGi = sizeGi
 	return mb
 }
 
-// WithReleaseName Could specify helm release name - default = "maya-mongo"
-func (mb *mongoBuilder) WithReleaseName(releaseName string) *mongoBuilder {
-	mb.releaseName = releaseName
+func (mb *mongoBuilder) WithOwnStorageClass(sc string) *mongoBuilder {
+	mb.scName = sc
 	return mb
 }
 
-// WithHelmChartVersion Could specify helm chart version - default = "latest"
-func (mb *mongoBuilder) WithHelmChartVersion(chartVersion string) *mongoBuilder {
-	mb.helmVersion = chartVersion
-	return mb
-}
-
-// WithFileSystemType Could specify volume provisioning type - default = "thin"
-func (mb *mongoBuilder) WithFileSystemType(systemType common.FileSystemType) *mongoBuilder {
-	mb.filesystemType = systemType
-	return mb
-}
-
-// WithOwnStorageClass Could specify already created storage class name.
-// If this option is selected, you must ensure that the storage class parameters are set correctly.
-func (mb *mongoBuilder) WithOwnStorageClass(scName string) *mongoBuilder {
-	mb.scName = scName
-	mb.values["global.storageClass"] = scName
-	return mb
-}
-
-// WithPvc Could specify pvc
-// If this option is selected, you must ensure that the pvc is created correctly.
-func (mb *mongoBuilder) WithPvc(pvcName string) *mongoBuilder {
-	if arch, ok := mb.values["architecture"].(string); ok {
-		if arch == Standalone.String() {
-			mb.pvcName = pvcName
-			mb.values["persistence.existingClaim"] = pvcName
-			return mb
-		}
-	}
-	return mb
-}
-
-// WithAnotherValuesParameters Could specify another parameters from https://artifacthub.io/packages/helm/bitnami/mongodb
-func (mb *mongoBuilder) WithAnotherValuesParameters(values map[string]interface{}) *mongoBuilder {
-	for k, v := range values {
-		mb.values[k] = v
-	}
-	return mb
-}
-
-// WithYcsb Also install YCSB benchmark app
 func (mb *mongoBuilder) WithYcsb() *mongoBuilder {
 	mb.ycsb = true
 	return mb
 }
 
-func (mb *mongoBuilder) WithFipsMode(mode string) *mongoBuilder {
-	mb.values["global.defaultFips"] = mode
+func (mb *mongoBuilder) WithReleaseName(name string) *mongoBuilder {
+	mb.releaseName = name
+	return mb
+}
+
+func (mb *mongoBuilder) WithPvc(pvcName string) *mongoBuilder {
+	if mb.replicaCount > 1 {
+		logf.Log.Info("Ignoring WithPvc for HA Mongo", "pvc", pvcName)
+		return mb
+	}
+	mb.useExistingPVC = true
+	mb.existingPVC = pvcName
+	return mb
+}
+
+func (mb *mongoBuilder) WithNodeSelector(nodeName string) *mongoBuilder {
+	if mb.replicaCount > 1 {
+		logf.Log.Info(
+			"Ignoring WithNodeSelector: not supported for HA Mongo",
+			"node", nodeName,
+		)
+		return mb
+	}
+
+	mb.nodeSelector = nodeName
 	return mb
 }
 
 func (mb *mongoBuilder) Build() (MongoApp, error) {
-	mb.helmVersion = e2e_config.GetConfig().Product.MongoDefaultChartVersion
-	logf.Log.Info("Using Helm Chart Version", "version", mb.helmVersion, "replicaCount", mb.values["replicaCount"])
+	log := logf.Log.WithName("mongo-util")
+	ns := mb.namespace
 
-	if mb.scName == "" {
-		scName, err := CreateStorageClass(mb)
+	release := MongoStsName
+	if mb.releaseName != "" {
+		release = mb.releaseName
+	}
+
+	if mb.scName == "" && !mb.useExistingPVC {
+		sc, err := CreateStorageClass(mb)
 		if err != nil {
 			return MongoApp{}, err
 		}
-		mb.values["global.storageClass"] = scName
-		mb.scName = scName
-		logf.Log.Info("StorageClass has been created", "storageClassName", scName)
+		mb.scName = sc
 	}
-	err := k8stest.AddHelmRepository(e2e_config.GetConfig().Product.MongoHelmRepoName, e2e_config.GetConfig().Product.MongoHelmRepoUrl)
-	if err != nil {
-		return MongoApp{}, err
-	}
-	logf.Log.Info("Helm values", "val", mb.values)
-	logf.Log.Info("Installing MongoDB Helm Chart", "replica count", mb.values["replicaCount"])
 
-	err = k8stest.InstallHelmChart(e2e_config.GetConfig().Product.MongoHelmRepo, mb.helmVersion, mb.namespace, mb.releaseName, mb.values)
-	if err != nil {
+	if err := applyMongoServices(ns); err != nil {
 		return MongoApp{}, err
 	}
 
-	ma := k8stest.MongoApp{
-		Namespace:    mb.namespace,
-		ReleaseName:  mb.releaseName,
-		ReplicaCount: mb.values["replicaCount"].(int),
-		ScName:       mb.values["global.storageClass"].(string),
-		Standalone:   mb.values["architecture"].(string) == Standalone.String(),
-		PvcName:      mb.pvcName,
-		StsName:      mb.releaseName + "-mongodb",
+	if err := createMongoStatefulSet(mb); err != nil {
+		return MongoApp{}, err
 	}
-	err = ma.MongoInstallReady()
+
+	if err := waitForMongoPods(ns, mb.replicaCount); err != nil {
+		return MongoApp{}, err
+	}
+
+	mongoPodName := fmt.Sprintf("%s-0", MongoStsName)
+
+	if mb.replicaCount > 1 {
+		log.Info("Initializing MongoDB ReplicaSet")
+		if err := initReplicaSet(ns, release, mb.replicaCount); err != nil {
+			return MongoApp{}, err
+		}
+	}
+
+	// Resolve Mayastor Volume UUID
+	volUUID, err := getMongoVolumeUUID(mb)
 	if err != nil {
 		return MongoApp{}, err
 	}
 
-	// deploy ycsb
-	ycsb := k8stest.NewYCSB()
+	var pvcName string
+
+	if mb.useExistingPVC {
+		pvcName = mb.existingPVC
+	} else {
+		pvcName = fmt.Sprintf("%s-%s-0", MongoPVCName, release)
+	}
+
+	mongo := k8stest.MongoApp{
+		Namespace:    ns,
+		ReleaseName:  release,
+		ReplicaCount: mb.replicaCount,
+		ScName:       mb.scName,
+		Standalone:   mb.replicaCount == 1,
+		StsName:      release,
+		VolUuid:      volUUID,
+		PvcName:      pvcName,
+	}
+
+	mongo.Pod.Name = mongoPodName
+	mongo.Pod.Namespace = ns
+
+	var ycsb k8stest.YcsbApp
 	if mb.ycsb {
-		ycsb.Namespace = mb.namespace
-		ycsb.NodeSelector = mb.nodeSelector
-		var name, podName string
-		if mb.pvcName != "" {
-			name, podName, err = ycsb.DeployYcsbApp(mb.pvcName)
-			if err != nil {
-				return MongoApp{}, err
-			}
-		} else {
-			name, podName, err = ycsb.DeployYcsbApp(mb.scName)
-			if err != nil {
-				return MongoApp{}, err
-			}
+		y := k8stest.NewYCSB()
+		y.Namespace = ns
+
+		name, pod, err := y.DeployYcsbApp(mb.scName)
+		if err != nil {
+			return MongoApp{}, err
 		}
-		ycsb.Name = name
-		ycsb.PodName = podName
-		var mongoUrl string
-		if mb.architecture != Standalone {
-			mongoUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb-headless.%s.svc.cluster.local:%d/%s",
-				e2e_config.GetConfig().Product.MongoAuthUsername,
-				e2e_config.GetConfig().Product.MongoAuthPassword,
-				mb.releaseName,
-				mb.namespace,
-				e2e_config.GetConfig().Product.MongoDatabasePort,
-				e2e_config.GetConfig().Product.MongoAuthDatabase,
+
+		y.Name = name
+		y.PodName = pod
+
+		if mb.replicaCount > 1 {
+			y.MongoConnUrl = fmt.Sprintf(
+				"mongodb.url=mongodb://%s-0.%s.%s.svc.cluster.local:%d/?replicaSet=%s",
+				release,
+				MongoHeadlessSvc,
+				ns,
+				MongoPort,
+				MongoReplicaSetName,
 			)
 		} else {
-			mongoUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb.%s.svc.cluster.local:%d/%s",
-				e2e_config.GetConfig().Product.MongoAuthUsername,
-				e2e_config.GetConfig().Product.MongoAuthPassword,
-				mb.releaseName,
-				mb.namespace,
-				e2e_config.GetConfig().Product.MongoDatabasePort,
-				e2e_config.GetConfig().Product.MongoAuthDatabase,
+			y.MongoConnUrl = fmt.Sprintf(
+				"mongodb.url=mongodb://%s.%s.svc.cluster.local:%d",
+				MongoSvcName,
+				ns,
+				MongoPort,
 			)
 		}
-		logf.Log.Info("YCSB Mongo Connection URL", "url", mongoUrl)
-		ycsb.MongoConnUrl = mongoUrl
+		ycsb = *y
 	}
 
-	ma.Ycsb = mb.ycsb
-
-	mongoApp := MongoApp{
-		Ycsb:  *ycsb,
-		Mongo: ma,
-	}
-	return mongoApp, nil
+	return MongoApp{Mongo: mongo, Ycsb: ycsb}, nil
 }
 
-func (mb *mongoBuilder) Upgrade(app *MongoApp) (MongoApp, error) {
-	err := k8stest.UpgradeHelmChartForValues(e2e_config.GetConfig().Product.MongoHelmRepo, mb.namespace, app.Mongo.ReleaseName, mb.values)
+func (mb *mongoBuilder) Upgrade(old *MongoApp) (MongoApp, error) {
+	log := logf.Log.WithName("mongo-upgrade")
+	ns := old.Mongo.Namespace
+
+	if !mb.useExistingPVC {
+		return MongoApp{}, fmt.Errorf("Upgrade requires WithPvc() to be set")
+	}
+
+	log.Info("Upgrading Mongo using existing PVC",
+		"pvc", mb.existingPVC,
+		"release", old.Mongo.ReleaseName,
+	)
+
+	newMongo := old.Mongo
+	newMongo.PvcName = mb.existingPVC
+
+	_ = k8stest.DeleteStatefulset(old.Mongo.StsName, ns)
+
+	if err := createMongoStatefulSet(mb); err != nil {
+		return MongoApp{}, err
+	}
+
+	if err := waitForMongoPods(ns, newMongo.ReplicaCount); err != nil {
+		return MongoApp{}, err
+	}
+
+	volUUID, err := getMongoVolumeUUID(mb)
 	if err != nil {
 		return MongoApp{}, err
 	}
-	upgradedMongoApp := *app
-	err = upgradedMongoApp.Mongo.MongoInstallReady()
+
+	newMongo.VolUuid = volUUID
+	newMongo.Pod.Name = fmt.Sprintf("%s-0", newMongo.StsName)
+	newMongo.Pod.Namespace = ns
+
+	return MongoApp{
+		Mongo: newMongo,
+		Ycsb:  old.Ycsb,
+	}, nil
+}
+
+func applyMongoServices(namespace string) error {
+	rootDir := e2e_config.GetConfig().OpenEbsE2eRootDir
+	filePath := fmt.Sprintf("%s/configurations/service_mongo.yaml", rootDir)
+	return k8stest.KubeCtlApplyYaml(filePath, rootDir)
+}
+
+func createMongoStatefulSet(mb *mongoBuilder) error {
+	ns := mb.namespace
+	replicas := int32(mb.replicaCount)
+
+	command := []string{"mongod", "--bind_ip_all"}
+	if mb.replicaCount > 1 {
+		command = append(command, "--replSet", MongoReplicaSetName)
+	}
+
+	containerBuilder := k8stest.NewContainerBuilder().
+		WithName(MongoPod).
+		WithImage(e2e_config.GetConfig().Product.MongoImage).
+		WithCommandNew(command).
+		WithPortsNew([]corev1.ContainerPort{
+			{ContainerPort: MongoPort},
+		}).
+		WithVolumeMountsNew([]corev1.VolumeMount{
+			{
+				Name:      MongoPVCName,
+				MountPath: MongoMountPath,
+			},
+		})
+
+	podTmplBuilder := k8stest.NewPodtemplatespecBuilder().
+		WithLabelsNew(map[string]string{"app": MongoPod}).
+		WithContainerBuildersNew(containerBuilder)
+
+	if mb.useExistingPVC {
+		volumeBuilder := k8stest.NewVolumeBuilder().
+			WithName(MongoPVCName).
+			WithPVCSource(mb.existingPVC)
+
+		podTmplBuilder = podTmplBuilder.WithVolumeBuildersNew(volumeBuilder)
+	}
+
+	stsBuilder := k8stest.NewStatefulsetBuilder().
+		WithName(MongoStsName).
+		WithNamespace(ns).
+		WithLabels(map[string]string{"app": MongoPod}).
+		WithSelectorMatchLabels(map[string]string{"app": MongoPod}).
+		WithReplicas(&replicas).
+		WithPodTemplateSpecBuilder(podTmplBuilder)
+
+	if !mb.useExistingPVC {
+		stsBuilder = stsBuilder.WithVolumeClaimTemplate(
+			MongoPVCName,
+			fmt.Sprintf("%dGi", mb.pvcSizeGi),
+			mb.scName,
+			common.VolFileSystem,
+		)
+	}
+
+	sts, err := stsBuilder.Build()
 	if err != nil {
-		return MongoApp{}, err
+		return err
 	}
-	ycsb := k8stest.NewYCSB()
-	if mb.ycsb {
-		ycsb.Namespace = mb.namespace
-		ycsb.NodeSelector = mb.nodeSelector
-		name, podName, err := ycsb.DeployYcsbApp(mb.pvcName)
-		if err != nil {
-			return MongoApp{}, err
-		}
-		ycsb.Name = name
-		ycsb.PodName = podName
-		var mongoUrl string
-		if mb.architecture != Standalone {
-			mongoUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb-headless.%s.svc.cluster.local:%d/%s",
-				e2e_config.GetConfig().Product.MongoAuthUsername,
-				e2e_config.GetConfig().Product.MongoAuthPassword,
-				mb.releaseName,
-				mb.namespace,
-				e2e_config.GetConfig().Product.MongoDatabasePort,
-				e2e_config.GetConfig().Product.MongoAuthDatabase,
-			)
-		} else {
-			mongoUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb.%s.svc.cluster.local:%d/%s",
-				e2e_config.GetConfig().Product.MongoAuthUsername,
-				e2e_config.GetConfig().Product.MongoAuthPassword,
-				mb.releaseName,
-				mb.namespace,
-				e2e_config.GetConfig().Product.MongoDatabasePort,
-				e2e_config.GetConfig().Product.MongoAuthDatabase,
-			)
-		}
-		logf.Log.Info("YCSB Mongo Connection URL", "url", mongoUrl)
-		ycsb.MongoConnUrl = fmt.Sprintf("mongodb.url=mongodb://%s:%s@%s-mongodb.%s.svc.cluster.local:%d/%s", e2e_config.GetConfig().Product.MongoAuthUsername, e2e_config.GetConfig().Product.MongoAuthPassword, mb.releaseName, mb.namespace, e2e_config.GetConfig().Product.MongoDatabasePort, e2e_config.GetConfig().Product.MongoAuthDatabase)
+
+	sts.Spec.ServiceName = MongoHeadlessSvc
+
+	return k8stest.CreateStatefulset(sts)
+}
+
+func initReplicaSet(ns, name string, replicas int) error {
+	members := []string{}
+	for i := 0; i < replicas; i++ {
+		members = append(members, fmt.Sprintf(
+			`{ _id: %d, host: "%s-%d.%s.%s.svc.cluster.local:%d" }`,
+			i, name, i, MongoHeadlessSvc, ns, MongoPort,
+		))
 	}
-	upgradedMongoApp.Ycsb = *ycsb
-	upgradedMongoApp.Mongo.Namespace = mb.namespace
-	upgradedMongoApp.Mongo.ReplicaCount = mb.values["replicaCount"].(int)
-	upgradedMongoApp.Mongo.ScName = mb.values["global.storageClass"].(string)
-	upgradedMongoApp.Mongo.PvcName = mb.pvcName
-	return upgradedMongoApp, err
+
+	cmd := fmt.Sprintf(
+		`mongo --quiet --eval 'rs.initiate({_id: "%s", members: [%s]})'`,
+		MongoReplicaSetName,
+		strings.Join(members, ","),
+	)
+
+	_, _, err := k8stest.ExecuteCommandInPod(ns, fmt.Sprintf("%s-0", name), cmd)
+	return err
+}
+
+func waitForMongoPods(ns string, replicas int) error {
+	timeout := time.After(MongoReadyTimeout)
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-timeout:
+			return fmt.Errorf("mongo pods not ready")
+		case <-ticker.C:
+			pods, err := k8stest.ListPodsWithLabel(ns, map[string]string{"app": "mongo"})
+			if err != nil || len(pods.Items) != replicas {
+				continue
+			}
+			sort.Slice(pods.Items, func(i, j int) bool {
+				return pods.Items[i].Name < pods.Items[j].Name
+			})
+			allReady := true
+			for _, p := range pods.Items {
+				if p.Status.Phase != corev1.PodRunning {
+					allReady = false
+					break
+				}
+				for _, cs := range p.Status.ContainerStatuses {
+					if !cs.Ready {
+						allReady = false
+						break
+					}
+				}
+			}
+			if allReady {
+				return nil
+			}
+		}
+	}
+}
+
+func getMongoVolumeUUID(mb *mongoBuilder) (string, error) {
+	var pvcName string
+
+	if mb.useExistingPVC {
+		pvcName = mb.existingPVC
+	} else {
+		pvcName = fmt.Sprintf("%s-%s-0", MongoPVCName, MongoStsName)
+	}
+
+	pvc, err := k8stest.GetPVC(pvcName, mb.namespace)
+	if err != nil {
+		return "", fmt.Errorf("failed to get pvc %s: %w", pvcName, err)
+	}
+
+	if pvc.Spec.VolumeName == "" {
+		return "", fmt.Errorf("pvc %s is not bound yet", pvcName)
+	}
+
+	pv, err := k8stest.GetPV(pvc.Spec.VolumeName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get pv %s: %w", pvc.Spec.VolumeName, err)
+	}
+
+	if pv.Spec.CSI == nil || pv.Spec.CSI.VolumeHandle == "" {
+		return "", fmt.Errorf("pv %s has no CSI volume handle", pv.Name)
+	}
+
+	return pv.Spec.CSI.VolumeHandle, nil
 }

@@ -29,69 +29,69 @@ const (
 )
 
 type ProductSpec struct {
-	AgentCoreContainerName            string            `yaml:"agentCoreContainerName" env-default:"agent-core"`
-	AlertManagerPodPrefix             string            `yaml:"alertManagerPodPrefix" env-default:"alertmanager"`
-	ControlPlaneAgent                 string            `yaml:"controlPlaneAgent" env-default:"core-agents"`
-	ControlPlaneCoreAgent             string            `yaml:"controlPlaneCoreAgent" env-default:"agent-core"`
-	ControlPlaneCsiController         string            `yaml:"controlPlaneCsiController" env-default:"csi-controller"`
-	ControlPlaneEtcd                  string            `yaml:"controlPlaneEtcd" env-default:"mayastor-etcd"`
-	ControlPlaneLoki                  string            `yaml:"controlPlaneLoki" env-default:"mayastor-loki"`
-	ControlPlaneMinio                 string            `yaml:"controlPlaneMinio" env-default:"mayastor-minio"`
-	ControlPlaneAlloy                 string            `yaml:"controlPlaneAlloy" env-default:"mayastor-alloy"`
-	ControlPlanePoolOperator          string            `yaml:"controlPlanePoolOperator" env-default:"msp-operator"`
-	ControlPlaneRestServer            string            `yaml:"controlPlaneRestServer" env-default:"rest"`
-	ControlPlaneLocalpvProvisioner    string            `yaml:"controlPlaneLocalpvProvisioner" env-default:"mayastor-localpv-provisioner"`
-	ControlPlaneObsCallhome           string            `yaml:"controlPlaneObsCallhome" env-default:"mayastor-obs-callhome"`
-	CpuCount                          string            `yaml:"cpuCount" env-default:"2"`
-	CrdGroupName                      string            `yaml:"crdGroupName" env-default:"openebs.io"`
-	CrdPoolsResourceName              string            `yaml:"crdPoolsResourceName" env-default:"mayastorpools"`
-	CsiDaemonsetName                  string            `yaml:"csiDaemonsetName" env-default:"mayastor-csi-node"`
-	CsiNodeServiceAppLabel            string            `yaml:"csiNodeServiceAppLabel" env-default:"csi-node"`
-	CsiNodeServiceDaemonset           string            `yaml:"csiNodeServiceDaemonset" env-default:"mayastor-csi-node"`
-	CsiNodeContainerName              string            `yaml:"csiNodeContainerName" env-default:"csi-node"`
-	CsiProvisioner                    string            `yaml:"csiProvisioner" env-default:"io.openebs.csi-mayastor"`
-	DaemonsetName                     string            `yaml:"daemonsetName" env-default:"mayastor"`
-	DataPlaneNats                     string            `yaml:"dataPlaneNats" env-default:"nats"`
-	DockerOrganisation                string            `yaml:"dockerOrganisation" env-default:"openebs"`
-	DockerSecretName                  string            `yaml:"dockerSecretName" env-default:""`
-	EngineLabel                       string            `yaml:"engineLabel" env-default:"openebs.io/engine"`
-	EngineLabelValue                  string            `yaml:"engineLabelValue" env-default:"mayastor"`
-	EtcdYaml                          string            `yaml:"etcdYaml" env-default:"etcd"`
-	EventBusNatsSts                   string            `yaml:"eventBusNatsSts" env-default:"mayastor-nats"`
-	HaNodeAgentDs                     string            `yaml:"haNodeAgentDs" env-default:"mayastor-agent-ha-node"`
-	HaNodeAgentPodPrefix              string            `yaml:"haNodeAgentPodPrefix" env-default:"mayastor-agent-ha-node"`
-	HelmReleaseName                   string            `yaml:"helmReleaseName" env-default:"mayastor"`
-	OpenEBSHelmReleaseName            string            `yaml:"openEBSHelmReleaseName"`
-	IOEnginePodLabelValue             string            `yaml:"ioEnginePodLabelValue" env-default:"io-engine"`
-	IOEnginePodName                   string            `yaml:"ioEnginePodName"`
-	JaegersCrdName                    string            `yaml:"jaegersCrdName" env-default:"jaegers.jaegertracing.io"`
-	KubectlPluginName                 string            `yaml:"kubectlPluginName" env-default:"kubectl-mayastor" env:"e2e_kc_plugin"`
-	KubectlOpenebsPluginName          string            `yaml:"kubectlOpenebsPluginName" env-default:"kubectl-openebs"`
-	KubectlPluginPort                 int               `yaml:"kubectlPluginPort" env-default:"30011"`
-	LogConfigResources                []string          `yaml:"logConfigResources"`
-	LogDumpCsiAttacherName            string            `yaml:"logDumpCsiAttacherName" env-default:"csi-attacher"`
-	LogDumpCsiDriverRegistrarName     string            `yaml:"logDumpCsiDriverRegistrarName" env-default:"csi-driver-registrar"`
-	LogDumpCsiProvisionerName         string            `yaml:"logDumpCsiProvisionerName" env-default:"csi-provisioner"`
-	LogDumpCsiResizerName             string            `yaml:"logDumpCsiResizerName" env-default:"csi-resizer"`
-	LogDumpCsiSnapshotControllerName  string            `yaml:"logDumpCsiSnapshotControllerName" env-default:"csi-snapshot-controller"`
-	LogDumpCsiSnapshotterName         string            `yaml:"logDumpCsiSnapshotterName" env-default:"csi-snapshotter"`
-	LogDumpLokiMetricsName            string            `yaml:"logDumpLokiMetricsName" env-default:"loki-metrics"`
-	LogDumpLokiReloaderName           string            `yaml:"logDumpLokiReloaderName" env-default:"loki-reloader"`
-	LogDumpDirs                       []string          `yaml:"logDumpDirs"`
-	LogDumpEngineLabel                string            `yaml:"logDumpEngineLabel"`
-	LogDumpHaClusterName              string            `yaml:"logDumpHaClusterName"`
-	LogDumpMetricsExporterLabel       string            `yaml:"logDumpMetricsExporterLabel"`
-	LoggingLabel                      string            `yaml:"loggingLabel" env-default:"openebs.io/logging"`
-	LogLevel                          string            `yaml:"logLevel" env-default:"debug"`
-	LokiStatefulset                   string            `yaml:"lokiStatefulset" env-default:"mayastor-loki"`
-	MayastorPluginName                string            `yaml:"mayastorPluginName"`
-	MetricsPollingInterval            string            `yaml:"metricsPollingInterval" env-default:"30s"`
-	MongoAuthDatabase                 string            `yaml:"mongoAuthDatabase" env-default:"test"`
-	MongoAuthPassword                 string            `yaml:"mongoAuthPassword" env-default:"admin123"`
-	MongoAuthRootPassword             string            `yaml:"mongoAuthRootPassword" env-default:"r00tAdmin"`
-	MongoAuthUsername                 string            `yaml:"mongoAuthUsername" env-default:"admin"`
-	MongoDatabasePort                 int               `yaml:"mongoDatabasePort" env-default:"27017"`
-	MongoDefaultChartVersion          string            `yaml:"mongoDefaultChartVersion" env-default:"16.5.0"`
+	AgentCoreContainerName           string   `yaml:"agentCoreContainerName" env-default:"agent-core"`
+	AlertManagerPodPrefix            string   `yaml:"alertManagerPodPrefix" env-default:"alertmanager"`
+	ControlPlaneAgent                string   `yaml:"controlPlaneAgent" env-default:"core-agents"`
+	ControlPlaneCoreAgent            string   `yaml:"controlPlaneCoreAgent" env-default:"agent-core"`
+	ControlPlaneCsiController        string   `yaml:"controlPlaneCsiController" env-default:"csi-controller"`
+	ControlPlaneEtcd                 string   `yaml:"controlPlaneEtcd" env-default:"mayastor-etcd"`
+	ControlPlaneLoki                 string   `yaml:"controlPlaneLoki" env-default:"mayastor-loki"`
+	ControlPlaneMinio                string   `yaml:"controlPlaneMinio" env-default:"mayastor-minio"`
+	ControlPlaneAlloy                string   `yaml:"controlPlaneAlloy" env-default:"mayastor-alloy"`
+	ControlPlanePoolOperator         string   `yaml:"controlPlanePoolOperator" env-default:"msp-operator"`
+	ControlPlaneRestServer           string   `yaml:"controlPlaneRestServer" env-default:"rest"`
+	ControlPlaneLocalpvProvisioner   string   `yaml:"controlPlaneLocalpvProvisioner" env-default:"mayastor-localpv-provisioner"`
+	ControlPlaneObsCallhome          string   `yaml:"controlPlaneObsCallhome" env-default:"mayastor-obs-callhome"`
+	CpuCount                         string   `yaml:"cpuCount" env-default:"2"`
+	CrdGroupName                     string   `yaml:"crdGroupName" env-default:"openebs.io"`
+	CrdPoolsResourceName             string   `yaml:"crdPoolsResourceName" env-default:"mayastorpools"`
+	CsiDaemonsetName                 string   `yaml:"csiDaemonsetName" env-default:"mayastor-csi-node"`
+	CsiNodeServiceAppLabel           string   `yaml:"csiNodeServiceAppLabel" env-default:"csi-node"`
+	CsiNodeServiceDaemonset          string   `yaml:"csiNodeServiceDaemonset" env-default:"mayastor-csi-node"`
+	CsiNodeContainerName             string   `yaml:"csiNodeContainerName" env-default:"csi-node"`
+	CsiProvisioner                   string   `yaml:"csiProvisioner" env-default:"io.openebs.csi-mayastor"`
+	DaemonsetName                    string   `yaml:"daemonsetName" env-default:"mayastor"`
+	DataPlaneNats                    string   `yaml:"dataPlaneNats" env-default:"nats"`
+	DockerOrganisation               string   `yaml:"dockerOrganisation" env-default:"openebs"`
+	DockerSecretName                 string   `yaml:"dockerSecretName" env-default:""`
+	EngineLabel                      string   `yaml:"engineLabel" env-default:"openebs.io/engine"`
+	EngineLabelValue                 string   `yaml:"engineLabelValue" env-default:"mayastor"`
+	EtcdYaml                         string   `yaml:"etcdYaml" env-default:"etcd"`
+	EventBusNatsSts                  string   `yaml:"eventBusNatsSts" env-default:"mayastor-nats"`
+	HaNodeAgentDs                    string   `yaml:"haNodeAgentDs" env-default:"mayastor-agent-ha-node"`
+	HaNodeAgentPodPrefix             string   `yaml:"haNodeAgentPodPrefix" env-default:"mayastor-agent-ha-node"`
+	HelmReleaseName                  string   `yaml:"helmReleaseName" env-default:"mayastor"`
+	OpenEBSHelmReleaseName           string   `yaml:"openEBSHelmReleaseName"`
+	IOEnginePodLabelValue            string   `yaml:"ioEnginePodLabelValue" env-default:"io-engine"`
+	IOEnginePodName                  string   `yaml:"ioEnginePodName"`
+	JaegersCrdName                   string   `yaml:"jaegersCrdName" env-default:"jaegers.jaegertracing.io"`
+	KubectlPluginName                string   `yaml:"kubectlPluginName" env-default:"kubectl-mayastor" env:"e2e_kc_plugin"`
+	KubectlOpenebsPluginName         string   `yaml:"kubectlOpenebsPluginName" env-default:"kubectl-openebs"`
+	KubectlPluginPort                int      `yaml:"kubectlPluginPort" env-default:"30011"`
+	LogConfigResources               []string `yaml:"logConfigResources"`
+	LogDumpCsiAttacherName           string   `yaml:"logDumpCsiAttacherName" env-default:"csi-attacher"`
+	LogDumpCsiDriverRegistrarName    string   `yaml:"logDumpCsiDriverRegistrarName" env-default:"csi-driver-registrar"`
+	LogDumpCsiProvisionerName        string   `yaml:"logDumpCsiProvisionerName" env-default:"csi-provisioner"`
+	LogDumpCsiResizerName            string   `yaml:"logDumpCsiResizerName" env-default:"csi-resizer"`
+	LogDumpCsiSnapshotControllerName string   `yaml:"logDumpCsiSnapshotControllerName" env-default:"csi-snapshot-controller"`
+	LogDumpCsiSnapshotterName        string   `yaml:"logDumpCsiSnapshotterName" env-default:"csi-snapshotter"`
+	LogDumpLokiMetricsName           string   `yaml:"logDumpLokiMetricsName" env-default:"loki-metrics"`
+	LogDumpLokiReloaderName          string   `yaml:"logDumpLokiReloaderName" env-default:"loki-reloader"`
+	LogDumpDirs                      []string `yaml:"logDumpDirs"`
+	LogDumpEngineLabel               string   `yaml:"logDumpEngineLabel"`
+	LogDumpHaClusterName             string   `yaml:"logDumpHaClusterName"`
+	LogDumpMetricsExporterLabel      string   `yaml:"logDumpMetricsExporterLabel"`
+	LoggingLabel                     string   `yaml:"loggingLabel" env-default:"openebs.io/logging"`
+	LogLevel                         string   `yaml:"logLevel" env-default:"debug"`
+	LokiStatefulset                  string   `yaml:"lokiStatefulset" env-default:"mayastor-loki"`
+	MayastorPluginName               string   `yaml:"mayastorPluginName"`
+	MetricsPollingInterval           string   `yaml:"metricsPollingInterval" env-default:"30s"`
+	MongoAuthDatabase                string   `yaml:"mongoAuthDatabase" env-default:"test"`
+	MongoAuthPassword                string   `yaml:"mongoAuthPassword" env-default:"admin123"`
+	MongoAuthRootPassword            string   `yaml:"mongoAuthRootPassword" env-default:"r00tAdmin"`
+	MongoAuthUsername                string   `yaml:"mongoAuthUsername" env-default:"admin"`
+	MongoDatabasePort                int      `yaml:"mongoDatabasePort" env-default:"27017"`
+
 	OpenEBSHelmChartName              string            `yaml:"openEBSHelmChartName"`
 	OpenEBSHelmRepoName               string            `yaml:"openEBSHelmRepoName"`
 	OpenEBSHelmRepoUrl                string            `yaml:"openEBSHelmRepoUrl"`
@@ -100,8 +100,9 @@ type ProductSpec struct {
 	MongoHelmRepoName                 string            `yaml:"mongoHelmRepoName" env-default:"bitnami"`
 	MongoHelmRepoUrl                  string            `yaml:"mongoHelmRepoUrl" env-default:"https://charts.bitnami.com/bitnami"`
 	MongoReleaseName                  string            `yaml:"mongoReleaseName" env-default:"ms-mongo"`
-	MongoImageRepository              string            `yaml:"mongoImageRepository" env-default:"bitnamilegacy/mongodb"`
-	MongoImageTag                     string            `yaml:"mongoImageTag" env-default:"8.0.6-debian-12-r1"`
+	MongoImageRepository              string            `yaml:"mongoImageRepository" env-default:"mongo"`
+	MongoServiceTemplate              string            `yaml:"mongoServiceTemplate" env-default:"{{ .ReleaseName }}-svc"`
+	MongoImage                        string            `yaml:"mongoImageTag" env-default:"mongo:7.0"`
 	NatsPort                          string            `yaml:"natsPort" env-default:"4222"`
 	NvmeControllerModel               string            `yaml:"nvmeControllerModel" env-default:"Mayastor NVMe controller"`
 	PartialRebuildCpTimeout           string            `yaml:"partialRebuildCpTimeout" env-default:"600s"`

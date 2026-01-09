@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	Standalone  Architecture = "standalone"
-	Replicaset  Architecture = "replicaset"
-	Replication Architecture = "replication"
+	Standalone   Architecture = "standalone"
+	Replicaset   Architecture = "replicaset"
+	Replication  Architecture = "replication"
+	replicaCount              = "replicaCount"
 )
 
 type Architecture string
@@ -22,47 +23,33 @@ func (a Architecture) String() string {
 }
 
 func CreateStorageClass(mb *mongoBuilder) (string, error) {
-	var err error
-	var poolsInCluster []common.MayastorPool
-	const sleepTime = 3
-	logf.Log.Info("Using Helm Chart Version", "replicaCount", mb.values["replicaCount"],
-		"mb.replicaCount", mb.replicaCount,
-		"arch", mb.architecture)
-	if mb.replicaCount == 0 && mb.architecture == Replicaset {
-		for ix := 0; ix < (k8stest.DefTimeoutSecs+sleepTime-1)/sleepTime; ix++ {
-			poolsInCluster, err = k8stest.ListMsPools()
-			if err != nil {
-				logf.Log.Info("ListMsPools", "Error", err)
-				time.Sleep(sleepTime * time.Second)
-				continue
-			}
-			break
-		}
-		if err != nil {
-			return "", fmt.Errorf("failed to list disk pools, error %v", err)
-		}
-		mb.replicaCount = len(poolsInCluster)
-	} else if mb.replicaCount == 0 && mb.architecture == Standalone {
-		mb.replicaCount = 1
-	}
 
-	name := fmt.Sprintf("mayastor-%s-%d-%s-%s", mb.architecture, mb.replicaCount, mb.provisioningType.String(), mb.filesystemType)
+	name := fmt.Sprintf(
+		"mayastor-mongo-%d-%s-%s",
+		mb.replicaCount,
+		common.ThinProvisioning.String(),
+		common.Ext4FsType,
+	)
+
 	scb := k8stest.NewScBuilder().
 		WithNamespace(mb.namespace).
+		WithName(name).
 		WithReplicas(mb.replicaCount).
-		WithProvisioningType(mb.provisioningType).
-		WithFileSystemType(mb.filesystemType).
-		WithCloneFsIdAsVolumeId(mb.CloneFsIdAsVolumeIdType)
-	if mb.architecture == Replicaset {
-		scb.WithStsAffinityGroup(common.StsAffinityGroupEnable)
-	}
-	if mb.filesystemType == common.BtrfsFsType {
-		scb.WithMountOption("nodatacow")
-	}
-	err = scb.WithName(name).BuildAndCreate()
-	if err != nil {
+		WithProvisioningType(common.ThinProvisioning).
+		WithFileSystemType(common.Ext4FsType).
+		WithCloneFsIdAsVolumeId(common.CloneFsIdAsVolumeIdNone)
+
+	scb.WithStsAffinityGroup(common.StsAffinityGroupEnable)
+
+	if err := scb.BuildAndCreate(); err != nil {
 		return "", err
 	}
+
+	logf.Log.Info("MongoDB StorageClass created",
+		"name", name,
+		"replicas", mb.replicaCount,
+	)
+
 	return name, nil
 }
 
