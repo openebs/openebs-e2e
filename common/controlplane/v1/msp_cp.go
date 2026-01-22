@@ -11,8 +11,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-
-
 type MayastorCpPool struct {
 	Id    string   `json:"id"`
 	Spec  mspSpec  `json:"spec"`
@@ -25,7 +23,7 @@ type mspSpec struct {
 	Labels      map[string]string `json:"labels"`
 	Node        string            `json:"node"`
 	Status      string            `json:"status"`
-	CordonDrain *CordonDrainSpec `json:"cordonDrain,omitempty"`
+	CordonDrain *CordonDrainSpec  `json:"cordonDrain,omitempty"`
 }
 
 // CordonDrainSpec represents the cordon drain specification structure
@@ -54,9 +52,9 @@ type mspState struct {
 	Status    string   `json:"status"`
 	Used      uint64   `json:"used"`
 	Committed uint64   `json:"committed"`
-    // Additional fields exposed by plugin JSON
-    DiskCapacityBytes  uint64 `json:"diskCapacity"`
-    MaxExpandableBytes uint64 `json:"maxExpandableSize"`
+	// Additional fields exposed by plugin JSON
+	DiskCapacityBytes  uint64 `json:"diskCapacity"`
+	MaxExpandableBytes uint64 `json:"maxExpandableSize"`
 }
 
 func (cp CPv1) CreatePoolOnInstall() bool {
@@ -88,11 +86,11 @@ func GetMayastorCpPool(name string) (*MayastorCpPool, error) {
 
 // Expose disk capacity and max expandable size in bytes for tests
 func (cp CPv1) GetPoolDiskCapacityAndMaxExpandable(name string) (uint64, uint64, error) {
-    p, err := GetMayastorCpPool(name)
-    if err != nil {
-        return 0, 0, err
-    }
-    return p.State.DiskCapacityBytes, p.State.MaxExpandableBytes, nil
+	p, err := GetMayastorCpPool(name)
+	if err != nil {
+		return 0, 0, err
+	}
+	return p.State.DiskCapacityBytes, p.State.MaxExpandableBytes, nil
 }
 
 func ListMayastorCpPools() ([]MayastorCpPool, error) {
@@ -173,9 +171,9 @@ func (cp CPv1) CordonPool(poolID string, constraints ...common.PoolCordonConstra
 		}
 	}
 	logf.Log.Info("Executing cordon pool command", "pool", poolID, "constraints", constraintStrings)
-	
+
 	args := []string{"-n", common.NSMayastor(), "cordon", "pool"}
-	
+
 	// Add constraint flags if specified
 	for _, constraint := range constraints {
 		switch constraint {
@@ -189,23 +187,23 @@ func (cp CPv1) CordonPool(poolID string, constraints ...common.PoolCordonConstra
 			args = append(args, "--import")
 		}
 	}
-	
+
 	args = append(args, poolID)
-	
+
 	// Log the actual command being executed
 	logf.Log.Info("Executing command", "command", "mayastor", "args", args)
-	
+
 	cmd := GetMayastorPluginCmd(args...)
-	
+
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
-	
+
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("plugin failed to cordon pool %s with constraints %v, error %v, output: %s", poolID, constraintStrings, err, out.String())
 	}
-	
+
 	logf.Log.Info("Successfully cordoned pool", "pool", poolID, "constraints", constraintStrings, "output", out.String())
 	return nil
 }
@@ -219,9 +217,9 @@ func (cp CPv1) UnCordonPool(poolID string, constraints ...common.PoolCordonConst
 		}
 	}
 	logf.Log.Info("Executing uncordon pool command", "pool", poolID, "constraints", constraintStrings)
-	
+
 	args := []string{"-n", common.NSMayastor(), "uncordon", "pool"}
-	
+
 	// Add constraint flags if specified
 	for _, constraint := range constraints {
 		switch constraint {
@@ -235,23 +233,23 @@ func (cp CPv1) UnCordonPool(poolID string, constraints ...common.PoolCordonConst
 			args = append(args, "--import")
 		}
 	}
-	
+
 	args = append(args, poolID)
-	
+
 	// Log the actual command being executed
 	logf.Log.Info("Executing command", "command", "mayastor", "args", args)
-	
+
 	cmd := GetMayastorPluginCmd(args...)
-	
+
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
-	
+
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("plugin failed to uncordon pool %s with constraints %v, error %v, output: %s", poolID, constraintStrings, err, out.String())
 	}
-	
+
 	logf.Log.Info("Successfully uncordoned pool", "pool", poolID, "constraints", constraintStrings, "output", out.String())
 	return nil
 }
@@ -259,40 +257,40 @@ func (cp CPv1) UnCordonPool(poolID string, constraints ...common.PoolCordonConst
 // GetPoolCordonStatus gets the current cordon status of a pool
 func (cp CPv1) GetPoolCordonStatus(poolID string) (*PoolCordonStatus, error) {
 	logf.Log.Info("Getting cordon status for pool", "pool", poolID)
-	
+
 	args := []string{"-n", common.NSMayastor(), "-ojson", "get", "pool", poolID}
-	
+
 	// Log the actual command being executed
 	logf.Log.Info("Executing command", "command", "mayastor", "args", args)
-	
+
 	cmd := GetMayastorPluginCmd(args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
-	
+
 	err := cmd.Run()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cordon status for pool %s, error %v", poolID, err)
 	}
-	
+
 	outputString := out.String()
 	var poolInfo MayastorCpPool
 	err = json.Unmarshal([]byte(outputString), &poolInfo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal command output for pool %s, error %v", outputString, err)
 	}
-	
+
 	status := &PoolCordonStatus{
-		PoolID: poolID,
+		PoolID:     poolID,
 		IsCordoned: poolInfo.Spec.CordonDrain != nil && poolInfo.Spec.CordonDrain.Cordoned != nil && poolInfo.Spec.CordonDrain.Cordoned.IsCordoned(),
 	}
-	
+
 	if poolInfo.Spec.CordonDrain != nil && poolInfo.Spec.CordonDrain.Cordoned != nil {
 		// Parse the cordon constraints from the YAML structure
 		// The cordonDrain field contains the constraint information
 		status.Constraints = parseCordonConstraints(poolInfo.Spec.CordonDrain.Cordoned)
 	}
-	
+
 	return status, nil
 }
 
@@ -309,10 +307,10 @@ func parseCordonConstraints(cordoned *PoolCordonedState) []string {
 	if cordoned == nil {
 		return []string{}
 	}
-	
+
 	// Parse cordonDrain field for constraints
 	constraints := []string{}
-	
+
 	if cordoned.Replicas {
 		constraints = append(constraints, "replicas")
 	}
@@ -325,30 +323,69 @@ func parseCordonConstraints(cordoned *PoolCordonedState) []string {
 	if cordoned.Import {
 		constraints = append(constraints, "import")
 	}
-	
+
 	return constraints
 }
 
 // ExpandPoolViaPlugin uses kubectl mayastor plugin to expand the pool
 func (cp CPv1) ExpandPoolViaPlugin(poolName string) error {
-    logf.Log.Info("Expanding pool via plugin", "pool", poolName)
-    
-    args := []string{"-n", common.NSMayastor(), "expand", "pool", poolName}
-    
-    // Log the actual command being executed
-    logf.Log.Info("Executing command", "command", "kubectl mayastor", "args", args)
-    
-    cmd := GetMayastorPluginCmd(args...)
-    
-    var out bytes.Buffer
-    cmd.Stdout = &out
-    cmd.Stderr = &out
-    
-    err := cmd.Run()
-    if err != nil {
-        return fmt.Errorf("plugin failed to expand pool %s, error %v, output: %s", poolName, err, out.String())
-    }
-    
-    logf.Log.Info("Successfully expanded pool via plugin", "pool", poolName, "output", out.String())
-    return nil
+	logf.Log.Info("Expanding pool via plugin", "pool", poolName)
+
+	args := []string{"-n", common.NSMayastor(), "expand", "pool", poolName}
+
+	// Log the actual command being executed
+	logf.Log.Info("Executing command", "command", "kubectl mayastor", "args", args)
+
+	cmd := GetMayastorPluginCmd(args...)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("plugin failed to expand pool %s, error %v, output: %s", poolName, err, out.String())
+	}
+
+	logf.Log.Info("Successfully expanded pool via plugin", "pool", poolName, "output", out.String())
+	return nil
+}
+
+// Common Utilities for Offline Pool Deletion Tests
+
+// DeletePoolViaPlugin uses kubectl mayastor plugin to delete the pool
+func (cp CPv1) DeleteOfflinePoolViaPlugin(poolName string, flags ...common.OfflinePoolDelete) error {
+	logf.Log.Info("Deleting pool via plugin", "pool", poolName)
+	args := []string{"-n", common.NSMayastor(), "delete", "pool", poolName}
+
+	// Add constraint flags if specified
+	for _, flag := range flags {
+		switch flag {
+		case common.PurgePool:
+			args = append(args, "--purge")
+		case common.ConfirmPoolDelete:
+			args = append(args, "--confirm")
+		case common.ConfirmDataLoss:
+			args = append(args, "--confirm-data-loss")
+		case common.ConfirmSnapshotLoss:
+			args = append(args, "--confirm-snapshot-loss")
+		}
+	}
+
+	// Log the actual command being executed
+	logf.Log.Info("Executing command", "command", "kubectl mayastor", "args", args)
+
+	cmd := GetMayastorPluginCmd(args...)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("plugin failed to delete pool %s, error %v, output: %s", poolName, err, out.String())
+	}
+
+	logf.Log.Info("Successfully deleted pool via plugin", "pool", poolName, "output", out.String())
+	return nil
 }

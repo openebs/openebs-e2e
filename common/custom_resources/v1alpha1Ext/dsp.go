@@ -309,3 +309,7 @@ func (ifc v1alpha1ExtIfc) AnnotatePoolForExpansion(poolName string) error {
 func (ifc v1alpha1ExtIfc) VerifyPoolCapacityAndMaxExpansion(poolName string, expectedCapacity uint64, expectedMaxExpansion string) error {
 	panic(fmt.Errorf("pool capacity and max expansion verification not supported in v1alpha1Ext"))
 }
+
+func (ifc v1alpha1ExtIfc) AnnotateOfflinePoolForDelete(poolName string, opts ...string) error {
+	panic(fmt.Errorf("annotate offline pool for delete not supported in v1alpha1Ext"))
+}

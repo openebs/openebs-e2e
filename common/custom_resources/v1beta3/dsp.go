@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/openebs/openebs-e2e/common"
 
@@ -484,4 +485,60 @@ func (ifc v1beta3Ifc) VerifyPoolCapacityAndMaxExpansion(poolName string, expecte
 		"capacity", actualCapacity,
 		"maxExpansion", actualMaxExpansion)
 	return nil
+}
+
+// AnnotateOfflinePoolForDelete adds the openebs.io/delete-opts annotation for offline pool deletion
+// with specified options passed as strings
+func (ifc v1beta3Ifc) AnnotateOfflinePoolForDelete(poolName string, opts ...string) error {
+	res, err := poolClientSet.DiskPools().Get(context.TODO(), poolName, metaV1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get pool %s: %v", poolName, err)
+	}
+	if res == nil {
+		return fmt.Errorf("pool %s not found", poolName)
+	}
+
+	// Build the annotation value based on provided options
+	annotationValue := ifc.buildDeleteOptsAnnotation(opts...)
+
+	if annotationValue == "" {
+		return fmt.Errorf("at least one delete option must be specified")
+	}
+
+	// Add or update the delete-opts annotation for offline pool
+	if res.Annotations == nil {
+		res.Annotations = make(map[string]string)
+	}
+	res.Annotations[common.DeleteOptsAnnotation] = annotationValue
+
+	_, err = poolClientSet.DiskPools().Update(context.TODO(), res, metaV1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to annotate offline pool %s for deletion: %v", poolName, err)
+	}
+
+	logf.Log.Info("Successfully annotated offline pool for deletion", "pool", poolName, "options", annotationValue)
+	return nil
+}
+
+// buildDeleteOptsAnnotation constructs the YAML-formatted annotation value from option strings
+func (ifc v1beta3Ifc) buildDeleteOptsAnnotation(opts ...string) string {
+	var parts []string
+	validOpts := map[string]string{
+		"purge":                 "purge: true",
+		"confirm":               "confirm: true",
+		"confirm_data_loss":     "confirm_data_loss: true",
+		"confirm_snapshot_loss": "confirm_snapshot_loss: true",
+	}
+
+	for _, opt := range opts {
+		if value, exists := validOpts[opt]; exists {
+			parts = append(parts, value)
+		}
+	}
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	return strings.Join(parts, "\n")
 }

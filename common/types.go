@@ -74,6 +74,7 @@ const (
 // PoolCordonConstraint represents the allowed constraint flags for pool cordon/uncordon operations.
 // Using a typed enum improves type safety over free-form strings.
 type PoolCordonConstraint int
+type OfflinePoolDelete int
 
 const (
 	// CordonReplicas prevents scheduling new replicas on the pool
@@ -84,6 +85,14 @@ const (
 	CordonRestores PoolCordonConstraint = iota
 	// CordonImport prevents importing the pool after node restart
 	CordonImport PoolCordonConstraint = iota
+	// purgePool deletes the pool and all its data without further confirmation
+	PurgePool OfflinePoolDelete = iota
+	// ConfirmPoolDelete requires confirmation to delete the pool
+	ConfirmPoolDelete OfflinePoolDelete = iota
+	// confirmDataLoss requires confirmation to delete the pool if data loss may occur
+	ConfirmDataLoss OfflinePoolDelete = iota
+	// confirmSnapshotLoss requires confirmation to delete the pool if snapshot loss may occur
+	ConfirmSnapshotLoss OfflinePoolDelete = iota
 )
 
 // String returns the CLI flag name corresponding to the constraint.
@@ -97,6 +106,22 @@ func (c PoolCordonConstraint) String() string {
 		return "restores"
 	case CordonImport:
 		return "import"
+	default:
+		return ""
+	}
+}
+
+// String returns the CLI flag name corresponding to the constraint.
+func (c OfflinePoolDelete) String() string {
+	switch c {
+	case PurgePool:
+		return "purge"
+	case ConfirmPoolDelete:
+		return "confirm"
+	case ConfirmDataLoss:
+		return "confirm-data-loss"
+	case ConfirmSnapshotLoss:
+		return "confirm-snapshot-loss"
 	default:
 		return ""
 	}
