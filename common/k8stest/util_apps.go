@@ -41,6 +41,12 @@ type dfaStatus struct {
 	monitor        *common.E2eFioPodOutputMonitor
 	deploymentName string
 	encryption     bool
+	volNames       []string
+	volUuidList    []string
+	msvList        []*common.MayastorVolume
+	createdPVCs    map[string]bool
+	// volumes was successfully created and volume is online
+	createdVolumes map[string]bool
 }
 
 type FioApp struct {
@@ -90,6 +96,7 @@ type FioApp struct {
 	KeepStorageClass                    bool   // If true, don't cleanup storage class during Cleanup(). Default: false
 	PoolClusterSize                     string // Mayastor pool allocation cluster size eg: "4MiB", "64KiB", "1GiB"
 	SkipVolumeVerification              bool
+	VolumeCount                         int
 }
 
 func (dfa *FioApp) DeployApp() error {
@@ -204,24 +211,43 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 		// fio pod container
 		container := MakeFioContainer(dfa.status.podName, podArgs)
 		//	container.ImagePullPolicy = coreV1.PullAlways
-		// volume claim details
-		volume := coreV1.Volume{
-			Name: "ms-volume",
-			VolumeSource: coreV1.VolumeSource{
-				PersistentVolumeClaim: &coreV1.PersistentVolumeClaimVolumeSource{
-					ClaimName: dfa.status.volName,
-				},
-			},
-		}
+
 		// create the fio pod
 		pod := NewPodBuilder("fio").
 			WithName(dfa.status.podName).
 			WithNamespace(common.NSDefault).
 			WithRestartPolicy(coreV1.RestartPolicyNever).
-			WithContainer(container).
-			WithVolume(volume).
-			WithVolumeDeviceOrMount(dfa.VolType)
+			WithContainer(container)
 		//		WithHostPath("tmp", "/tmp")
+
+		if dfa.VolumeCount > 0 && len(dfa.status.volNames) > 0 {
+			volumes := make([]coreV1.Volume, 0)
+			for i, volName := range dfa.status.volNames {
+				volume := coreV1.Volume{
+					Name: "ms-volume-" + fmt.Sprintf("%d", i),
+					VolumeSource: coreV1.VolumeSource{
+						PersistentVolumeClaim: &coreV1.PersistentVolumeClaimVolumeSource{
+							ClaimName: volName,
+						},
+					},
+				}
+				volumes = append(volumes, volume)
+			}
+			pod = pod.WithVolumes(volumes).
+				WithVolumeDevicesOrMounts(dfa.VolType, dfa.VolumeCount)
+		} else {
+			// volume claim details
+			volume := coreV1.Volume{
+				Name: "ms-volume",
+				VolumeSource: coreV1.VolumeSource{
+					PersistentVolumeClaim: &coreV1.PersistentVolumeClaimVolumeSource{
+						ClaimName: dfa.status.volName,
+					},
+				},
+			}
+			pod = pod.WithVolume(volume).
+				WithVolumeDeviceOrMount(dfa.VolType)
+		}
 
 		if dfa.AppNodeName != "" {
 			pod = pod.WithNodeName(dfa.AppNodeName)
@@ -252,9 +278,18 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 			case coreV1.PodSucceeded:
 				return nil
 			case coreV1.PodRunning:
-				dfa.status.msv, _ = GetMSV(dfa.status.volUuid)
-				logf.Log.Info("PodRunning", "msv", dfa.status.msv)
-				return nil
+				if len(dfa.status.volUuidList) > 0 {
+					for _, volUuid := range dfa.status.volUuidList {
+						msv, _ := GetMSV(volUuid)
+						dfa.status.msvList = append(dfa.status.msvList, msv)
+					}
+					logf.Log.Info("PodRunning", "msvList", dfa.status.msvList)
+					return nil
+				} else {
+					dfa.status.msv, _ = GetMSV(dfa.status.volUuid)
+					logf.Log.Info("PodRunning", "msv", dfa.status.msv)
+					return nil
+				}
 			case coreV1.PodFailed:
 				return fmt.Errorf("pod state is %v, %s", phase, podLogSynopsis)
 			}
@@ -268,6 +303,18 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 		labelValue := "fio"
 		labelselector := map[string]string{
 			labelKey: labelValue,
+		}
+		var volumeBuilderList []*VolumeBuilder
+		if dfa.VolumeCount > 0 && len(dfa.status.volNames) > 0 {
+			for i, volName := range dfa.status.volNames {
+				if volumeBuilderList == nil {
+					volumeBuilderList = []*VolumeBuilder{NewVolumeBuilder().WithName("ms-volume-" + fmt.Sprintf("%d", i)).WithPVCSource(volName)}
+				} else {
+					volumeBuilderList = append(volumeBuilderList, NewVolumeBuilder().WithName("ms-volume-"+fmt.Sprintf("%d", i)).WithPVCSource(volName))
+				}
+			}
+		} else {
+			volumeBuilderList = []*VolumeBuilder{NewVolumeBuilder().WithName("ms-volume").WithPVCSource(dfa.status.volName)}
 		}
 		deployment, err := NewDeploymentBuilder().
 			WithName(dfa.DeployName).
@@ -284,14 +331,11 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 							WithVolumeDeviceOrMount("ms-volume", dfa.VolType).
 							WithImagePullPolicy(coreV1.PullAlways).
 							WithArgumentsNew(podArgs)).
-					WithVolumeBuilders(
-						NewVolumeBuilder().
-							WithName("ms-volume").
-							WithPVCSource(dfa.status.volName),
-					),
+					WithVolumeBuilders(volumeBuilderList...),
 			).Build()
+
 		if err != nil {
-			return fmt.Errorf("failed to create deployment %s definition object in %s namesppace", dfa.DeployName, common.NSDefault)
+			return fmt.Errorf("failed to create deployment %s definition object in %s namespace", dfa.DeployName, common.NSDefault)
 		}
 
 		if dfa.AppNodeName != "" {
@@ -313,6 +357,15 @@ func (dfa *FioApp) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix string) 
 			time.Sleep(1 * time.Second)
 		}
 		if running {
+			if len(dfa.status.msvList) > 0 {
+				for i, volUuid := range dfa.status.volUuidList {
+					dfa.status.msvList[i], _ = GetMSV(volUuid)
+				}
+				logf.Log.Info("PodRunning", "msvList", dfa.status.msvList)
+			} else {
+				dfa.status.msv, _ = GetMSV(dfa.status.volUuid)
+				logf.Log.Info("PodRunning", "msv", dfa.status.msv)
+			}
 			dfa.status.msv, err = GetMSV(dfa.status.volUuid)
 			dfa.status.deploymentName = dfa.DeployName
 			if err != nil {
@@ -454,7 +507,15 @@ func (dfa *FioApp) CreateVolume() error {
 	}
 	dfa.status.suffix = decoration
 	decoration = strings.ToLower(dfa.Decor) + decoration
-	dfa.status.volName = decoration
+	if dfa.VolumeCount > 0 {
+		for i := 0; i < dfa.VolumeCount; i++ {
+			volName := fmt.Sprintf("%s-%d", decoration, i)
+			dfa.status.volNames = append(dfa.status.volNames, volName)
+		}
+	} else {
+		dfa.status.volName = decoration
+	}
+
 	if dfa.status.scName == "" {
 		dfa.status.scName = decoration
 		dfa.status.encryption = dfa.Encryption
@@ -514,28 +575,76 @@ func (dfa *FioApp) CreateVolume() error {
 	}
 	// Create the volume
 	if dfa.SnapshotName != "" {
-		dfa.status.volUuid, err = MkRestorePVC(dfa.VolSizeMb, dfa.status.volName, dfa.status.scName, common.NSDefault, dfa.VolType, dfa.SnapshotName, dfa.SkipRestoreVolumeVerification)
-		dfa.status.createdPVC = dfa.status.volUuid != ""
-		if err != nil {
-			return fmt.Errorf("failed to create pvc %s from snapshot source %s, %v", dfa.status.volName, dfa.SnapshotName, err)
-		} else if dfa.SkipRestoreVolumeVerification {
-			return err
+		if dfa.VolumeCount > 0 && len(dfa.status.volNames) > 0 {
+			dfa.status.createdPVCs = make(map[string]bool)
+			dfa.status.createdVolumes = make(map[string]bool)
+			for _, volName := range dfa.status.volNames {
+				volUuid, err := MkRestorePVC(dfa.VolSizeMb, volName, dfa.status.scName, common.NSDefault, dfa.VolType, dfa.SnapshotName, dfa.SkipRestoreVolumeVerification)
+				if err != nil {
+					return fmt.Errorf("failed to create pvc %s from snapshot source %s, %v", volName, dfa.SnapshotName, err)
+				} else if dfa.SkipRestoreVolumeVerification {
+					return err
+				}
+				dfa.status.createdPVCs[volName] = volUuid != ""
+				dfa.status.createdVolumes[volUuid] = volUuid != ""
+				dfa.status.volUuidList = append(dfa.status.volUuidList, volUuid)
+			}
+			logf.Log.Info("Volume", "uuid list", dfa.status.volUuidList)
+		} else {
+			dfa.status.volUuid, err = MkRestorePVC(dfa.VolSizeMb, dfa.status.volName, dfa.status.scName, common.NSDefault, dfa.VolType, dfa.SnapshotName, dfa.SkipRestoreVolumeVerification)
+			dfa.status.createdPVC = dfa.status.volUuid != ""
+			if err != nil {
+				return fmt.Errorf("failed to create pvc %s from snapshot source %s, %v", dfa.status.volName, dfa.SnapshotName, err)
+			} else if dfa.SkipRestoreVolumeVerification {
+				return err
+			}
+			logf.Log.Info("Volume", "uuid", dfa.status.volUuid)
+			dfa.status.createdVolume = true
 		}
 	} else {
-		dfa.status.volUuid, err = MakePVC(dfa.VolSizeMb, dfa.status.volName, dfa.status.scName, dfa.VolType, common.NSDefault, common.Mayastor, dfa.SkipVolumeVerification)
-		dfa.status.createdPVC = dfa.status.volUuid != ""
-		if err != nil {
-			return fmt.Errorf("failed to create pvc %s, %v", dfa.status.volName, err)
-		} else if dfa.SkipVolumeVerification {
-			return err
+		if dfa.VolumeCount > 0 && len(dfa.status.volNames) > 0 {
+			dfa.status.createdPVCs = make(map[string]bool)
+			dfa.status.createdVolumes = make(map[string]bool)
+			for _, volName := range dfa.status.volNames {
+				volUuid, err := MakePVC(dfa.VolSizeMb, volName, dfa.status.scName, dfa.VolType, common.NSDefault, common.Mayastor, dfa.SkipVolumeVerification)
+				if err != nil {
+					return fmt.Errorf("failed to create pvc %s, %v", volName, err)
+				} else if dfa.SkipVolumeVerification {
+					return err
+				}
+				dfa.status.createdPVCs[volName] = volUuid != ""
+				dfa.status.createdVolumes[volUuid] = volUuid != ""
+				dfa.status.volUuidList = append(dfa.status.volUuidList, volUuid)
+			}
+			logf.Log.Info("Volume", "uuid list", dfa.status.volUuidList)
+		} else {
+			dfa.status.volUuid, err = MakePVC(dfa.VolSizeMb, dfa.status.volName, dfa.status.scName, dfa.VolType, common.NSDefault, common.Mayastor, dfa.SkipVolumeVerification)
+			dfa.status.createdPVC = dfa.status.volUuid != ""
+			if err != nil {
+				return fmt.Errorf("failed to create pvc %s, %v", dfa.status.volName, err)
+			} else if dfa.SkipVolumeVerification {
+				return err
+			}
+			logf.Log.Info("Volume", "uid", dfa.status.volUuid)
+			dfa.status.createdVolume = true
 		}
 	}
-	dfa.status.createdVolume = true
-	logf.Log.Info("Volume", "uid", dfa.status.volUuid)
+
 	if dfa.WipeReplicas {
-		err = WipeVolumeReplicas(dfa.status.volUuid)
-		if err != nil {
-			return fmt.Errorf("failed to wipe volume replicas")
+		if dfa.VolumeCount > 0 && len(dfa.status.volUuidList) > 0 {
+			for _, volUuid := range dfa.status.volUuidList {
+				logf.Log.Info("Wipe volume replicas", "uuid", volUuid)
+				err = WipeVolumeReplicas(volUuid)
+				if err != nil {
+					return fmt.Errorf("failed to wipe volume %s replicas, error: %v", volUuid, err)
+				}
+			}
+		} else {
+			logf.Log.Info("Wipe volume replicas", "uuid", dfa.status.volUuid)
+			err = WipeVolumeReplicas(dfa.status.volUuid)
+			if err != nil {
+				return fmt.Errorf("failed to wipe volume %s replicas, error: %v", dfa.status.volUuid, err)
+			}
 		}
 	}
 	return err
@@ -597,14 +706,28 @@ func (dfa *FioApp) Cleanup() error {
 		}
 	}
 	// Only delete PVC and storage class if they were created by this instance
-	if dfa.status.createdPVC {
+	logf.Log.Info("Cleanup", "createdPVC", dfa.status.createdPVC, "scName", dfa.status.scName)
+
+	if dfa.VolumeCount > 0 && len(dfa.status.volNames) > 0 {
+		for volName, isCreated := range dfa.status.createdPVCs {
+			if isCreated {
+				err = RemovePVC(volName, dfa.status.scName, common.NSDefault, common.Mayastor)
+				if err != nil {
+					return fmt.Errorf("failed to delete pvc %s, err: %v", volName, err)
+				}
+			}
+		}
+	} else if dfa.status.createdPVC {
 		err = RemovePVC(dfa.status.volName, dfa.status.scName, common.NSDefault, common.Mayastor)
-		if err == nil && !dfa.KeepStorageClass {
-			// Only delete storage class if KeepStorageClass is false (default behavior)
-			err = RmStorageClass(dfa.status.scName)
+		if err != nil {
+			return fmt.Errorf("failed to delete pvc %s, err: %v", dfa.status.volName, err)
 		}
 	}
 
+	if err == nil && !dfa.KeepStorageClass {
+		// Only delete storage class if KeepStorageClass is false (default behavior)
+		err = RmStorageClass(dfa.status.scName)
+	}
 	return err
 }
 
@@ -852,6 +975,21 @@ func (dfa *FioApp) IsVolumeCreated() bool {
 // PVC was created and PVC may not be accessbile
 func (dfa *FioApp) IsPVCCreated() bool {
 	return dfa.status.createdPVC
+}
+
+// Get list of volume names for multiple volume FioApp
+func (dfa *FioApp) GetVolNames() []string {
+	return dfa.status.volNames
+}
+
+// Get list of volume UUIDs for multiple volume FioApp
+func (dfa *FioApp) GetVolUuidList() []string {
+	return dfa.status.volUuidList
+}
+
+// Get list of MayastorVolume objects for multiple volume FioApp
+func (dfa *FioApp) GetMsvList() []*common.MayastorVolume {
+	return dfa.status.msvList
 }
 
 func (dfa *FioApp) ScaleVolumeReplicas(v int) error {

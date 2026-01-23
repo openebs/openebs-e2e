@@ -258,6 +258,31 @@ func (b *PodBuilder) WithVolumeDeviceOrMount(volType common.VolumeType) *PodBuil
 	return b
 }
 
+func (b *PodBuilder) WithVolumeDevicesOrMounts(volType common.VolumeType, volCount int) *PodBuilder {
+	var volDeviceList []coreV1.VolumeDevice
+	var volMountList []coreV1.VolumeMount
+	for i := 0; i < volCount; i++ {
+		name := "ms-volume-" + fmt.Sprintf("%d", i)
+		volMount := coreV1.VolumeMount{
+			Name:      name,
+			MountPath: common.FioFsMountPoint + fmt.Sprintf("%d", i),
+		}
+		volMountList = append(volMountList, volMount)
+		volDevices := coreV1.VolumeDevice{
+			Name:       name,
+			DevicePath: common.FioBlockFilename + fmt.Sprintf("%d", i),
+		}
+		volDeviceList = append(volDeviceList, volDevices)
+	}
+	if volType == common.VolRawBlock {
+		b.WithVolumeDevices(volDeviceList)
+	} else {
+		b.WithVolumeMounts(volMountList)
+	}
+
+	return b
+}
+
 func (b *PodBuilder) WithHostPath(name string, hostPath string) *PodBuilder {
 	vHostPathDirectory := coreV1.HostPathDirectory
 	b.WithVolume(coreV1.Volume{
