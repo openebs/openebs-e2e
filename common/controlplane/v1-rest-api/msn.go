@@ -64,3 +64,8 @@ func (cp CPv1RestApi) GetMsNodeStatus(nodeName string) (string, error) {
 func (cp CPv1RestApi) UpdateNodeLabel(nodeName string, labelKey, labelValue string) error {
 	panic(fmt.Errorf("not implemented REST api"))
 }
+
+func (cp CPv1RestApi) DeleteOfflineNodeViaPlugin(nodeName string, flags ...common.OfflinePoolDelete) error {
+	// #TODO implement REST api for deleting offline node
+	panic(fmt.Errorf("not implemented REST api for deleting offline node"))
+}

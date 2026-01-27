@@ -128,6 +128,9 @@ type ControlPlaneInterface interface {
 
 	// Pool deletion abstraction
 	DeleteOfflinePoolViaPlugin(poolName string, constraints ...common.OfflinePoolDelete) error
+
+	// Node deletion abstraction
+	DeleteOfflineNodeViaPlugin(nodeName string, constraints ...common.OfflinePoolDelete) error
 }
 
 var ifc ControlPlaneInterface
@@ -520,4 +523,8 @@ func ExpandPoolViaPlugin(poolName string) error {
 
 func DeleteOfflinePoolViaPlugin(poolName string, flags ...common.OfflinePoolDelete) error {
 	return getControlPlane().DeleteOfflinePoolViaPlugin(poolName, flags...)
+}
+
+func DeleteOfflineNodeViaPlugin(nodeName string, flags ...common.OfflinePoolDelete) error {
+	return getControlPlane().DeleteOfflineNodeViaPlugin(nodeName, flags...)
 }
