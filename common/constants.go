@@ -104,3 +104,8 @@ const (
 	SleepTime                        = 3    // in seconds
 	ToLocalpvProvisionerImage        = "4.4.0"
 )
+
+// Annotations for delete options for offline pools
+const (
+	DeleteOptsAnnotation = "openebs.io/delete-opts"
+)

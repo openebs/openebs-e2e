@@ -66,3 +66,9 @@ func (cp CPv1RestApi) ListMsPools() ([]common.MayastorPool, error) {
 func (cp CPv1RestApi) ExpandPoolViaPlugin(poolName string) error {
 	panic(fmt.Errorf("pool expand via plugin is not implemented in REST API mode, use kubectl plugin mode"))
 }
+
+// DeleteOfflinePoolViaPlugin deletes the offline pool via control plane plugin
+// Note: This method is not implemented in REST API mode, returns an error
+func (cp CPv1RestApi) DeleteOfflinePoolViaPlugin(poolName string, flags ...common.OfflinePoolDelete) error {
+	panic(fmt.Errorf("pool delete via REST API is not implemented yet"))
+}

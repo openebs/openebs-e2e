@@ -51,4 +51,5 @@ type DiskPoolFunctions interface {
 	CreateMsPoolWithEncryptionAndMaxSize(poolName string, node string, disks []string, encryptionSecretName string, maxSize string, clusterSize string) (DiskPool, error)
 	AnnotatePoolForExpansion(poolName string) error
 	VerifyPoolCapacityAndMaxExpansion(poolName string, expectedCapacity uint64, expectedMaxExpansion string) error
+	AnnotateOfflinePoolForDelete(poolName string, opts ...string) error
 }
