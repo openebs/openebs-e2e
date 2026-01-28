@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/openebs/openebs-e2e/common"
@@ -122,6 +124,11 @@ type KernelModule struct {
 	PersistentPath string `json:"persistentPath"`
 }
 
+type DmDevice struct {
+	Device  string `json:"device"`
+	Sectors uint64 `json:"sectors"`
+}
+
 func sendRequest(reqType, url string, data interface{}) error {
 	_, err := sendRequestGetResponse(reqType, url, data, true)
 	return err
@@ -230,24 +237,68 @@ func DiskPartition(serverAddr string, cmd string) error {
 }
 
 // CreateFaultyDevice creates a device which returns an error on write IOs
-func CreateFaultyDevice(serverAddr, device, table string) error {
+func CreateFaultyDevice(serverAddr, device, table string) (string, error) {
 	url := "http://" + getAgentAddress(serverAddr) + "/createFaultyDevice"
+
 	data := Device{
 		Device: device,
 		Table:  table,
 	}
+
 	logf.Log.Info("Executing createFaultyDevice", "addr", serverAddr, "data", data)
-	return sendRequest("POST", url, data)
+
+	// Send request and get wrapped response
+	result, err := sendRequestGetResponse("POST", url, data, true)
+	if err != nil {
+		return result, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	// Unwrap response
+	out, errCode, err := UnwrapResult(result)
+	if err != nil {
+		return out, fmt.Errorf("unwrap failed: %v", err)
+	}
+
+	// Check agent error code
+	if errCode != ErrNone {
+		return out, fmt.Errorf(
+			"createFaultyDevice failed: errCode=%d output=%s",
+			errCode, out,
+		)
+	}
+
+	logf.Log.Info("createFaultyDevice succeeded", "output", out)
+
+	return out, nil
 }
 
 // DeleteFaultyDevice deletes a device which returns an error on write IOs
-func DeleteFaultyDevice(serverAddr, device string) error {
+func DeleteFaultyDevice(serverAddr, device string) (string, error) {
 	url := "http://" + getAgentAddress(serverAddr) + "/deleteFaultyDevice"
+
 	data := Device{
 		Device: device,
 	}
+
 	logf.Log.Info("Executing deleteFaultyDevice", "addr", serverAddr, "data", data)
-	return sendRequest("POST", url, data)
+
+	result, err := sendRequestGetResponse("POST", url, data, true)
+	if err != nil {
+		return result, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	out, errCode, err := UnwrapResult(result)
+	if err != nil {
+		return out, fmt.Errorf("unwrap failed: %v", err)
+	}
+
+	if errCode != ErrNone {
+		return out, fmt.Errorf("deleteFaultyDevice failed: errCode=%d output=%s", errCode, out)
+	}
+
+	logf.Log.Info("deleteFaultyDevice succeeded", "output", out)
+
+	return out, nil
 }
 
 // ControlDevice sets the specified to the specified state
@@ -453,6 +504,7 @@ func FsUnfreezeDevice(serverAddr string, devicePath string) (string, error) {
 // ListDevice list device
 func ListDevice(serverAddr string) (string, error) {
 	logf.Log.Info("Executing listdevice", "addr", serverAddr)
+	logf.Log.Info("Executing getaddress", "addr", getAgentAddress(serverAddr))
 	url := "http://" + getAgentAddress(serverAddr) + "/listdevice"
 	return sendRequestGetResponse("POST", url, nil, false)
 }
@@ -1599,4 +1651,137 @@ func IsHugePagesPersistent(serverAddr string) (bool, error) {
 	}
 	logf.Log.Info("IsHugePagesPersistent succeeded", "output", out)
 	return out == HugePageCount, err
+}
+
+func GetDeviceSizeInSectors(nodeAddr, device string) (uint64, error) {
+	url := "http://" + getAgentAddress(nodeAddr) + "/dm/getDeviceSectors"
+
+	resp, err := sendRequestGetResponse(
+		"POST",
+		url,
+		DmDevice{Device: device},
+		false,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	sectors, err := strconv.ParseUint(strings.TrimSpace(resp), 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse sectors %q: %w", resp, err)
+	}
+
+	return sectors, nil
+}
+
+func SetupTimeoutDevice(node, disk string) (string, error) {
+	sectors, err := GetDeviceSizeInSectors(node, disk)
+	if err != nil {
+		return "", err
+	}
+
+	url := "http://" + getAgentAddress(node) + "/dm/createPassThrough"
+
+	data := DmDevice{
+		Device:  disk,
+		Sectors: sectors,
+	}
+
+	logf.Log.Info("Executing SetupTimeoutDevice", "addr", node, "data", data)
+
+	result, err := sendRequestGetResponse("POST", url, data, true)
+	if err != nil {
+		return result, fmt.Errorf("request failed: %v", err)
+	}
+
+	out, code, err := UnwrapResult(result)
+	if err != nil {
+		return out, fmt.Errorf("unwrap failed: %v", err)
+	}
+
+	if code != ErrNone {
+		return out, fmt.Errorf("setup timeout failed: errCode=%d output=%s", code, out)
+	}
+
+	logf.Log.Info("SetupTimeoutDevice succeeded", "output", out)
+
+	return out, nil
+}
+
+func InjectIOTimeout(nodeAddr, disk string) (string, error) {
+	url := "http://" + getAgentAddress(nodeAddr) + "/dm/suspend"
+
+	data := DmDevice{Device: disk}
+
+	logf.Log.Info("Executing InjectIOTimeout", "addr", nodeAddr, "data", data)
+
+	result, err := sendRequestGetResponse("POST", url, data, true)
+	if err != nil {
+		return result, fmt.Errorf("request failed: %v", err)
+	}
+
+	out, code, err := UnwrapResult(result)
+	if err != nil {
+		return out, fmt.Errorf("unwrap failed: %v", err)
+	}
+
+	if code != ErrNone {
+		return out, fmt.Errorf("inject timeout failed: errCode=%d output=%s", code, out)
+	}
+
+	logf.Log.Info("InjectIOTimeout succeeded", "output", out)
+
+	return out, nil
+}
+
+func RecoverIOTimeout(nodeAddr, disk string) (string, error) {
+	url := "http://" + getAgentAddress(nodeAddr) + "/dm/resume"
+
+	data := DmDevice{Device: disk}
+
+	logf.Log.Info("Executing RecoverIOTimeout", "addr", nodeAddr, "data", data)
+
+	result, err := sendRequestGetResponse("POST", url, data, true)
+	if err != nil {
+		return result, fmt.Errorf("request failed: %v", err)
+	}
+
+	out, code, err := UnwrapResult(result)
+	if err != nil {
+		return out, fmt.Errorf("unwrap failed: %v", err)
+	}
+
+	if code != ErrNone {
+		return out, fmt.Errorf("recover timeout failed: errCode=%d output=%s", code, out)
+	}
+
+	logf.Log.Info("RecoverIOTimeout succeeded", "output", out)
+
+	return out, nil
+}
+
+func CleanupTimeoutDevice(nodeAddr, disk string) (string, error) {
+	url := "http://" + getAgentAddress(nodeAddr) + "/dm/remove"
+
+	data := DmDevice{Device: disk}
+
+	logf.Log.Info("Executing CleanupTimeoutDevice", "addr", nodeAddr, "data", data)
+
+	result, err := sendRequestGetResponse("POST", url, data, true)
+	if err != nil {
+		return result, fmt.Errorf("request failed: %v", err)
+	}
+
+	out, code, err := UnwrapResult(result)
+	if err != nil {
+		return out, fmt.Errorf("unwrap failed: %v", err)
+	}
+
+	if code != ErrNone {
+		return out, fmt.Errorf("cleanup timeout failed: errCode=%d output=%s", code, out)
+	}
+
+	logf.Log.Info("CleanupTimeoutDevice succeeded", "output", out)
+
+	return out, nil
 }
