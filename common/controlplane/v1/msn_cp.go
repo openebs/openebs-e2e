@@ -2,10 +2,11 @@ package v1
 
 // Utility functions for Mayastor control plane volume
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"path/filepath"
+	"strings"
 
 	"github.com/openebs/openebs-e2e/common"
 
@@ -160,5 +161,44 @@ func (cp CPv1) UpdateNodeLabel(nodeName string, labelKey, labelValue string) err
 		// Print the error message if the command fails
 		return fmt.Errorf("plugin failed to update node label %s: %v", nodeName, err)
 	}
+	return nil
+}
+
+// Common Utilities for Offline Node Deletion Tests
+
+// DeletePoolViaPlugin uses kubectl mayastor plugin to delete the pool
+func (cp CPv1) DeleteOfflineNodeViaPlugin(nodeName string, flags ...common.OfflinePoolDelete) error {
+	logf.Log.Info("Deleting pool via plugin", "pool", nodeName)
+	args := []string{"-n", common.NSMayastor(), "delete", "node", nodeName}
+
+	// Add constraint flags if specified
+	for _, flag := range flags {
+		switch flag {
+		case common.PurgePool:
+			args = append(args, "--purge")
+		case common.ConfirmPoolDelete:
+			args = append(args, "--confirm")
+		case common.ConfirmDataLoss:
+			args = append(args, "--confirm-data-loss")
+		case common.ConfirmSnapshotLoss:
+			args = append(args, "--confirm-snapshot-loss")
+		}
+	}
+
+	// Log the actual command being executed
+	logf.Log.Info("Executing command", "command", "kubectl mayastor", "args", args)
+
+	cmd := GetMayastorPluginCmd(args...)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("plugin failed to delete node %s, error %v, output: %s", nodeName, err, out.String())
+	}
+
+	logf.Log.Info("Successfully deleted node via plugin", "node", nodeName, "output", out.String())
 	return nil
 }

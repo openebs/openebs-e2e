@@ -284,6 +284,11 @@ func AnnotateOfflinePoolForDelete(poolName string, opts ...string) error {
 	return getDspFuncs().AnnotateOfflinePoolForDelete(poolName)
 }
 
+// DeleteOfflineNodeViaPluginCp deletes the offline node via control plane plugin
+func DeleteOfflineNodeViaPluginCp(nodeName string, flags ...common.OfflinePoolDelete) error {
+	return controlplane.DeleteOfflineNodeViaPlugin(nodeName, flags...)
+}
+
 // CheckAllMsPoolsAreOnline checks if all mayastor pools are online
 func CheckAllMsPoolsAreOnline() error {
 	initialise()
