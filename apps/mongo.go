@@ -329,7 +329,7 @@ func initReplicaSet(ns, name string, replicas int) error {
 	}
 
 	cmd := fmt.Sprintf(
-		`mongo --quiet --eval 'rs.initiate({_id: "%s", members: [%s]})'`,
+		`mongosh --quiet --eval 'rs.initiate({_id: "%s", members: [%s]})'`,
 		MongoReplicaSetName,
 		strings.Join(members, ","),
 	)
