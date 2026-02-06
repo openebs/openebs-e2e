@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
@@ -11,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"k8s.io/klog/v2"
@@ -85,6 +87,11 @@ type CmdList struct {
 type KernelModule struct {
 	Name           string `json:"name"`
 	PersistentPath string `json:"persistentPath"`
+}
+
+type DmDevice struct {
+	Device  string `json:"device"`
+	Sectors uint64 `json:"sectors"`
 }
 
 var Version = "undefined"
@@ -178,6 +185,11 @@ func handleRequests() {
 	router.HandleFunc("/isHugePagesPersistent", IsHugePagesPersistent).Methods("POST")
 	router.HandleFunc("/isHugePagesConfigured", IsHugePagesConfigured).Methods("POST")
 	router.HandleFunc("/restartService", RestartService).Methods("POST")
+	router.HandleFunc("/dm/createPassThrough", createPassThroughDevice).Methods("POST")
+	router.HandleFunc("/dm/suspend", suspendDevice).Methods("POST")
+	router.HandleFunc("/dm/resume", resumeDevice).Methods("POST")
+	router.HandleFunc("/dm/remove", removeDevice).Methods("POST")
+	router.HandleFunc("/dm/getDeviceSectors", getDeviceSizeInSectors).Methods("POST")
 
 	//LVM
 	router.HandleFunc("/lvmversion", LvmVersion).Methods("POST")
@@ -490,102 +502,124 @@ func GetProcessID(w http.ResponseWriter, r *http.Request) {
 }
 
 func createFaultyDevice(w http.ResponseWriter, r *http.Request) {
-	var (
-		device Device
-		cmd    *exec.Cmd
-	)
-	d := json.NewDecoder(r.Body)
-	if err := d.Decode(&device); err != nil {
-		fmt.Fprint(w, err.Error())
-		klog.Error("failed to read JSON encoded data, Error: ", err)
-	}
-	if len(device.Device) == 0 {
-		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no device passed")
-		klog.Error("no device passed")
-		return
-	}
-	if len(device.Table) == 0 {
-		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no table passed")
-		klog.Error("no table passed")
-		return
-	}
-	klog.Info("create faulty device ", device)
-	f, err := os.Create("table")
-	if err != nil {
-		klog.Error(err)
-		return
-	}
-	_, err = f.WriteString(device.Table)
-	if err != nil {
-		klog.Error(err)
-		f.Close()
-		return
-	}
-	err = f.Close()
-	if err != nil {
-		klog.Error(err)
-		return
-	}
-	devName := strings.Split(device.Device, "/")
 
-	cmdStr := "dmsetup create" + " " + devName[2] + " " + "table"
-	cmdArgs := strings.Split(cmdStr, " ")
-	cmdName := cmdArgs[0]
-	if len(cmdArgs) > 1 {
-		cmd = exec.Command(cmdName, cmdArgs[1:]...)
-	} else {
-		cmd = exec.Command(cmdName)
+	var device Device
+
+	// Decode request
+	if err := json.NewDecoder(r.Body).Decode(&device); err != nil {
+		klog.Error("decode failed:", err)
+		WrapResult(err.Error(), ErrJsonDecode, w)
+		return
 	}
-	output, err := cmd.CombinedOutput()
+
+	// Resolve symlink
+	backing, err := filepath.EvalSymlinks(device.Device)
 	if err != nil {
-		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
-		klog.Error(err)
-	} else {
-		fmt.Fprint(w, string(output))
-		klog.Info(string(output))
+		klog.Error("symlink resolve failed:", err)
+		WrapResult(err.Error(), ErrExecFailed, w)
+		return
 	}
+
+	// Prepare DM table
+	table := strings.ReplaceAll(device.Table, device.Device, backing)
+	dmName := filepath.Base(backing) + "-faulty"
+
+	klog.Infof("Creating faulty device: %s", dmName)
+
+	// Execute dmsetup
+	cmd := exec.Command(
+		"chroot", "/host",
+		"dmsetup", "--noudevsync",
+		"create", dmName,
+		"--table", table,
+	)
+
+	cmd.Stdin = nil
+
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		klog.Error("dmsetup create failed:", string(out))
+		WrapResult(string(out), ErrExecFailed, w)
+		return
+	}
+
+	klog.Infof("Created faulty device: %s", dmName)
+	WrapResult("created "+dmName, ErrNone, w)
 }
 
 func deleteFaultyDevice(w http.ResponseWriter, r *http.Request) {
-	var (
-		device Device
-		cmd    *exec.Cmd
-	)
-	d := json.NewDecoder(r.Body)
-	if err := d.Decode(&device); err != nil {
-		fmt.Fprint(w, err.Error())
-		klog.Error("failed to read JSON encoded data, Error: ", err)
-	}
-	if len(device.Device) == 0 {
-		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no device passed")
-		klog.Error("no device passed")
+	var device Device
+
+	if err := json.NewDecoder(r.Body).Decode(&device); err != nil {
+		klog.Error("decode failed:", err)
+		WrapResult(err.Error(), ErrJsonDecode, w)
 		return
 	}
-	klog.Info("delete faulty device ", device)
-	devName := strings.Split(device.Device, "/")
 
-	cmdStr := "dmsetup remove" + " " + devName[2]
-	cmdArgs := strings.Split(cmdStr, " ")
-	cmdName := cmdArgs[0]
-	if len(cmdArgs) > 1 {
-		cmd = exec.Command(cmdName, cmdArgs[1:]...)
-	} else {
-		cmd = exec.Command(cmdName)
-	}
-	output, err := cmd.CombinedOutput()
+	resolved, err := filepath.EvalSymlinks(device.Device)
 	if err != nil {
-		fmt.Println(err)
-		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
-		klog.Error("failed to delete faulty deice ", device, "Error: ", err)
-	} else {
-		fmt.Fprint(w, string(output))
-		klog.Info(string(output))
+		klog.Error("resolve failed:", err)
+		WrapResult(err.Error(), ErrExecFailed, w)
+		return
 	}
+
+	base := filepath.Base(resolved)
+	dmName := base + "-faulty"
+
+	klog.Infof("Removing DM device: %s", dmName)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(
+		ctx,
+		"chroot", "/host",
+		"dmsetup", "remove", "--retry",
+		dmName,
+	)
+
+	out, err := cmd.CombinedOutput()
+
+	// Timeout handling
+	if ctx.Err() == context.DeadlineExceeded {
+
+		// Check if device actually disappeared
+		if _, statErr := os.Stat("/host/dev/mapper/" + dmName); os.IsNotExist(statErr) {
+
+			klog.Warning("dm device removed:", dmName)
+
+			WrapResult("removed "+dmName, ErrNone, w)
+			return
+		}
+
+		msg := "dmsetup hung and device still exists"
+		klog.Error(msg)
+
+		WrapResult(msg, ErrExecFailed, w)
+		return
+	}
+
+	// check if dmsetup returned error
+	if err != nil {
+
+		if strings.Contains(string(out), "No such device") {
+
+			klog.Info("Device already removed:", dmName)
+
+			WrapResult("already removed "+dmName, ErrNone, w)
+			return
+		}
+
+		klog.Error("dmsetup remove failed:", string(out))
+
+		WrapResult(string(out), ErrExecFailed, w)
+		return
+	}
+
+	klog.Infof("Removed faulty device: %s", dmName)
+
+	WrapResult("removed "+dmName, ErrNone, w)
 }
 
 func controlDevice(w http.ResponseWriter, r *http.Request) {
@@ -1505,4 +1539,186 @@ func DisableNetworkInterface(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	WrapResult(string(output), ErrNone, w)
+}
+
+func resolveBlockDevice(dev string) (string, error) {
+	resolved, err := filepath.EvalSymlinks(dev)
+	if err != nil {
+		return "", err
+	}
+	return resolved, nil
+}
+
+func createPassThroughDevice(w http.ResponseWriter, r *http.Request) {
+	var req DmDevice
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		klog.Error("decode failed:", err)
+		WrapResult(err.Error(), ErrJsonDecode, w)
+		return
+	}
+
+	backing, err := resolveBlockDevice(req.Device)
+	if err != nil {
+		klog.Error("resolve failed:", err)
+		WrapResult(err.Error(), ErrExecFailed, w)
+		return
+	}
+
+	name := filepath.Base(backing) + "-timeout"
+	table := fmt.Sprintf("0 %d linear %s 0", req.Sectors, backing)
+
+	klog.Infof("Creating passthrough device: %s", name)
+
+	cmd := exec.Command("dmsetup", "create", name, "--table", table)
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		klog.Error("dmsetup create failed:", string(out))
+		WrapResult(string(out), ErrExecFailed, w)
+		return
+	}
+
+	klog.Infof("Created passthrough device: %s", name)
+	WrapResult("created "+name, ErrNone, w)
+}
+
+func suspendDevice(w http.ResponseWriter, r *http.Request) {
+
+	var req DmDevice
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		klog.Error("decode failed:", err)
+		WrapResult(err.Error(), ErrJsonDecode, w)
+		return
+	}
+
+	backing, err := resolveBlockDevice(req.Device)
+	if err != nil {
+		klog.Error("resolve failed:", err)
+		WrapResult(err.Error(), ErrExecFailed, w)
+		return
+	}
+
+	name := filepath.Base(backing) + "-timeout"
+
+	klog.Infof("Suspending device: %s", name)
+
+	cmd := exec.Command(
+		"chroot", "/host",
+		"dmsetup", "suspend",
+		"--noflush", "--nolockfs",
+		name,
+	)
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		klog.Error("dmsetup suspend failed:", string(out))
+		WrapResult(string(out), ErrExecFailed, w)
+		return
+	}
+
+	klog.Infof("Suspended device: %s", name)
+	WrapResult("suspended "+name, ErrNone, w)
+}
+
+func resumeDevice(w http.ResponseWriter, r *http.Request) {
+	var req DmDevice
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		klog.Error("decode failed:", err)
+		WrapResult(err.Error(), ErrJsonDecode, w)
+		return
+	}
+
+	backing, err := resolveBlockDevice(req.Device)
+	if err != nil {
+		klog.Error("resolve failed:", err)
+		WrapResult(err.Error(), ErrExecFailed, w)
+		return
+	}
+
+	name := filepath.Base(backing) + "-timeout"
+
+	klog.Infof("Resuming device: %s", name)
+
+	cmd := exec.Command(
+		"chroot", "/host",
+		"dmsetup", "resume",
+		name,
+	)
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		klog.Error("dmsetup resume failed:", string(out))
+		WrapResult(string(out), ErrExecFailed, w)
+		return
+	}
+
+	klog.Infof("Resumed device: %s", name)
+	WrapResult("resumed "+name, ErrNone, w)
+}
+
+func removeDevice(w http.ResponseWriter, r *http.Request) {
+	var req DmDevice
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		klog.Error("decode failed:", err)
+		WrapResult(err.Error(), ErrJsonDecode, w)
+		return
+	}
+
+	backing, err := resolveBlockDevice(req.Device)
+	if err != nil {
+		klog.Error("resolve failed:", err)
+		WrapResult(err.Error(), ErrExecFailed, w)
+		return
+	}
+
+	name := filepath.Base(backing) + "-timeout"
+
+	klog.Infof("Removing passthrough device: %s", name)
+
+	cmd := exec.Command("dmsetup", "remove", name)
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		klog.Error("dmsetup remove failed:", string(out))
+		WrapResult(string(out), ErrExecFailed, w)
+		return
+	}
+
+	klog.Infof("Removed passthrough device: %s", name)
+	WrapResult("removed "+name, ErrNone, w)
+}
+
+func getDeviceSizeInSectors(w http.ResponseWriter, r *http.Request) {
+	var req DmDevice
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		klog.Error("decode failed:", err)
+		WrapResult(err.Error(), ErrJsonDecode, w)
+		return
+	}
+
+	backing, err := resolveBlockDevice(req.Device)
+	if err != nil {
+		klog.Error("resolve failed:", err)
+		WrapResult(err.Error(), ErrExecFailed, w)
+		return
+	}
+
+	cmd := exec.Command("blockdev", "--getsz", backing)
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		klog.Error("blockdev failed:", string(out))
+		WrapResult(string(out), ErrExecFailed, w)
+		return
+	}
+
+	size := strings.TrimSpace(string(out))
+
+	klog.Infof("Device %s size(sectors): %s", backing, size)
+	WrapResult(size, ErrNone, w)
 }
