@@ -9,12 +9,14 @@ import (
 // FixME : error messages related to offline pool delete
 
 var (
-	PoolOnlineState                = "purge not allowed"
-	DeleteWithoutPurgeFlag         = "purge flag is required to delete pool, pool is not in online state"
-	DeleteOfflinePoolWithoutCordon = "cannot delete pool that is offline without cordoning it first"
-	DeleteOfflinePoolWithReplica   = "pool has replicas, cannot delete without confirm flag"
-	DeleteOfflinePoolWithSnapshots = "pool has snapshots, cannot delete without confirm snapshot loss flag"
-	DeleteOfflinePoolWithData      = "pool has data, cannot delete without confirm data loss flag" // last healthy replica is scheduled on this pool
+	PoolOnlineState                         = "purge not allowed"
+	DeleteWithoutPurgeFlag                  = "purge flag is required to delete pool, pool is not in online state"
+	DeleteOfflinePoolWithoutCordon          = "cannot delete pool that is offline without cordoning it first"
+	DeleteOfflinePoolWithReplica            = "pool has replicas, cannot delete without confirm flag"
+	DeleteOfflinePoolWithSnapshots          = "pool has snapshots, cannot delete without confirm snapshot loss flag"
+	DeleteOfflinePoolWithOnlyReplicaCordon  = "pool must be cordoned with snapshot and replica flag to delete pool"
+	DeleteOfflinePoolWithOnlySnapshotCordon = "pool must be cordoned with snapshot and replica flag to delete pool"
+	DeleteOfflinePoolWithData               = "pool has data, cannot delete without confirm data loss flag" // last healthy replica is scheduled on this pool
 )
 
 // DeleteOfflinePool deletes the offline pool via control plane plugin
