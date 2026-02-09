@@ -724,8 +724,10 @@ func (dfa *FioApp) Cleanup() error {
 		}
 	}
 
-	if err == nil && !dfa.KeepStorageClass {
+	if err == nil && !dfa.KeepStorageClass && dfa.status.scName != "" {
 		// Only delete storage class if KeepStorageClass is false (default behavior)
+		// and we have a valid storage class name. For imported volumes, scName may
+		// be empty, in which case we must not attempt to delete it.
 		err = RmStorageClass(dfa.status.scName)
 	}
 	return err
