@@ -70,6 +70,20 @@ func (p v1beta3DSP) GetCRStatus() string {
 	return ""
 }
 
+func (p v1beta3DSP) GetPoolReadyStatus() string {
+	if p.v1beta3 != nil {
+		return p.v1beta3.Status.Conditions[0].Status
+	}
+	return ""
+}
+
+func (p v1beta3DSP) GetPoolReadyReason() string {
+	if p.v1beta3 != nil {
+		return p.v1beta3.Status.Conditions[0].Reason
+	}
+	return ""
+}
+
 func (p v1beta3DSP) GetStatusCapacity() uint64 {
 	if p.v1beta3 != nil {
 		return p.v1beta3.Status.Capacity

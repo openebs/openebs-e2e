@@ -297,3 +297,11 @@ func (ifc v1beta2Ifc) VerifyPoolCapacityAndMaxExpansion(poolName string, expecte
 func (ifc v1beta2Ifc) AnnotateOfflinePoolForDelete(poolName string, opts ...string) error {
 	panic(fmt.Errorf("annotate offline pool for delete not supported in v1beta2"))
 }
+
+func (p v1beta2DSP) GetPoolReadyStatus() string {
+	panic(fmt.Errorf("Pool Ready condition not supported in v1beta2"))
+}
+
+func (p v1beta2DSP) GetPoolReadyReason() string {
+	panic(fmt.Errorf("Pool Ready condition not supported in v1beta2"))
+}
