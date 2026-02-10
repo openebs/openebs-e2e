@@ -10,13 +10,14 @@ import (
 )
 
 var (
-	DefTimeoutSecs            = 120 // in seconds
-	DefSleepTime              = 30  // in seconds
-	DefFioCompletionTime      = 420 // in seconds
-	DefPollTimeSecs           = 5   // in seconds
-	InsufficientStorageError  = "507 Insufficient Storage"
-	PvcShrinkErrorSubString   = " Forbidden: field can not be less than previous value"
-	SnapshotVolumeResizeError = "Volume can't be resized while it has snapshots, or it's a snapshot restore"
+	DefTimeoutSecs                = 120 // in seconds
+	DefSleepTime                  = 30  // in seconds
+	DefFioCompletionTime          = 420 // in seconds
+	DefPollTimeSecs               = 5   // in seconds
+	InsufficientStorageError      = "507 Insufficient Storage"
+	PvcShrinkErrorSubString       = " Forbidden: field can not be less than previous value"
+	PvcShrinkErrorSubStringLatest = " Forbidden: field can not be less than status.capacity"
+	SnapshotVolumeResizeError     = "Volume can't be resized while it has snapshots, or it's a snapshot restore"
 )
 
 // VerifyVolumeResize verify:
