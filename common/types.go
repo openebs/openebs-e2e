@@ -170,6 +170,7 @@ const (
 	DiskPoolCrCreated     DiskPoolCrState = iota
 	DiskPoolCrCreating    DiskPoolCrState = iota
 	DiskPoolCrTerminating DiskPoolCrState = iota
+	DiskPoolCrDeleted     DiskPoolCrState = iota
 )
 
 func (poolCrState DiskPoolCrState) String() string {
@@ -180,6 +181,8 @@ func (poolCrState DiskPoolCrState) String() string {
 		return "Creating"
 	case DiskPoolCrTerminating:
 		return "Terminating"
+	case DiskPoolCrDeleted:
+		return "Deleted"
 	default:
 		return ""
 	}
