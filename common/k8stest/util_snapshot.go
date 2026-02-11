@@ -16,6 +16,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -522,18 +523,33 @@ func RemoveSnapshotContentAnnotation(snapshotContentName string) error {
 	return getErr
 }
 
-// Add the Volume Snapshot content annotations
+// AddSnapshotContentAnnotation adds/updates an annotation on a VolumeSnapshotContent safely
 func AddSnapshotContentAnnotation(snapshotContentName, annotationKey, annotationValue string) error {
 	snapshotContentAPI := gTestEnv.CsiInt.SnapshotV1().VolumeSnapshotContents
-	snapshotContent, getErr := snapshotContentAPI().Get(context.TODO(), snapshotContentName, metaV1.GetOptions{})
-	if getErr != nil {
-		return fmt.Errorf("failed to get snapshot content: %s, error: %v", snapshotContentName, getErr)
+
+	patch := []byte(fmt.Sprintf(`{
+		"metadata": {
+			"annotations": {
+				"%s": "%s"
+			}
+		}
+	}`, annotationKey, annotationValue))
+
+	_, err := snapshotContentAPI().Patch(
+		context.TODO(),
+		snapshotContentName,
+		types.MergePatchType,
+		patch,
+		metaV1.PatchOptions{},
+	)
+	if err != nil {
+		return fmt.Errorf(
+			"failed to patch snapshot content %s annotation %s=%s: %w",
+			snapshotContentName, annotationKey, annotationValue, err,
+		)
 	}
 
-	snapshotContent.Annotations = map[string]string{annotationKey: annotationValue}
-	_, getErr = snapshotContentAPI().Update(context.TODO(), snapshotContent, metaV1.UpdateOptions{})
-
-	return getErr
+	return nil
 }
 
 // Get the Volume Snapshot content annotation
