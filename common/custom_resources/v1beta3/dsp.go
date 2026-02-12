@@ -84,6 +84,20 @@ func (p v1beta3DSP) GetPoolReadyReason() string {
 	return ""
 }
 
+func (p v1beta3DSP) GetPoolErrorCount() uint64 {
+	if p.v1beta3 != nil {
+		return p.v1beta3.Status.Diag.Errors.IOErrors
+	}
+	return 0
+}
+
+func (p v1beta3DSP) GetPoolAlertStatus() string {
+	if p.v1beta3 != nil {
+		return p.v1beta3.Status.Diag.Errors.Status
+	}
+	return ""
+}
+
 func (p v1beta3DSP) GetStatusCapacity() uint64 {
 	if p.v1beta3 != nil {
 		return p.v1beta3.Status.Capacity

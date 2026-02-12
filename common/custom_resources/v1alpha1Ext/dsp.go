@@ -321,3 +321,11 @@ func (p v1alpha1ExtDSP) GetPoolReadyStatus() string {
 func (p v1alpha1ExtDSP) GetPoolReadyReason() string {
 	panic(fmt.Errorf("Pool Ready condition not supported in v1alpha1Ext"))
 }
+
+func (p v1alpha1ExtDSP) GetPoolErrorCount() uint64 {
+	panic(fmt.Errorf("Pool error count not supported in v1alpha1Ext"))
+}
+
+func (p v1alpha1ExtDSP) GetPoolAlertStatus() string {
+	panic(fmt.Errorf("Pool alert status not supported in v1alpha1Ext"))
+}

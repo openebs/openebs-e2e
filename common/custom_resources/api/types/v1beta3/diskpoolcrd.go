@@ -36,19 +36,29 @@ type Condition struct {
 	Reason string `json:"reason,omitempty"`
 }
 
+type DiskPoolDiagErrors struct {
+	IOErrors uint64 `json:"io_errors,omitempty"`
+	Status   string `json:"status,omitempty"`
+}
+
+type DiskPoolDiag struct {
+	Errors DiskPoolDiagErrors `json:"errors,omitempty"`
+}
+
 type DiskPoolStatus struct {
-	Available         uint64      `json:"available"`
-	Capacity          uint64      `json:"capacity"`
-	Used              uint64      `json:"used"`
-	CRStatus          string      `json:"cr_state"`
-	PoolStatus        string      `json:"pool_status"`
-	Encrypted         bool        `json:"encrypted"`
-	CapacityQ         string      `json:"capacity_q"`
-	AvailableQ        string      `json:"available_q"`
-	UsedQ             string      `json:"used_q"`
-	ClusterSize       string      `json:"clusterSize"`
-	MaxExpandableSize string      `json:"maxExpandableSize,omitempty"`
-	Conditions        []Condition `json:"conditions,omitempty"`
+	Available         uint64       `json:"available"`
+	Capacity          uint64       `json:"capacity"`
+	Used              uint64       `json:"used"`
+	CRStatus          string       `json:"cr_state"`
+	PoolStatus        string       `json:"pool_status"`
+	Encrypted         bool         `json:"encrypted"`
+	CapacityQ         string       `json:"capacity_q"`
+	AvailableQ        string       `json:"available_q"`
+	UsedQ             string       `json:"used_q"`
+	ClusterSize       string       `json:"clusterSize"`
+	MaxExpandableSize string       `json:"maxExpandableSize,omitempty"`
+	Conditions        []Condition  `json:"conditions,omitempty"`
+	Diag              DiskPoolDiag `json:"diag,omitempty"`
 }
 
 type DiskPool struct {
