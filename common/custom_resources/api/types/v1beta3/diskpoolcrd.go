@@ -28,21 +28,27 @@ type DiskPoolSpec struct {
 	// Supported formats include absolute sizes (e.g. "20GiB") or
 	// multiplicative factors (e.g. "2x", "1.2x").
 	// This field is optional and omitting it preserves existing behavior.
-	MaxExpansion     string            `json:"maxExpansion,omitempty"`
+	MaxExpansion string `json:"maxExpansion,omitempty"`
+}
+
+type Condition struct {
+	Status string `json:"status"`
+	Reason string `json:"reason,omitempty"`
 }
 
 type DiskPoolStatus struct {
-	Available         uint64 `json:"available"`
-	Capacity          uint64 `json:"capacity"`
-	Used              uint64 `json:"used"`
-	CRStatus          string `json:"cr_state"`
-	PoolStatus        string `json:"pool_status"`
-	Encrypted         bool   `json:"encrypted"`
-	CapacityQ         string `json:"capacity_q"`
-	AvailableQ        string `json:"available_q"`
-	UsedQ             string `json:"used_q"`
-	ClusterSize       string `json:"clusterSize"`
-	MaxExpandableSize string `json:"maxExpandableSize,omitempty"`
+	Available         uint64      `json:"available"`
+	Capacity          uint64      `json:"capacity"`
+	Used              uint64      `json:"used"`
+	CRStatus          string      `json:"cr_state"`
+	PoolStatus        string      `json:"pool_status"`
+	Encrypted         bool        `json:"encrypted"`
+	CapacityQ         string      `json:"capacity_q"`
+	AvailableQ        string      `json:"available_q"`
+	UsedQ             string      `json:"used_q"`
+	ClusterSize       string      `json:"clusterSize"`
+	MaxExpandableSize string      `json:"maxExpandableSize,omitempty"`
+	Conditions        []Condition `json:"conditions,omitempty"`
 }
 
 type DiskPool struct {

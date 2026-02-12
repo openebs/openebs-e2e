@@ -20,6 +20,8 @@ type DiskPool interface {
 	GetSpecNode() string
 	SetSpecNode(node string) (DiskPool, error)
 	GetCRStatus() string
+	GetPoolReadyStatus() string
+	GetPoolReadyReason() string
 	GetPoolStatus() string
 	GetClusterSize() string
 	SetClusterSize(clusterSize string) (DiskPool, error)
