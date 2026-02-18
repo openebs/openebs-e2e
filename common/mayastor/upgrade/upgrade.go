@@ -113,7 +113,7 @@ func AreContainerImagesUpgraded(podList *coreV1.PodList, toUpgradeImageTag, dock
 					if filepath.Base(binPath) == openebsPlugin || filepath.Base(binPath) != mayastorPlugin && mayastorVersion == "" {
 						logf.Log.Info("OpenebsToMayaVersionMap is not present for", "toUpgradeImageTag: ", toUpgradeImageTag)
 						return false, nil
-					} else if !(strings.Contains(lastField, toUpgradeImageTag) || strings.Contains(lastField, mayastorVersion)) {
+					} else if !strings.Contains(lastField, toUpgradeImageTag) && !strings.Contains(lastField, mayastorVersion) {
 						return false, nil
 					}
 				} else if !strings.Contains(lastField, common.ToLocalpvProvisionerImage) {

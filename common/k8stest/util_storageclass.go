@@ -206,6 +206,7 @@ func (b *ScBuilder) WithCloneFsIdAsVolumeId(value common.CloneFsIdAsVolumeIdType
 	if b.sc.object.Parameters == nil {
 		b.sc.object.Parameters = map[string]string{}
 	}
+	//nolint:staticcheck // QF1003: if-chain kept for clarity with limited cases
 	if value == common.CloneFsIdAsVolumeIdEnable {
 		b.sc.object.Parameters[common.ScCloneFsIdAsVolumeId] = "true"
 	} else if value == common.CloneFsIdAsVolumeIdDisable {
@@ -339,6 +340,7 @@ func (b *ScBuilder) WithMountOption(option string) *ScBuilder {
 // WithVolumeExpansion sets the AllowVolumeExpansion field of storageclass.
 func (b *ScBuilder) WithVolumeExpansion(value common.AllowVolumeExpansion) *ScBuilder {
 	var volExpansion bool
+	//nolint:staticcheck // QF1003: if-chain kept for clarity with limited cases
 	if value == common.AllowVolumeExpansionEnable {
 		volExpansion = true
 	} else if value == common.AllowVolumeExpansionDisable {

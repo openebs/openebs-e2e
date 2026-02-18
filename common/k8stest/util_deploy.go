@@ -11,7 +11,6 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -434,7 +433,7 @@ func ZeroDeploymentReplicas(deploymentName string, namespace string, timeout_sec
 		return orig_replicas, fmt.Errorf("replication unexpectedly zero")
 	}
 
-	log.Log.Info("Setting replica count to zero")
+	logf.Log.Info("Setting replica count to zero")
 	var zero_replicas int32 = 0
 	err = SetDeploymentReplication(deploymentName, namespace, &zero_replicas)
 	if err != nil {
@@ -461,7 +460,7 @@ func ZeroDeploymentReplicas(deploymentName string, namespace string, timeout_sec
 }
 
 func RestoreDeploymentReplicas(deploymentName string, namespace string, timeout_seconds int, orig_replicas int32) error {
-	log.Log.Info("Enabling the original replica count")
+	logf.Log.Info("Enabling the original replica count")
 	err := SetDeploymentReplication(deploymentName, namespace, &orig_replicas)
 	if err != nil {
 		return fmt.Errorf("failed to set deployment replicas, error: %v", err)

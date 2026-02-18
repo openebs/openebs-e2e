@@ -324,6 +324,7 @@ func GetResourceMetrics(query string, address []string) (ResourceStatus, error) 
 		if err != nil {
 			logf.Log.Info("Error while making GET request", "url", url, "error", err)
 		} else {
+			//nolint:errcheck
 			defer resp.Body.Close()
 			jsonResponse, err = io.ReadAll(resp.Body)
 			if err != nil {

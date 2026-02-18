@@ -192,8 +192,8 @@ func WaitForVolumeUnPublish(volName string) (bool, error) {
 
 func ByteSizeString(bytesize uint64) string {
 	var gib uint64 = 1024 * 1024 * 1024
-	var mib uint64 = gib / 1024
-	var kib uint64 = mib / 1024
+	var mib = gib / 1024
+	var kib = mib / 1024
 
 	if bytesize > gib {
 		return fmt.Sprintf("%f GiB", float32(bytesize)/float32(gib))

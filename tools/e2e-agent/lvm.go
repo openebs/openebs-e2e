@@ -471,9 +471,11 @@ func updateLVMConfig(path, key, value string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create temporary file in %s: %w", dir, err)
 	}
+	//nolint:errcheck
 	defer os.Remove(tmpFile.Name())
 
 	if _, err := tmpFile.WriteString(output); err != nil {
+		//nolint:errcheck
 		tmpFile.Close()
 		return fmt.Errorf("failed to write to temporary file %s: %w", tmpFile.Name(), err)
 	}

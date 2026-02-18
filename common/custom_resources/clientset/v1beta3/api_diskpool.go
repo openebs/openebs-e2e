@@ -19,7 +19,7 @@ type DiskPoolV1Beta3Client struct {
 
 func DspNewForConfig(c *rest.Config) (*DiskPoolV1Beta3Client, error) {
 	config := *c
-	config.ContentConfig.GroupVersion = &schema.GroupVersion{Group: e2e_config.GetConfig().Product.CrdGroupName,
+	config.GroupVersion = &schema.GroupVersion{Group: e2e_config.GetConfig().Product.CrdGroupName,
 		Version: "v1beta3"}
 	config.APIPath = "/apis"
 	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()

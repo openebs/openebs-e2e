@@ -89,7 +89,7 @@ func (cp CPv1) GetCordonNodeLabels(nodeName string) ([]string, error) {
 	if cordonLabelsInfo.Spec.CordonDrainState.DrainedState != nil {
 		return cordonLabelsInfo.Spec.CordonDrainState.DrainedState.CordonLabels, err
 	}
-	return nil, fmt.Errorf("Unexpected cordon spec for node %s", nodeName)
+	return nil, fmt.Errorf("unexpected cordon spec for node %s", nodeName)
 }
 
 func (cp CPv1) UnCordonNode(nodeName string, cordonLabel string) error {

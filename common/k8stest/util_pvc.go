@@ -176,19 +176,19 @@ func VerifyMayastorPvcIsUsable(pvc *coreV1.PersistentVolumeClaim) error {
 	// Wait for the PV to be provisioned
 	for ix := 0; ix < defTimeoutSecs/timoSleepSecs; ix++ {
 		var msv *common.MayastorVolume
-		msv, err = GetMSV(string(pvc.ObjectMeta.UID))
+		msv, err = GetMSV(string(pvc.UID))
 		if err == nil && msv != nil {
 			break
 		}
 		time.Sleep(timoSleepSecs * time.Second)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to get mayastor volume, uuid: %s, error: %v", pvc.ObjectMeta.UID, err)
+		return fmt.Errorf("failed to get mayastor volume, uuid: %s, error: %v", pvc.UID, err)
 	}
 
-	err = MsvConsistencyCheck(string(pvc.ObjectMeta.UID))
+	err = MsvConsistencyCheck(string(pvc.UID))
 	if err != nil {
-		return fmt.Errorf("msv consistency check failed, msv uuid: %s, error: %v", string(pvc.ObjectMeta.UID), err)
+		return fmt.Errorf("msv consistency check failed, msv uuid: %s, error: %v", string(pvc.UID), err)
 	}
 
 	return nil
@@ -593,7 +593,7 @@ func RemovePVFinalizer(pvName string) error {
 		return err
 	}
 
-	pvClone.ObjectMeta.Finalizers = nil
+	pvClone.Finalizers = nil
 	newData, err = json.Marshal(pvClone)
 	if err != nil {
 		return err
@@ -909,7 +909,7 @@ func MkRestorePVC(pvcSizeMb int, pvcName string, scName string, nameSpace string
 		} else if pvc == nil {
 			return "", fmt.Errorf("PVC %s not found, namespace: %s", pvcName, nameSpace)
 		}
-		return string(pvc.ObjectMeta.UID), nil
+		return string(pvc.UID), nil
 	}
 
 	return VerifyMayastorVolumeProvision(pvcName, nameSpace)
@@ -1051,7 +1051,7 @@ func VerifyMayastorVolumeProvision(pvcName string, namespace string) (string, er
 	} else if pvc == nil {
 		return "", fmt.Errorf("PVC %s not found, namespace: %s", pvcName, namespace)
 	}
-	msv, err := WaitForMayastorVolumeToProvision(string(pvc.ObjectMeta.UID))
+	msv, err := WaitForMayastorVolumeToProvision(string(pvc.UID))
 	if err != nil {
 		return "", err
 	}
@@ -1252,15 +1252,16 @@ func MakePVC(volSizeMb int, volName string, scName string, volType common.Volume
 		return "", fmt.Errorf("failed to get storageclass: %s, error: %v", scName, getScErr)
 	}
 	if *sc.VolumeBindingMode == storagev1.VolumeBindingWaitForFirstConsumer {
-		return string(pvc.ObjectMeta.UID), nil
+		return string(pvc.UID), nil
 	}
 
 	if !skipVolumeVerification {
 		// verify volume provision
 		uuid, err := VerifyVolumeProvision(volName, nameSpace)
 		if err != nil {
-			return string(pvc.ObjectMeta.UID), err
+			return string(pvc.UID), err
 		}
+		//nolint:staticcheck // QF1003: if-chain kept for clarity with limited cases
 		if engine == common.Mayastor {
 			uuid, err = VerifyMayastorVolumeProvision(volName, nameSpace)
 			if err != nil {
@@ -1276,11 +1277,11 @@ func MakePVC(volSizeMb int, volName string, scName string, volType common.Volume
 		} else if engine == common.Lvm {
 			logf.Log.Info("NOT IMPLEMENTED: Verify volume verification for lvm engine")
 		}
-		logf.Log.Info("Created", "volume", volName, "uuid", pvc.ObjectMeta.UID, "storageClass", scName, "volume type", volType, "size", volSizeMbStr, "elapsed time", time.Since(t0))
+		logf.Log.Info("Created", "volume", volName, "uuid", pvc.UID, "storageClass", scName, "volume type", volType, "size", volSizeMbStr, "elapsed time", time.Since(t0))
 		return uuid, nil
 	}
-	logf.Log.Info("Created", "volume", volName, "uuid", pvc.ObjectMeta.UID, "storageClass", scName, "volume type", volType, "size", volSizeMbStr, "elapsed time", time.Since(t0))
-	return string(pvc.ObjectMeta.UID), nil
+	logf.Log.Info("Created", "volume", volName, "uuid", pvc.UID, "storageClass", scName, "volume type", volType, "size", volSizeMbStr, "elapsed time", time.Since(t0))
+	return string(pvc.UID), nil
 }
 
 // RmLocalPVC Delete a PVC in the default namespace and verify that
@@ -1352,28 +1353,28 @@ func RemovePVC(volName string, scName string, nameSpace string, engine common.Op
 	if engine == common.Mayastor {
 		// Wait for the mayastor to be deleted.
 		for ix := 0; ix < defTimeoutSecs/timoSleepSecs; ix++ {
-			isDeleted = IsMsvDeleted(string(pvc.ObjectMeta.UID))
+			isDeleted = IsMsvDeleted(string(pvc.UID))
 			if isDeleted {
 				break
 			}
 			time.Sleep(timoSleepSecs * time.Second)
 		}
 		if !isDeleted {
-			return fmt.Errorf("mayastor volume not deleted, msv: %s", pvc.ObjectMeta.UID)
+			return fmt.Errorf("mayastor volume not deleted, msv: %s", pvc.UID)
 		}
 	} else if engine == common.Zfs {
 		// Wait for the ZFS volume to be deleted.
 		// ZFS volumes are in the dynamically detected namespace, not the PVC namespace
 		zfsNamespace := getZfsVolNamespace()
 		for ix := 0; ix < defTimeoutSecs/timoSleepSecs; ix++ {
-			isDeleted = IsZFSVolumeDeleted(string(pvc.ObjectMeta.UID), zfsNamespace)
+			isDeleted = IsZFSVolumeDeleted(string(pvc.UID), zfsNamespace)
 			if isDeleted {
 				break
 			}
 			time.Sleep(timoSleepSecs * time.Second)
 		}
 		if !isDeleted {
-			return fmt.Errorf("zfs volume not deleted, zfsvolume: %s", pvc.ObjectMeta.UID)
+			return fmt.Errorf("zfs volume not deleted, zfsvolume: %s", pvc.UID)
 		}
 	} else if engine == common.Lvm {
 		logf.Log.Info("NOT IMPLEMENTED: RemovePVC for lvm engine")
@@ -1425,7 +1426,7 @@ func VerifyZFSVolumeProvision(pvcName string, namespace string) (string, error) 
 
 	// Wait for the ZFS volume to be created using direct kubectl
 	// ZFS volume name is typically "pvc-" + PVC UID
-	zfsVolumeName := "pvc-" + string(pvc.ObjectMeta.UID)
+	zfsVolumeName := "pvc-" + string(pvc.UID)
 	logf.Log.Info("Looking for ZFS volume", "zfsVolumeName", zfsVolumeName)
 
 	for ix := 0; ix < defTimeoutSecs; ix++ {
@@ -1436,8 +1437,8 @@ func VerifyZFSVolumeProvision(pvcName string, namespace string) (string, error) 
 		} else if zfsVolume != nil {
 			logf.Log.Info("ZFS volume found", "state", zfsVolume.Status.State)
 			if zfsVolume.Status.State == "Ready" {
-				logf.Log.Info("ZFS volume provisioned successfully", "pvc", pvcName, "uid", pvc.ObjectMeta.UID)
-				return string(pvc.ObjectMeta.UID), nil
+				logf.Log.Info("ZFS volume provisioned successfully", "pvc", pvcName, "uid", pvc.UID)
+				return string(pvc.UID), nil
 			}
 		}
 		time.Sleep(1 * time.Second)

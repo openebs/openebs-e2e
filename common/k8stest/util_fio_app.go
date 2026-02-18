@@ -8,7 +8,6 @@ import (
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 
-	coreV1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	storageV1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -191,10 +190,10 @@ func (dfa *FioApplication) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix 
 	container := MakeFioContainer(dfa.status.fioPodName, podArgs)
 	//	container.ImagePullPolicy = coreV1.PullAlways
 	// volume claim details
-	volume := coreV1.Volume{
+	volume := v1.Volume{
 		Name: "ms-volume",
-		VolumeSource: coreV1.VolumeSource{
-			PersistentVolumeClaim: &coreV1.PersistentVolumeClaimVolumeSource{
+		VolumeSource: v1.VolumeSource{
+			PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
 				ClaimName: dfa.status.pvcName,
 			},
 		},
@@ -203,7 +202,7 @@ func (dfa *FioApplication) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix 
 	pod := NewPodBuilder("fio").
 		WithName(dfa.status.fioPodName).
 		WithNamespace(common.NSDefault).
-		WithRestartPolicy(coreV1.RestartPolicyNever).
+		WithRestartPolicy(v1.RestartPolicyNever).
 		WithContainer(container).
 		WithVolume(volume).
 		WithVolumeDeviceOrMount(dfa.VolType)
@@ -224,7 +223,7 @@ func (dfa *FioApplication) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix 
 		return fmt.Errorf("creating fio pod %s, %v", dfa.status.fioPodName, err)
 	}
 	// wait for pod to transition to running or complete whichever is first
-	var phase coreV1.PodPhase
+	var phase v1.PodPhase
 	var podLogSynopsis *common.E2eFioPodLogSynopsis
 	for secs := 0; secs < DefTimeoutSecs; secs++ {
 		phase, podLogSynopsis, err = CheckFioPodCompleted(dfa.status.fioPodName, common.NSDefault)
@@ -232,11 +231,11 @@ func (dfa *FioApplication) DeployFio(fioArgsSet common.FioAppArgsSet, podPrefix 
 			return err
 		}
 		switch phase {
-		case coreV1.PodSucceeded:
+		case v1.PodSucceeded:
 			return nil
-		case coreV1.PodRunning:
+		case v1.PodRunning:
 			return nil
-		case coreV1.PodFailed:
+		case v1.PodFailed:
 			return fmt.Errorf("pod state is %v, %s", phase, podLogSynopsis)
 		}
 
@@ -334,6 +333,7 @@ func (dfa *FioApplication) CreateSc() error {
 		scBuilder = scBuilder.WithReclaimPolicy(dfa.ScReclaimPolicy)
 	}
 
+	//nolint:staticcheck // QF1003: if-chain kept for readability with few cases
 	if dfa.OpenEbsEngine == common.Lvm {
 		if dfa.Lvm.Shared.String() != "" {
 			scBuilder = scBuilder.WithLvmShared(dfa.Lvm.Shared.String())
@@ -418,7 +418,7 @@ func (dfa *FioApplication) Cleanup() error {
 		if err != nil {
 			return fmt.Errorf("failed to get fio pod %s phase : %v", dfa.GetPodName(), err)
 		}
-		if podPhase == coreV1.PodSucceeded || podPhase == coreV1.PodFailed {
+		if podPhase == v1.PodSucceeded || podPhase == v1.PodFailed {
 			logf.Log.Info("Dump fio pod log", "pod", dfa.GetPodName(), "pod phase", podPhase)
 			dfa.DumpPodLog()
 		} else {
@@ -468,7 +468,7 @@ func (dfa *FioApplication) WaitRunning(timeoutSecs int) bool {
 	return WaitPodRunning(dfa.status.fioPodName, common.NSDefault, timeoutSecs)
 }
 
-func (dfa *FioApplication) GetPodStatus() (coreV1.PodPhase, error) {
+func (dfa *FioApplication) GetPodStatus() (v1.PodPhase, error) {
 	return GetPodStatus(dfa.status.fioPodName, common.NSDefault)
 }
 
@@ -522,8 +522,8 @@ func (dfa *FioApplication) RefreshVolumeState() error {
 		return fmt.Errorf("pvc %s not found", dfa.status.pvcName)
 	} else if *pvc.Spec.StorageClassName != dfa.status.scName {
 		return fmt.Errorf("storage class %s not used to create pvc %s", dfa.status.scName, dfa.status.pvcName)
-	} else if pvc.ObjectMeta.UID == "" {
-		return fmt.Errorf("pvc %s does not have  pvc.ObjectMeta.UID non empty string", dfa.status.pvcName)
+	} else if pvc.UID == "" {
+		return fmt.Errorf("pvc %s does not have  pvc.UID non empty string", dfa.status.pvcName)
 	}
 	return nil
 }
@@ -554,7 +554,6 @@ func (dfa *FioApplication) WaitFioComplete(timeoutSecs int, pollTimeSecs int) (i
 		switch len(mon.Synopsis.JsonRecords.ExitValues) {
 		case 0:
 			// no exit values found - fio is still running
-			break
 		case 1:
 			// single exit value found - fio has completed
 			logf.Log.Info("fio", "elapsed", *mon.Synopsis.JsonRecords.ExitValues[0].ElapsedSecs)

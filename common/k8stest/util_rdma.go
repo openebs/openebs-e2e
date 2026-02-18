@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
-	agent "github.com/openebs/openebs-e2e/common/e2e_agent"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -47,7 +46,7 @@ func ListRdmaDevice(node string) ([]RdmaDeviceNetworkInterface, error) {
 		return rdmaDeiceList, fmt.Errorf("failed to get node %s ip, error: %v", node, err)
 	}
 
-	rdmaDevice, err := agent.ListRdmaDevice(*nodeIp)
+	rdmaDevice, err := e2e_agent.ListRdmaDevice(*nodeIp)
 	if err != nil {
 		return rdmaDeiceList, fmt.Errorf("failed to list RDMA device on node %s , error: %v", node, err)
 	}
@@ -290,7 +289,7 @@ func ListDevLink(node string) (PortMap, error) {
 		return devLink, fmt.Errorf("failed to get node %s ip, error: %v", node, err)
 	}
 
-	devLinkOut, err := agent.ListDevLink(*nodeIp)
+	devLinkOut, err := e2e_agent.ListDevLink(*nodeIp)
 	if err != nil {
 		return devLink, fmt.Errorf("failed to list dev link on node %s , error: %v", node, err)
 	}

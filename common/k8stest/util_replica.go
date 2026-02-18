@@ -358,7 +358,7 @@ func ChecksumReplica(initiatorIP, targetIP, nqn string, maxRetries int, nexusNod
 	// double check the response contains the device name
 	if !strings.Contains(cksumText, deviceOnly) {
 		_, _ = agent.NvmeDisconnect(initiatorIP, nqn)
-		return "", fmt.Errorf("Unexpected result from cksum %v", cksumText)
+		return "", fmt.Errorf("unexpected result from cksum %v", cksumText)
 	}
 	cksumDevice := ``
 	// discard the device name from the checksum
@@ -383,7 +383,7 @@ func ChecksumReplica(initiatorIP, targetIP, nqn string, maxRetries int, nexusNod
 	}
 	//	logf.Log.Info("agent.ListDevice", "device only", deviceOnly, "resp", resp)
 	if strings.Contains(resp, deviceOnly) {
-		return "", fmt.Errorf("Device %s still exists", deviceOnly)
+		return "", fmt.Errorf("device %s still exists", deviceOnly)
 	}
 	return cksumText, nil
 }
@@ -484,7 +484,7 @@ func FsConsistentReplica(initiatorIP, targetIP, nqn string, maxRetries int, nexu
 	}
 	//	logf.Log.Info("agent.ListDevice", "device only", deviceOnly, "resp", resp)
 	if strings.Contains(resp, deviceOnly) {
-		return "", fmt.Errorf("Device %s still exists", deviceOnly)
+		return "", fmt.Errorf("device %s still exists", deviceOnly)
 	}
 	return fsckText, nil
 }
@@ -592,10 +592,10 @@ func ExcludeNexusReplica(nexusIP string, nexusUuid string, volUuid string) (bool
 	}
 	nexusList, err := mayastorclient.ListNexuses(nxlist)
 	if err != nil {
-		return false, fmt.Errorf("Failed to list nexuses, err=%v", err)
+		return false, fmt.Errorf("failed to list nexuses, err=%v", err)
 	}
 	if len(nexusList) == 0 {
-		return false, fmt.Errorf("Expected to find at least 1 nexus")
+		return false, fmt.Errorf("expected to find at least 1 nexus")
 	}
 
 	nxChild := ""
@@ -604,7 +604,7 @@ func ExcludeNexusReplica(nexusIP string, nexusUuid string, volUuid string) (bool
 			for _, ch := range nx.GetChildren() {
 				if strings.HasPrefix(ch.Uri(), "bdev:///") {
 					if nxChild != "" {
-						return false, fmt.Errorf("More than 1 nexus local replica found")
+						return false, fmt.Errorf("more than 1 nexus local replica found")
 					}
 					nxChild = ch.Uri()
 				}
@@ -623,7 +623,7 @@ func ExcludeNexusReplica(nexusIP string, nexusUuid string, volUuid string) (bool
 	logf.Log.Info("Faulting local replica", "replica", nxChild)
 	err = mayastorclient.FaultNexusChild(nexusIP, nexusUuid, nxChild)
 	if err != nil {
-		return false, fmt.Errorf("Failed to fault child, err=%v", err)
+		return false, fmt.Errorf("failed to fault child, err=%v", err)
 	}
 
 	// wait for the replica to disappear from the msv
@@ -634,7 +634,7 @@ func ExcludeNexusReplica(nexusIP string, nexusUuid string, volUuid string) (bool
 		found = false
 		replicas, err := GetMsvReplicas(volUuid)
 		if err != nil {
-			return false, fmt.Errorf("Failed to get replicas, err=%v", err)
+			return false, fmt.Errorf("failed to get replicas, err=%v", err)
 		}
 		for _, replica := range replicas {
 			if strings.HasPrefix(nxChild, replica.Uuid) {
@@ -655,7 +655,7 @@ func ExcludeNexusReplica(nexusIP string, nexusUuid string, volUuid string) (bool
 	for ix := 0; ix < (timeOut-1)/sleepTime; ix++ {
 		state, err = GetMsvState(volUuid)
 		if err != nil {
-			return false, fmt.Errorf("Failed to get state, err=%v", err)
+			return false, fmt.Errorf("failed to get state, err=%v", err)
 		}
 		if state == controlplane.VolStateHealthy() {
 			break
@@ -673,12 +673,12 @@ func ExcludeNexusReplica(nexusIP string, nexusUuid string, volUuid string) (bool
 func FaultReplica(volumeUuid string, replicaUuid string) error {
 	nodeList, err := GetIOEngineNodes()
 	if err != nil {
-		return fmt.Errorf("Failed to get mayastor nodes, error %v", err)
+		return fmt.Errorf("failed to get mayastor nodes, error %v", err)
 	}
 
 	nexus, _ := GetMsvNodes(volumeUuid)
 	if err != nil {
-		return fmt.Errorf("Failed to find nexus, error %v", err)
+		return fmt.Errorf("failed to find nexus, error %v", err)
 	}
 
 	// identify the nexus IP address
@@ -691,7 +691,7 @@ func FaultReplica(volumeUuid string, replicaUuid string) error {
 	}
 
 	if nexusIP == "" {
-		return fmt.Errorf("Nexus IP not found")
+		return fmt.Errorf("nexus IP not found")
 	}
 	nexusNodeIP := nexusIP
 
@@ -715,7 +715,7 @@ func FaultReplica(volumeUuid string, replicaUuid string) error {
 	}
 
 	if nxChildUri == "" {
-		return fmt.Errorf("Could not find nexus replica")
+		return fmt.Errorf("could not find nexus replica")
 	}
 	msv, err := GetMSV(volumeUuid)
 	if err != nil {
@@ -724,7 +724,7 @@ func FaultReplica(volumeUuid string, replicaUuid string) error {
 
 	nexusUuid := msv.State.Target.Uuid
 	if nexusUuid == "" {
-		return fmt.Errorf("Could not find nexus uuid")
+		return fmt.Errorf("could not find nexus uuid")
 	}
 
 	logf.Log.Info("faulting the replica")

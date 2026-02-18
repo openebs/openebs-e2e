@@ -60,6 +60,7 @@ func maasApiCall(method string, url string) ([]byte, error) {
 	} else if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("mas api reponse code is not 200, actual response code  is %d", resp.StatusCode)
 	}
+	//nolint:errcheck
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -209,7 +209,7 @@ func (ifc v1alpha1ExtIfc) DeleteMsPool(poolName string) error {
 }
 
 func (ifc v1alpha1ExtIfc) ListMsPoolCrs() ([]crtypes.DiskPool, error) {
-	var poolCrs []crtypes.DiskPool = make([]crtypes.DiskPool, 0)
+	var poolCrs = make([]crtypes.DiskPool, 0)
 	poolList, err := poolClientSet.DiskPools().List(context.TODO(), metaV1.ListOptions{})
 	if err != nil {
 		return poolCrs, err
@@ -315,17 +315,17 @@ func (ifc v1alpha1ExtIfc) AnnotateOfflinePoolForDelete(poolName string, opts ...
 }
 
 func (p v1alpha1ExtDSP) GetPoolReadyStatus() string {
-	panic(fmt.Errorf("Pool Ready condition not supported in v1alpha1Ext"))
+	panic(fmt.Errorf("pool Ready condition not supported in v1alpha1Ext"))
 }
 
 func (p v1alpha1ExtDSP) GetPoolReadyReason() string {
-	panic(fmt.Errorf("Pool Ready condition not supported in v1alpha1Ext"))
+	panic(fmt.Errorf("pool Ready condition not supported in v1alpha1Ext"))
 }
 
 func (p v1alpha1ExtDSP) GetPoolErrorCount() uint64 {
-	panic(fmt.Errorf("Pool error count not supported in v1alpha1Ext"))
+	panic(fmt.Errorf("pool error count not supported in v1alpha1Ext"))
 }
 
 func (p v1alpha1ExtDSP) GetPoolAlertStatus() string {
-	panic(fmt.Errorf("Pool alert status not supported in v1alpha1Ext"))
+	panic(fmt.Errorf("pool alert status not supported in v1alpha1Ext"))
 }

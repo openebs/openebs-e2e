@@ -262,11 +262,11 @@ func RemoveFailedSnapshot(snapshotName string, snapshotContentName string, names
 	snapshot, getErr := k8stest.GetSnapshot(snapshotName, namespace)
 
 	if k8serrors.IsNotFound(getErr) {
-		return fmt.Errorf("Volume Snapshot %s not found, namespace: %s, error: %v", snapshotName, namespace, getErr)
+		return fmt.Errorf("volume Snapshot %s not found, namespace: %s, error: %v", snapshotName, namespace, getErr)
 	} else if getErr != nil {
 		return fmt.Errorf("failed to get volume snapshot %s, namespace: %s, error: %v", snapshotName, namespace, getErr)
 	} else if snapshot == nil {
-		return fmt.Errorf("Volume Snapshot %s not found, namespace: %s", snapshotName, namespace)
+		return fmt.Errorf("volume Snapshot %s not found, namespace: %s", snapshotName, namespace)
 	}
 
 	// Delete Volume Snapshot
@@ -314,7 +314,7 @@ func RemoveFailedSnapshot(snapshotName string, snapshotContentName string, names
 			logf.Log.Info("Remove volume snapshot content annotation")
 			err = k8stest.RemoveSnapshotContentAnnotation(snapshotContentName)
 			if err != nil {
-				logf.Log.Error(err, "Failed to remove snapshot content annotation for ", "snapshot content name", snapshotContentName)
+				logf.Log.Error(err, "failed to remove snapshot content annotation for ", "snapshot content name", snapshotContentName)
 			}
 		}
 		time.Sleep(time.Duration(annotationsDeleteSleepSeconds) * time.Second)
@@ -348,7 +348,7 @@ func RemoveFailedSnapshot(snapshotName string, snapshotContentName string, names
 	if err != nil {
 		return err
 	} else if !isDeleted {
-		return fmt.Errorf("Volume Snapshot content not deleted, snapshot content: %s", snapshotContentName)
+		return fmt.Errorf("volume Snapshot content not deleted, snapshot content: %s", snapshotContentName)
 	}
 	logf.Log.Info("Deleted", "Snapshot", snapshotName, "Snapshot Content", snapshotContentName, "elapsed time", time.Since(t0))
 	return nil

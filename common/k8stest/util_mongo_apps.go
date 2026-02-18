@@ -92,6 +92,7 @@ func calculateChecksum(filePath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	//nolint:errcheck
 	defer file.Close()
 
 	hash := sha256.New()
@@ -123,13 +124,13 @@ func (mongo *MongoApp) MongoInstallReady() error {
 
 	err := WaitForStsReady(mongo.StsName, mongo.Namespace, time.Duration(defaultMongodbStsimeoutSecs)*time.Second)
 	if err != nil {
-		return fmt.Errorf("MongoDB StatefulSet %s not ready: %v", mongo.StsName, err)
+		return fmt.Errorf("mongoDB StatefulSet %s not ready: %v", mongo.StsName, err)
 	}
 
 	// Get all pods in the StatefulSet
 	pods, err := GetStsPodNames(mongo.StsName, mongo.Namespace)
 	if err != nil {
-		return fmt.Errorf("Failed to list MongoDB StatefulSet pods: %v", err)
+		return fmt.Errorf("failed to list MongoDB StatefulSet pods: %v", err)
 	}
 
 	// Wait for volume provisioning and confirm MongoDB pods are ready
@@ -138,16 +139,16 @@ func (mongo *MongoApp) MongoInstallReady() error {
 
 		pvcName, err = GetPvcNameFromPod(pod, mongo.Namespace)
 		if err != nil {
-			return fmt.Errorf("Failed to get PVC name from pod %s: %v", pod, err)
+			return fmt.Errorf("failed to get PVC name from pod %s: %v", pod, err)
 		}
 		if pvcName == "" {
-			return fmt.Errorf("PVC name not found for pod %s", pod)
+			return fmt.Errorf("pvc name not found for pod %s", pod)
 		}
 
 		logf.Log.Info("Verifying volume provisioning", "pvcName", pvcName, "namespace", mongo.Namespace)
 		uuid, err = VerifyVolumeProvision(pvcName, mongo.Namespace)
 		if err != nil {
-			return fmt.Errorf("Failed to verify volume provisioning for %s: %v", pvcName, err)
+			return fmt.Errorf("failed to verify volume provisioning for %s: %v", pvcName, err)
 		}
 
 		logf.Log.Info("MongoDB pod ready",

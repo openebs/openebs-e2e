@@ -1016,13 +1016,13 @@ func (dfa *FioApp) RefreshVolumeState() error {
 		return fmt.Errorf("pvc %s not found", dfa.status.volName)
 	} else if *pvc.Spec.StorageClassName != dfa.status.scName {
 		return fmt.Errorf("storage class %s not used to create pvc %s", dfa.status.scName, dfa.status.volName)
-	} else if pvc.ObjectMeta.UID == "" {
-		return fmt.Errorf("pvc %s does not have  pvc.ObjectMeta.UID non empty string", dfa.status.volName)
+	} else if pvc.UID == "" {
+		return fmt.Errorf("pvc %s does not have  pvc.UID non empty string", dfa.status.volName)
 	}
 	err = VerifyMayastorPvcIsUsable(pvc)
 	if err == nil {
 		// set dfa.status.volUuid
-		dfa.status.volUuid = string(pvc.ObjectMeta.UID)
+		dfa.status.volUuid = string(pvc.UID)
 		//set dfa.status.createdPVC true
 		dfa.status.createdPVC = true
 		//set dfa.status.createdVolume true
@@ -1064,7 +1064,6 @@ func (dfa *FioApp) WaitFioComplete(timeoutSecs int, pollTimeSecs int) (int, erro
 		switch len(mon.Synopsis.JsonRecords.ExitValues) {
 		case 0:
 			// no exit values found - fio is still running
-			break
 		case 1:
 			// single exit value found - fio has completed
 			logf.Log.Info("fio", "elapsed", *mon.Synopsis.JsonRecords.ExitValues[0].ElapsedSecs)
@@ -1101,7 +1100,7 @@ func (dfa *FioApp) ImportVolume(volName string) error {
 
 	dfa.status.volName = volName
 	// set dfa.status.volUuid
-	dfa.status.volUuid = string(pvc.ObjectMeta.UID)
+	dfa.status.volUuid = string(pvc.UID)
 
 	dfa.status.importedVolume = true
 	dfa.status.suffix = "-imported-vol"

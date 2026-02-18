@@ -20,7 +20,6 @@ import (
 	"github.com/openebs/openebs-e2e/common/mayastorclient"
 
 	coreV1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -91,7 +90,7 @@ func IsPodWithLabelsRunning(labels, namespace string) (string, bool, error) {
 		return "", false, nil
 	}
 	for _, pod := range pods.Items {
-		if pod.Status.Phase == v1.PodRunning {
+		if pod.Status.Phase == coreV1.PodRunning {
 			return pod.Name, true, nil
 		}
 		podName = pod.Name
@@ -121,7 +120,7 @@ func ForceDeleteTerminatingPods(labels, namespace string) error {
 	return nil
 }
 
-func GetNodeListForPods(labels, namespace string) (map[string]v1.PodPhase, error) {
+func GetNodeListForPods(labels, namespace string) (map[string]coreV1.PodPhase, error) {
 	pods, err := gTestEnv.KubeInt.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{LabelSelector: labels})
 	if err != nil {
 		return nil, err
@@ -129,7 +128,7 @@ func GetNodeListForPods(labels, namespace string) (map[string]v1.PodPhase, error
 	if len(pods.Items) == 0 {
 		return nil, nil
 	}
-	nodeList := map[string]v1.PodPhase{}
+	nodeList := map[string]coreV1.PodPhase{}
 	for _, pod := range pods.Items {
 		nodeList[pod.Spec.NodeName] = pod.Status.Phase
 	}
@@ -149,7 +148,7 @@ func IsPodRunning(podName string, nameSpace string) bool {
 	if err != nil {
 		return false
 	}
-	return pod.Status.Phase == v1.PodRunning
+	return pod.Status.Phase == coreV1.PodRunning
 }
 
 // WaitPodRunning wait for pod to transition to running with timeout,
@@ -384,7 +383,7 @@ var reCompileOnce sync.Once
 var reFioLog *regexp.Regexp = nil
 var reFioCritical *regexp.Regexp = nil
 
-func ScanFioPodLogs(pod v1.Pod, synopsisIn *common.E2eFioPodLogSynopsis) *common.E2eFioPodLogSynopsis {
+func ScanFioPodLogs(pod coreV1.Pod, synopsisIn *common.E2eFioPodLogSynopsis) *common.E2eFioPodLogSynopsis {
 	var podLogSynopsis *common.E2eFioPodLogSynopsis
 	if synopsisIn != nil {
 		podLogSynopsis = synopsisIn
@@ -410,7 +409,7 @@ func ScanFioPodLogs(pod v1.Pod, synopsisIn *common.E2eFioPodLogSynopsis) *common
 		}
 	})
 	for _, container := range pod.Spec.Containers {
-		opts := v1.PodLogOptions{}
+		opts := coreV1.PodLogOptions{}
 		opts.Follow = true
 		opts.Container = container.Name
 		podLogs, err := gTestEnv.KubeInt.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &opts).Stream(context.TODO())
@@ -466,7 +465,7 @@ func MonitorE2EFioPod(podName string, nameSpace string) (*common.E2eFioPodOutput
 	if err != nil {
 		return nil, err
 	}
-	go func(synopsis *common.E2eFioPodLogSynopsis, pod v1.Pod) {
+	go func(synopsis *common.E2eFioPodLogSynopsis, pod coreV1.Pod) {
 		ScanFioPodLogs(pod, synopsis)
 		podOut.Completed = true
 	}(&podOut.Synopsis, *pod)
@@ -544,6 +543,7 @@ func DumpPodLog(podName string, nameSpace string) {
 			logf.Log.Info("DumpPodLog: failed to open", "logfile", logfile, "error", err)
 			fLog = nil
 		} else {
+			//nolint:errcheck
 			defer fLog.Close()
 		}
 	}
@@ -556,7 +556,7 @@ func DumpPodLog(podName string, nameSpace string) {
 		return
 	}
 	for _, container := range pod.Spec.Containers {
-		opts := v1.PodLogOptions{}
+		opts := coreV1.PodLogOptions{}
 		opts.Follow = true
 		opts.Container = container.Name
 		podLogs, err := gTestEnv.KubeInt.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &opts).Stream(context.TODO())
@@ -570,6 +570,7 @@ func DumpPodLog(podName string, nameSpace string) {
 			for reader.Scan() {
 				line := reader.Text()
 				chn <- true
+				//nolint:staticcheck // QF1012: WriteString kept for explicit []byte handling or compatibility
 				_, _ = fLog.WriteString(fmt.Sprintln(line))
 			}
 			chn <- false
@@ -599,7 +600,7 @@ func GetPodLog(podName string, nameSpace string) ([]string, error) {
 		return logfile, err
 	}
 	for _, container := range pod.Spec.Containers {
-		opts := v1.PodLogOptions{}
+		opts := coreV1.PodLogOptions{}
 		opts.Follow = true
 		opts.Container = container.Name
 		podLogs, err := gTestEnv.KubeInt.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &opts).Stream(context.TODO())
@@ -707,7 +708,7 @@ func ListRunningMayastorPods(timestamp *time.Time) ([]string, error) {
 		}
 
 		// skip not running pods
-		if pod.Status.Phase != v1.PodRunning {
+		if pod.Status.Phase != coreV1.PodRunning {
 			logf.Log.Info("not ready pod", "name", pod.Name, "phase", pod.Status.Phase)
 			continue
 		}
@@ -724,7 +725,7 @@ func ListRunningMayastorPods(timestamp *time.Time) ([]string, error) {
 	return podNames, nil
 }
 
-func ListIOEnginePods() (*v1.PodList, error) {
+func ListIOEnginePods() (*coreV1.PodList, error) {
 	ioEngineLabel := e2e_config.GetConfig().Product.PodLabelKey + "=" + e2e_config.GetConfig().Product.IOEnginePodLabelValue
 	pods, err := gTestEnv.KubeInt.CoreV1().Pods(common.NSMayastor()).List(context.TODO(), metaV1.ListOptions{LabelSelector: ioEngineLabel})
 	if err != nil {
@@ -991,7 +992,7 @@ func MakeFioContainer(name string, args []string) coreV1.Container {
 		containerArgs = []string{"sleep", "1000000"}
 	}
 	var z64 int64 = 0
-	var vTrue bool = true
+	var vTrue = true
 
 	sc := coreV1.SecurityContext{
 		Privileged:               &vTrue,
@@ -1183,7 +1184,7 @@ func ListRunningMayastorPodsOnNode(nodeName string) ([]string, error) {
 		if strings.HasPrefix(pod.Name, "mayastor-etcd") {
 			continue
 		}
-		if pod.Status.Phase != v1.PodRunning {
+		if pod.Status.Phase != coreV1.PodRunning {
 			logf.Log.Info("not ready pod", "name", pod.Name, "phase", pod.Status.Phase)
 			continue
 		}

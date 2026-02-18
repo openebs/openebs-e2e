@@ -418,6 +418,7 @@ func GetConfig() E2EConfig {
 			}
 			saveConfig()
 		} else {
+			//nolint:errcheck
 			fmt.Fprintln(os.Stdout, "WARNING: not recording configuration in use!")
 		}
 		if e2eConfig.SessionDir == "" {

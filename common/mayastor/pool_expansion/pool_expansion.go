@@ -248,7 +248,7 @@ func VerifyMaxExpandableWithFactorSize(poolName string, maxExpansionStr string, 
 
 // ResizeHetznerVolumes resizes the primary volume and optionally other node volumes to the target GiB.
 func ResizeHetznerVolumes(nodes []string, targetGiB int) error {
-	var plat plattypes.Platform = platform.Create()
+	var plat = platform.Create()
 	for _, node := range nodes {
 		nodeDisks, err := k8stest.GetConfiguredNodePoolDevices(node)
 		if err != nil {
@@ -267,7 +267,7 @@ func ResizeHetznerVolumes(nodes []string, targetGiB int) error {
 // ResizeAllVolumesBeyondPoolMax resizes each pool's backing Hetzner volume to MaxExpandableGiB + plusGiB.
 // This uses control-plane pool state and encryption helpers to map pool -> node/disk -> volume id.
 func ResizeAllVolumesBeyondPoolMax(pools []string, plusGiB int) error {
-	var plat plattypes.Platform = platform.Create()
+	var plat = platform.Create()
 	for _, poolName := range pools {
 		// Read control-plane pool to compute target size
 		cpPool, err := v1cp.GetMayastorCpPool(poolName)

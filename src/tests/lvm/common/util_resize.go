@@ -11,6 +11,7 @@ import (
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/k8stest"
 
+	//nolint:staticcheck // ST1001: dot imports are conventional with gomega in tests
 	. "github.com/onsi/gomega"
 	coreV1 "k8s.io/api/core/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"

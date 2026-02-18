@@ -10,6 +10,7 @@ import (
 	"time"
 
 	_ "github.com/onsi/ginkgo/v2"
+	//nolint:staticcheck // ST1001: dot imports are conventional with gomega in tests
 	. "github.com/onsi/gomega"
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/k8stest"
@@ -124,10 +125,7 @@ func CreateAndRunSizedFio(uuid string, sizeMiB int, volName string, expectError 
 	tSecs := 0
 	var phase coreV1.PodPhase
 	var podLogSynopsis *common.E2eFioPodLogSynopsis
-	for {
-		if tSecs > DefTimeoutSecs {
-			break
-		}
+	for tSecs < DefTimeoutSecs {
 		time.Sleep(1 * time.Second)
 		tSecs += 1
 		phase, podLogSynopsis, err = k8stest.CheckFioPodCompleted(fioPodName, common.NSDefault)
