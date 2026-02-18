@@ -53,7 +53,7 @@ func GetClusterRestAPINodeIPs() ([]string, error) {
 	}
 
 	// FIXME: if there are no test control nodes then return all nodes in the cluster, not ideal
-	if 0 == len(addrs) {
+	if len(addrs) == 0 {
 		for _, k8sNode := range nodeList.Items {
 			for _, addr := range k8sNode.Status.Addresses {
 				if addr.Type == coreV1.NodeInternalIP {

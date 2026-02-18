@@ -80,6 +80,7 @@ func GetCsiVolumeMetrics(query string, address []string) (CsiVolumeMetrics, erro
 		} else if resp.StatusCode != 200 {
 			return CsiVolumeMetrics{}, fmt.Errorf("prometheus api reponse code is not 200, response code reveived is %d", resp.StatusCode)
 		} else {
+			//nolint:errcheck
 			defer resp.Body.Close()
 			jsonResponse, err = io.ReadAll(resp.Body)
 			if err != nil {

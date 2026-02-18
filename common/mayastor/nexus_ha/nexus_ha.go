@@ -463,7 +463,7 @@ func GetNonNexusNode() (string, string) {
 	var nodeName string
 	var address string
 	numOfRecords := len(nodeList)
-	skip := false
+	var skip bool
 	if numOfRecords > 2 {
 		skip = true
 	}

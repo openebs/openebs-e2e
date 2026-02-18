@@ -12,6 +12,7 @@ func GetMyPublicIP() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	//nolint:errcheck // Close error is not critical in test cleanup
 	defer resp.Body.Close()
 	ip, err := io.ReadAll(resp.Body)
 	if err != nil {

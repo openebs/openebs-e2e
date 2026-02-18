@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	appsV1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +21,7 @@ func GetDaemonSet(name, namespace string) (v1.DaemonSet, error) {
 	return *daemonSet, dserr
 }
 
-func UpdateDaemonSet(ds appsV1.DaemonSet, namespace string) (v1.DaemonSet, error) {
+func UpdateDaemonSet(ds v1.DaemonSet, namespace string) (v1.DaemonSet, error) {
 	daemonSet, dserr := gTestEnv.KubeInt.AppsV1().DaemonSets(namespace).Update(context.TODO(), &ds, metaV1.UpdateOptions{})
 	return *daemonSet, dserr
 }
@@ -89,7 +88,7 @@ func UpdateDemonsetContainerAllEnv(daemonsetName string, containerName string, n
 	var err error
 	daemonset, err := GetDaemonSet(daemonsetName, namespace)
 	if err != nil {
-		return fmt.Errorf("failed to get deployment, name: %s, namespace: %s, error: %v",
+		return fmt.Errorf("failed to get daemonset, name: %s, namespace: %s, error: %v",
 			daemonsetName,
 			namespace,
 			err)

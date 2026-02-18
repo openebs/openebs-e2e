@@ -12,7 +12,6 @@ import (
 	"github.com/openebs/openebs-e2e/common/mayastorclient"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type replicaInfo struct {
@@ -35,7 +34,7 @@ func getCheckSum(replica replicaInfo) (string, error) {
 	if err == nil {
 		return fmt.Sprintf("%v", crc32), nil
 	}
-	logf.Log.Info("gRPC ChecksumReplica call failed/unsupported, falling back to cli method", "err", err)
+	log.Log.Info("gRPC ChecksumReplica call failed/unsupported, falling back to cli method", "err", err)
 	replicaSharedURI, err := ShareReplica(replica.Pool, replica.UUID)
 	if err != nil {
 		log.Log.Info("ShareReplica failed", "error", err)
@@ -72,13 +71,13 @@ func getCheckSum(replica replicaInfo) (string, error) {
 func getReplicaNqn(replicaUri string) (string, error) {
 	nqnoffset := strings.Index(replicaUri, "nqn.")
 	if nqnoffset == -1 {
-		logf.Log.Info("ChecksumReplica", "Invalid URI", replicaUri)
+		log.Log.Info("ChecksumReplica", "Invalid URI", replicaUri)
 		return "", fmt.Errorf("invalid nqn URI %v", replicaUri)
 	}
 	nqnlong := replicaUri[nqnoffset:]
 	tailoffset := strings.Index(nqnlong, "?")
 	if tailoffset == -1 {
-		logf.Log.Info("ChecksumReplica", "Invalid URI", replicaUri)
+		log.Log.Info("ChecksumReplica", "Invalid URI", replicaUri)
 		return "", fmt.Errorf("invalid nqn URI %v", replicaUri)
 	}
 	nqn := nqnlong[:tailoffset]
@@ -507,7 +506,7 @@ func GetVolumeReplicasChecksum(volName string, ns string) ([]string, error) {
 func GetReplicaTopoloy(volUuid string, replicaUuid string) (common.Replica, error) {
 	replicaTopologies, err := GetMsvReplicaTopology(volUuid)
 	if err != nil {
-		logf.Log.Info("Failed to get replica topology for volume", "uuid", volUuid, "error", err)
+		log.Log.Info("Failed to get replica topology for volume", "uuid", volUuid, "error", err)
 		return common.Replica{}, err
 	}
 

@@ -18,9 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	errors "github.com/pkg/errors"
-	coreV1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -241,11 +239,11 @@ func (b *PodBuilder) WithVolumeDevice(volDevice corev1.VolumeDevice) *PodBuilder
 }
 
 func (b *PodBuilder) WithVolumeDeviceOrMount(volType common.VolumeType) *PodBuilder {
-	volMounts := coreV1.VolumeMount{
+	volMounts := corev1.VolumeMount{
 		Name:      "ms-volume",
 		MountPath: common.FioFsMountPoint,
 	}
-	volDevices := coreV1.VolumeDevice{
+	volDevices := corev1.VolumeDevice{
 		Name:       "ms-volume",
 		DevicePath: common.FioBlockFilename,
 	}
@@ -259,16 +257,16 @@ func (b *PodBuilder) WithVolumeDeviceOrMount(volType common.VolumeType) *PodBuil
 }
 
 func (b *PodBuilder) WithVolumeDevicesOrMounts(volType common.VolumeType, volCount int) *PodBuilder {
-	var volDeviceList []coreV1.VolumeDevice
-	var volMountList []coreV1.VolumeMount
+	var volDeviceList []corev1.VolumeDevice
+	var volMountList []corev1.VolumeMount
 	for i := 0; i < volCount; i++ {
 		name := "ms-volume-" + fmt.Sprintf("%d", i)
-		volMount := coreV1.VolumeMount{
+		volMount := corev1.VolumeMount{
 			Name:      name,
 			MountPath: common.FioFsMountPoint + fmt.Sprintf("%d", i),
 		}
 		volMountList = append(volMountList, volMount)
-		volDevices := coreV1.VolumeDevice{
+		volDevices := corev1.VolumeDevice{
 			Name:       name,
 			DevicePath: common.FioBlockFilename + fmt.Sprintf("%d", i),
 		}
@@ -284,11 +282,11 @@ func (b *PodBuilder) WithVolumeDevicesOrMounts(volType common.VolumeType, volCou
 }
 
 func (b *PodBuilder) WithHostPath(name string, hostPath string) *PodBuilder {
-	vHostPathDirectory := coreV1.HostPathDirectory
-	b.WithVolume(coreV1.Volume{
+	vHostPathDirectory := corev1.HostPathDirectory
+	b.WithVolume(corev1.Volume{
 		Name: name,
-		VolumeSource: coreV1.VolumeSource{
-			HostPath: &coreV1.HostPathVolumeSource{
+		VolumeSource: corev1.VolumeSource{
+			HostPath: &corev1.HostPathVolumeSource{
 				Path: hostPath,
 				Type: &vHostPathDirectory,
 			},
@@ -327,7 +325,7 @@ func (b *PodBuilder) Build() (*corev1.Pod, error) {
 }
 
 // GetPod return requested pod by name in the given namespace
-func GetPod(name, ns string) (*v1.Pod, error) {
+func GetPod(name, ns string) (*corev1.Pod, error) {
 	pod, err := gTestEnv.KubeInt.CoreV1().Pods(ns).Get(context.TODO(), name, metaV1.GetOptions{})
 	if err != nil {
 		return nil, errors.New("failed to get pod")
@@ -336,7 +334,7 @@ func GetPod(name, ns string) (*v1.Pod, error) {
 }
 
 // ListPod return lis of pods in the given namespace
-func ListPod(ns string) (*v1.PodList, error) {
+func ListPod(ns string) (*corev1.PodList, error) {
 	pods, err := gTestEnv.KubeInt.CoreV1().Pods(ns).List(context.TODO(), metaV1.ListOptions{})
 	if err != nil {
 		return nil, errors.New("failed to list pods")
@@ -345,7 +343,7 @@ func ListPod(ns string) (*v1.PodList, error) {
 }
 
 // ListPodsWithLabel return list of pods with a given label in the given namespace
-func ListPodsWithLabel(namespace string, labels map[string]string) (*v1.PodList, error) {
+func ListPodsWithLabel(namespace string, labels map[string]string) (*corev1.PodList, error) {
 	pods, err := gTestEnv.KubeInt.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
 		LabelSelector: metaV1.FormatLabelSelector(&metaV1.LabelSelector{MatchLabels: labels}),
 	})
@@ -358,12 +356,12 @@ func ListPodsWithLabel(namespace string, labels map[string]string) (*v1.PodList,
 func VerifyPodsOnNode(podLabelsList []string, nodeName string, namespace string) error {
 	for _, label := range podLabelsList {
 		var err error
-		var nodeList map[string]v1.PodPhase
+		var nodeList map[string]corev1.PodPhase
 		ok := false
 		for ix := 0; ix < timeout/timeSleepSecs; ix++ {
 			nodeList, err = GetNodeListForPods("app="+label, namespace)
 			logf.Log.Info("VerifyPodsOnNode", "podLabel", label, "NodeList", nodeList, "error", err)
-			if err == nil && len(nodeList) == 1 && nodeList[nodeName] == v1.PodRunning {
+			if err == nil && len(nodeList) == 1 && nodeList[nodeName] == corev1.PodRunning {
 				ok = true
 				break
 			}
@@ -388,7 +386,7 @@ func VerifyPodStatusWithAppLabel(podLabel string, namespace string) (bool, error
 	}
 	podRunningCount := 0
 	for _, podPhase := range podList {
-		if podPhase == v1.PodRunning {
+		if podPhase == corev1.PodRunning {
 			podRunningCount++
 		}
 	}
@@ -406,7 +404,7 @@ func RestartPodByPrefix(prefix string) error {
 		return err
 	}
 	for _, pod := range pods.Items {
-		if strings.HasPrefix(pod.Name, prefix) && pod.Status.Phase == v1.PodRunning {
+		if strings.HasPrefix(pod.Name, prefix) && pod.Status.Phase == corev1.PodRunning {
 			delErr := podApi(common.NSMayastor()).Delete(context.TODO(), pod.Name, metaV1.DeleteOptions{})
 			if delErr != nil {
 				logf.Log.Info("Failed to delete", "pod", pod.Name, "error", delErr)
@@ -426,7 +424,7 @@ func CheckPodIsRunningByPrefix(prefix string) bool {
 		return false
 	}
 	for _, pod := range pods.Items {
-		if strings.HasPrefix(pod.Name, prefix) && pod.Status.Phase == v1.PodRunning {
+		if strings.HasPrefix(pod.Name, prefix) && pod.Status.Phase == corev1.PodRunning {
 			logf.Log.Info("pod is running ", "pod -> ", pod.Name)
 			return true
 		}
@@ -445,7 +443,7 @@ func CheckMsPodOnNodeByPrefix(nodeIP string, prefix string) bool {
 	for _, pod := range pods.Items {
 		if nodeIP == pod.Status.HostIP && strings.HasPrefix(pod.Name, prefix) {
 			logf.Log.Info("Found the", "pod", pod.Name, "HostIP", pod.Status.HostIP)
-			return pod.Status.Phase == v1.PodRunning
+			return pod.Status.Phase == corev1.PodRunning
 		}
 	}
 	return false
@@ -458,18 +456,18 @@ func CreateSleepingFioPod(fioPodName string, volName string, volType common.Volu
 		"app": "fio",
 	}
 	// fio pod container
-	firstPodContainer := coreV1.Container{
+	firstPodContainer := corev1.Container{
 		Name:            fioPodName,
 		Image:           common.GetFioImage(),
-		ImagePullPolicy: coreV1.PullAlways,
+		ImagePullPolicy: corev1.PullAlways,
 		Args:            []string{"sleep", "1000000"},
 	}
 
 	// volume claim details
-	volume := coreV1.Volume{
+	volume := corev1.Volume{
 		Name: "ms-volume",
-		VolumeSource: coreV1.VolumeSource{
-			PersistentVolumeClaim: &coreV1.PersistentVolumeClaimVolumeSource{
+		VolumeSource: corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 				ClaimName: volName,
 			},
 		},
@@ -478,7 +476,7 @@ func CreateSleepingFioPod(fioPodName string, volName string, volType common.Volu
 	podObj, err := NewPodBuilder("fio").
 		WithName(fioPodName).
 		WithNamespace(common.NSDefault).
-		WithRestartPolicy(coreV1.RestartPolicyNever).
+		WithRestartPolicy(corev1.RestartPolicyNever).
 		WithContainer(firstPodContainer).
 		WithVolume(volume).
 		WithVolumeDeviceOrMount(volType).
@@ -559,7 +557,7 @@ func GetNodeForPodByPrefix(prefix string, namespace string) (string, error) {
 }
 
 // GetPodStatusByPrefix return pod phase by pod prefix
-func GetPodStatusByPrefix(prefix string, namespace string) (coreV1.PodPhase, error) {
+func GetPodStatusByPrefix(prefix string, namespace string) (corev1.PodPhase, error) {
 	podApi := gTestEnv.KubeInt.CoreV1().Pods
 	pods, err := podApi(namespace).List(context.TODO(), metaV1.ListOptions{})
 	if err != nil {
@@ -573,7 +571,7 @@ func GetPodStatusByPrefix(prefix string, namespace string) (coreV1.PodPhase, err
 	return "", err
 }
 
-func GetPodEvents(podName string, namespace string) (*coreV1.EventList, error) {
+func GetPodEvents(podName string, namespace string) (*corev1.EventList, error) {
 	options := metaV1.ListOptions{
 		TypeMeta:      metaV1.TypeMeta{Kind: "Pod"},
 		FieldSelector: fmt.Sprintf("involvedObject.name=%s", podName),
@@ -583,8 +581,8 @@ func GetPodEvents(podName string, namespace string) (*coreV1.EventList, error) {
 
 // ListPodsByPrefix return list of pods in the given namespace with names that start with a prefix
 // for example pods deployed on behalf of a daemonset
-func ListPodsByPrefix(ns string, prefix string) ([]coreV1.Pod, error) {
-	var pods []coreV1.Pod
+func ListPodsByPrefix(ns string, prefix string) ([]corev1.Pod, error) {
+	var pods []corev1.Pod
 	podList, err := gTestEnv.KubeInt.CoreV1().Pods(ns).List(context.TODO(), metaV1.ListOptions{})
 	if err != nil {
 		return nil, errors.New("failed to list pods")
@@ -597,8 +595,8 @@ func ListPodsByPrefix(ns string, prefix string) ([]coreV1.Pod, error) {
 	return pods, nil
 }
 
-func ListPodsByPrefixSortedByCreationTimeStamp(ns string, prefix string) ([]coreV1.Pod, error) {
-	var pods []coreV1.Pod
+func ListPodsByPrefixSortedByCreationTimeStamp(ns string, prefix string) ([]corev1.Pod, error) {
+	var pods []corev1.Pod
 	podList, err := gTestEnv.KubeInt.CoreV1().Pods(ns).List(context.TODO(), metaV1.ListOptions{})
 	if err != nil {
 		return nil, errors.New("failed to list pods")
@@ -627,7 +625,7 @@ func ExecuteCommandInPod(namespace, podName string, cmd string) (string, string,
 		SubResource("exec")
 
 	// Command options
-	option := &v1.PodExecOptions{
+	option := &corev1.PodExecOptions{
 		Command: command,
 		Stdin:   false,
 		Stdout:  true,
@@ -678,7 +676,7 @@ func ExecuteCommandInContainer(namespace string, podName string, containerName s
 		Param("container", containerName)
 
 	// Command options
-	option := &v1.PodExecOptions{
+	option := &corev1.PodExecOptions{
 		Command: command,
 		Stdin:   false,
 		Stdout:  true,
@@ -831,7 +829,7 @@ func CheckPodExists(podName string, namespace string) (bool, error) {
 	return true, nil
 }
 
-func WaitForPodDeletion(podName string, namespace string, podDeletionTimeoutSecs time.Duration) (bool, error) {
+func WaitForPodDeletion(podName string, namespace string, podDeletionTimeoutSecnds time.Duration) (bool, error) {
 
 	startTime := time.Now()
 
@@ -845,7 +843,7 @@ func WaitForPodDeletion(podName string, namespace string, podDeletionTimeoutSecs
 		}
 
 		// If the timeout is reached, exit the loop
-		if time.Since(startTime) >= podDeletionTimeoutSecs {
+		if time.Since(startTime) >= podDeletionTimeoutSecnds {
 			break
 		}
 		// Sleep for a short interval before retrying
@@ -853,7 +851,7 @@ func WaitForPodDeletion(podName string, namespace string, podDeletionTimeoutSecs
 	}
 
 	// If the pod still exists after the timeout, return false
-	return false, fmt.Errorf("timeout reached: pod %s in namespace %s was not deleted within %v", podName, namespace, podDeletionTimeoutSecs)
+	return false, fmt.Errorf("timeout reached: pod %s in namespace %s was not deleted within %v", podName, namespace, podDeletionTimeoutSecnds)
 }
 
 func GetPvcNameFromPod(podName string, namespace string) (string, error) {

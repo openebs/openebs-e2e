@@ -429,7 +429,7 @@ func (ifc v1beta3Ifc) DeleteMsPool(poolName string) error {
 }
 
 func (ifc v1beta3Ifc) ListMsPoolCrs() ([]crtypes.DiskPool, error) {
-	var poolCrs []crtypes.DiskPool = make([]crtypes.DiskPool, 0)
+	var poolCrs = make([]crtypes.DiskPool, 0)
 	poolList, err := poolClientSet.DiskPools().List(context.TODO(), metaV1.ListOptions{})
 	if err != nil {
 		return poolCrs, err

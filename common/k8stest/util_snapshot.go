@@ -12,7 +12,6 @@ import (
 	"github.com/openebs/openebs-e2e/common/mayastorclient"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
-	v1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -343,10 +342,10 @@ func GetSnapshotUid(snapshotName string, namespace string) (string, error) {
 		return "", fmt.Errorf("failed to get snapshot: %s, error: %v", snapshotName, err)
 	} else if snapshot == nil {
 		return "", fmt.Errorf("snapshot %s not found", snapshotName)
-	} else if string(snapshot.ObjectMeta.UID) == "" {
+	} else if string(snapshot.UID) == "" {
 		return "", fmt.Errorf("snapshot Uid not found for snapshot: %s", snapshotName)
 	}
-	return string(snapshot.ObjectMeta.UID), err
+	return string(snapshot.UID), err
 }
 
 // RemoveSnapshot delete a snapshot in namespace and verify that
@@ -804,7 +803,7 @@ func GetMayastorSnapshotScMap() ([]string, error) {
 
 // CreateVolumeSnapshot create snapshot class and snapshot
 // it return snapshot object , snapshot content name and err
-func CreateVolumeSnapshot(snapshotClassName string, snapshotName string, pvc string, namespace string, csiDriver string) (*v1.VolumeSnapshot, string, error) {
+func CreateVolumeSnapshot(snapshotClassName string, snapshotName string, pvc string, namespace string, csiDriver string) (*snapshotv1.VolumeSnapshot, string, error) {
 	err := CreateSnapshotClass(snapshotClassName, csiDriver)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create snapshot class %s, error: %v", snapshotClassName, err)

@@ -9,8 +9,8 @@ import (
 )
 
 func oaPoolToMsp(oaPool openapi.Pool) common.MayastorPool {
-	var poolSpec openapi.PoolSpec = oaPool.GetSpec()
-	var poolState openapi.PoolState = oaPool.GetState()
+	var poolSpec = oaPool.GetSpec()
+	var poolState = oaPool.GetState()
 
 	return common.MayastorPool{
 		Name: oaPool.Id,

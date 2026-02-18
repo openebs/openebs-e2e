@@ -42,7 +42,7 @@ func GetStatsConfigMapValue(name string, namespace string, statsType StatsType, 
 	// The data is json-encoded
 	err = json.Unmarshal([]byte(data), &stats)
 	if err != nil {
-		return 0, fmt.Errorf("Failed to unmarshall, data %s, error %s", configmap.Data["stats"], err.Error())
+		return 0, fmt.Errorf("failed to unmarshall, data %s, error %s", configmap.Data["stats"], err.Error())
 	}
 	var val int
 	switch statsType {

@@ -46,6 +46,7 @@ func WrapResult(output string, errorcode E2eAgentErrcode, w http.ResponseWriter)
 	jsn, err := json.Marshal(e2eagenterr)
 	if err != nil {
 		klog.Error("EventList: failed to marshal error, Error: ", err)
+		//nolint:errcheck // secondary write failure is not actionable here
 		fmt.Fprint(w, "EventList: failed to marshal error")
 		w.WriteHeader(InternalServerErrorCode)
 		return
@@ -55,5 +56,6 @@ func WrapResult(output string, errorcode E2eAgentErrcode, w http.ResponseWriter)
 	} else {
 		klog.Info("output: ", output, " errorcode: ", errorcode)
 	}
+	//nolint:errcheck // secondary write failure is not actionable here
 	fmt.Fprint(w, string(jsn))
 }

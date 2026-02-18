@@ -77,7 +77,7 @@ type DevLinkPort struct {
 }
 
 func homePage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Welcome home!\n")
+	_, _ = fmt.Fprint(w, "Welcome home!\n")
 }
 
 type CmdList struct {
@@ -236,20 +236,20 @@ func ungracefulReboot(w http.ResponseWriter, r *http.Request) {
 
 func gracefulReboot(w http.ResponseWriter, r *http.Request) {
 	klog.Info("Graceful reboots are not yet supported")
-	fmt.Fprint(w, "Graceful reboots are not yet supported")
+	_, _ = fmt.Fprint(w, "Graceful reboots are not yet supported")
 }
 
 func dropConnectionsFromNodes(w http.ResponseWriter, r *http.Request) {
 	var list NodeList
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&list); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	klog.Info("Dropping connection from nodes ", list.Nodes, list.NetworkInterface)
 	if err := DropConnectionsFromNodes(list.Nodes, list.NetworkInterface); err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to drop connection from nodes:", list.Nodes, "Error: ", err)
 		return
 	}
@@ -260,18 +260,18 @@ func acceptConnectionsFromNodes(w http.ResponseWriter, r *http.Request) {
 	var list NodeList
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&list); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	klog.Info("Accept connection from nodes ", list.Nodes, list.NetworkInterface)
 	err := AcceptConnectionsFromNodes(list.Nodes, list.NetworkInterface)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to accept connection from nodes:", list.Nodes, "Error: ", err)
 		return
 	}
-	fmt.Fprint(w, "Successfully started network services\n")
+	_, _ = fmt.Fprint(w, "Successfully started network services\n")
 	klog.Info("Successfully started network services")
 }
 
@@ -280,7 +280,7 @@ func dropIncomingTrafficOnNode(w http.ResponseWriter, r *http.Request) {
 	klog.Info("Dropping incoming traffic on node")
 	if err := DropIncomingTrafficOnNode(); err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to drop incoming traffic from node", "Error: ", err)
 		return
 	}
@@ -292,7 +292,7 @@ func acceptIncomingTrafficOnNode(w http.ResponseWriter, r *http.Request) {
 	err := AcceptIncomingTrafficOnNode()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to accept incoming traffic on node", "Error: ", err)
 		return
 	}
@@ -303,7 +303,7 @@ func LoadKernelModule(w http.ResponseWriter, r *http.Request) {
 	var module KernelModule
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&module); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 		return
 	}
@@ -312,7 +312,7 @@ func LoadKernelModule(w http.ResponseWriter, r *http.Request) {
 	output, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to load kernel module:", module, "Error: ", err)
 		return
 	}
@@ -324,7 +324,7 @@ func UnloadKernelModule(w http.ResponseWriter, r *http.Request) {
 	var module KernelModule
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&module); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 		return
 	}
@@ -334,7 +334,7 @@ func UnloadKernelModule(w http.ResponseWriter, r *http.Request) {
 	output, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to unload kernel module:", module, "Error: ", err)
 		return
 	}
@@ -346,7 +346,7 @@ func IsKernelModuleLoaded(w http.ResponseWriter, r *http.Request) {
 	var module KernelModule
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&module); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 		return
 	}
@@ -356,7 +356,7 @@ func IsKernelModuleLoaded(w http.ResponseWriter, r *http.Request) {
 	output, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to check if module is loaded:", module, "Error: ", err)
 		return
 	}
@@ -368,7 +368,7 @@ func IsPackageInstalled(w http.ResponseWriter, r *http.Request) {
 	var packageName string
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&packageName); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 		return
 	}
@@ -378,7 +378,7 @@ func IsPackageInstalled(w http.ResponseWriter, r *http.Request) {
 	output, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to check if package is installed:", packageName, "Error: ", err)
 		return
 	}
@@ -390,7 +390,7 @@ func IsKernelModulePersistent(w http.ResponseWriter, r *http.Request) {
 	var module KernelModule
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&module); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 		return
 	}
@@ -409,7 +409,7 @@ func IsKernelModulePersistent(w http.ResponseWriter, r *http.Request) {
 	output, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to check if module is persistent:", module, "Error: ", err)
 		return
 	}
@@ -423,7 +423,7 @@ func ConfigureNonPersistentHugePages(w http.ResponseWriter, r *http.Request) {
 	output, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to configure non-persistent hugepages", "Error: ", err)
 		return
 	}
@@ -437,7 +437,7 @@ func IsHugePagesConfigured(w http.ResponseWriter, r *http.Request) {
 	output, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to check if hugepages are configured", "Error: ", err)
 		return
 	}
@@ -451,7 +451,7 @@ func IsHugePagesPersistent(w http.ResponseWriter, r *http.Request) {
 	output, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to check if hugepages are persistent", "Error: ", err)
 		return
 	}
@@ -463,7 +463,7 @@ func RestartService(w http.ResponseWriter, r *http.Request) {
 	d := json.NewDecoder(r.Body)
 	var service string
 	if err := d.Decode(&service); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 		return
 	}
@@ -472,7 +472,7 @@ func RestartService(w http.ResponseWriter, r *http.Request) {
 	output, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to restart service:", service, "Error: ", err)
 		return
 	}
@@ -484,7 +484,7 @@ func GetProcessID(w http.ResponseWriter, r *http.Request) {
 	d := json.NewDecoder(r.Body)
 	var process string
 	if err := d.Decode(&process); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 		return
 	}
@@ -493,7 +493,7 @@ func GetProcessID(w http.ResponseWriter, r *http.Request) {
 	output, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to retrieve process ID for:", process, "Error: ", err)
 		return
 	}
@@ -629,18 +629,18 @@ func controlDevice(w http.ResponseWriter, r *http.Request) {
 
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&device); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	if len(device.Device) == 0 {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no device passed")
+		_, _ = fmt.Fprint(w, "no device passed")
 		klog.Error("no device passed")
 		return
 	}
 	if device.State != "offline" && device.State != "running" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "invalid state")
+		_, _ = fmt.Fprint(w, "invalid state")
 		klog.Error("invalid state")
 		return
 	}
@@ -650,7 +650,7 @@ func controlDevice(w http.ResponseWriter, r *http.Request) {
 	klog.Info("Resolving device ", device.Device)
 	if device.Device, err = filepath.EvalSymlinks(device.Device); err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to get disk name for dev link:", device.Device, "Error: ", err)
 		return
 	}
@@ -666,11 +666,11 @@ func controlDevice(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to run command ", params[1], "Error: ", err)
 		return
 	}
-	fmt.Fprint(w, string(output))
+	_, _ = fmt.Fprint(w, string(output))
 	klog.Info(string(output))
 }
 
@@ -686,11 +686,11 @@ func killIoEngine(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to run command ", params[1], "Error", err)
 		return
 	}
-	fmt.Fprint(w, string(output))
+	_, _ = fmt.Fprint(w, string(output))
 	klog.Info(string(output))
 }
 
@@ -706,7 +706,7 @@ func killCsiController(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to run command ", params[1], "Error", err)
 		return
 	}
@@ -726,7 +726,7 @@ func killCsiNode(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to run command ", params[1], "Error", err)
 		return
 	}
@@ -741,12 +741,12 @@ func getDeviceState(w http.ResponseWriter, r *http.Request) {
 
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&disk); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	if disk.Disk == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no disk pool passed")
+		_, _ = fmt.Fprint(w, "no disk pool passed")
 		klog.Error("no disk pool passed")
 		return
 	}
@@ -754,7 +754,7 @@ func getDeviceState(w http.ResponseWriter, r *http.Request) {
 	klog.Info("Resolving device ", disk.Disk)
 	if disk.Disk, err = filepath.EvalSymlinks(disk.Disk); err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to get disk name for dev link:", disk.Disk, "Error: ", err)
 		return
 	}
@@ -771,11 +771,11 @@ func getDeviceState(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to run command ", params[1], "Error: ", err)
 		return
 	}
-	fmt.Fprint(w, string(output))
+	_, _ = fmt.Fprint(w, string(output))
 	klog.Info(string(output))
 }
 
@@ -785,12 +785,12 @@ func NvmeConnect(w http.ResponseWriter, r *http.Request) {
 
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&nvme); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	if nvme.TargetIp == "" || nvme.Nqn == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no nvme target or nqn passed")
+		_, _ = fmt.Fprint(w, "no nvme target or nqn passed")
 		klog.Error("no nvme target or nqn passed")
 		return
 	}
@@ -807,11 +807,11 @@ func NvmeConnect(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params[1], "Error: ", err)
 		return
 	}
-	fmt.Fprint(w, string(output))
+	_, _ = fmt.Fprint(w, string(output))
 	klog.Info(string(output))
 }
 
@@ -821,12 +821,12 @@ func NvmeDisconnect(w http.ResponseWriter, r *http.Request) {
 
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&nvme); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	if nvme.Nqn == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no nvme nqn passed")
+		_, _ = fmt.Fprint(w, "no nvme nqn passed")
 		klog.Error("no nvme nqn passed")
 		return
 	}
@@ -839,11 +839,11 @@ func NvmeDisconnect(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params[1], "Error: ", err)
 		return
 	}
-	fmt.Fprint(w, string(output))
+	_, _ = fmt.Fprint(w, string(output))
 	klog.Info(string(output))
 }
 
@@ -859,11 +859,11 @@ func NvmeList(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params[1], "Error: ", err)
 		return
 	}
-	fmt.Fprint(w, string(output))
+	_, _ = fmt.Fprint(w, string(output))
 	klog.Info(string(output))
 }
 
@@ -879,11 +879,11 @@ func NvmeListSubSys(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params[1], "Error: ", err)
 		return
 	}
-	fmt.Fprint(w, string(output))
+	_, _ = fmt.Fprint(w, string(output))
 	klog.Info(string(output))
 }
 
@@ -893,13 +893,13 @@ func ChecksumDevice(w http.ResponseWriter, r *http.Request) {
 
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&device); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	klog.Info("Running cksum on device, data: %v", device)
 	if device.DevicePath == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no device path passed")
+		_, _ = fmt.Fprint(w, "no device path passed")
 		klog.Error("no device path passed")
 		return
 	}
@@ -913,11 +913,11 @@ func ChecksumDevice(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params[1], "Error: ", err)
 		return
 	}
-	fmt.Fprint(w, string(output))
+	_, _ = fmt.Fprint(w, string(output))
 	klog.Info(string(output))
 }
 
@@ -956,19 +956,19 @@ func FsCheckDevice(w http.ResponseWriter, r *http.Request) {
 
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&device); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	klog.Info("Running fsck on device, data: %v", device)
 	if device.DevicePath == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no loop device passed")
+		_, _ = fmt.Fprint(w, "no loop device passed")
 		klog.Error("no loop device passed")
 		return
 	}
 	if device.FsType == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no fsType passed")
+		_, _ = fmt.Fprint(w, "no fsType passed")
 		klog.Error("no fsType passed")
 		return
 	}
@@ -976,18 +976,19 @@ func FsCheckDevice(w http.ResponseWriter, r *http.Request) {
 	loDevice, err := freeLoopDevice()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to get free loop device ", loDevice, "Error: ", err)
 		return
 	}
 	_, err = setupLoopDevice(loDevice, "5M", device.DevicePath)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to setup loop device for", device.DevicePath, "Error: ", err)
 		return
 	}
 
+	//nolint:staticcheck // QF1003: if-chain kept for simplicity with few filesystem types
 	if device.FsType == "ext4" {
 		params = fmt.Sprintf("echo $(fsck -n -f %s; echo $?)", loDevice)
 	} else if device.FsType == "xfs" {
@@ -1002,7 +1003,7 @@ func FsCheckDevice(w http.ResponseWriter, r *http.Request) {
 	outputString, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params, "Error: ", err)
 		return
 	}
@@ -1011,7 +1012,7 @@ func FsCheckDevice(w http.ResponseWriter, r *http.Request) {
 	_, err = detachLoopDevice(loDevice)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to setup loop device for", device.DevicePath, "Error: ", err)
 		return
 	}
@@ -1034,19 +1035,19 @@ func XFSCheckDevice(w http.ResponseWriter, r *http.Request) {
 
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&device); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	klog.Info("device data: %v", device)
 	if device.DevicePath == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no loop device passed")
+		_, _ = fmt.Fprint(w, "no loop device passed")
 		klog.Error("no loop device passed")
 		return
 	}
 	if device.FsType == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no fsType passed")
+		_, _ = fmt.Fprint(w, "no fsType passed")
 		klog.Error("no fsType passed")
 		return
 	}
@@ -1054,7 +1055,7 @@ func XFSCheckDevice(w http.ResponseWriter, r *http.Request) {
 	tmpDir, err := createTempDir()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to create temporary directory", "Error: ", err)
 		return
 	}
@@ -1069,7 +1070,7 @@ func XFSCheckDevice(w http.ResponseWriter, r *http.Request) {
 	outputString, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params, "Error: ", err)
 		return
 	}
@@ -1085,7 +1086,7 @@ func XFSCheckDevice(w http.ResponseWriter, r *http.Request) {
 	outputString, err = bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params, "Error: ", err)
 		return
 	}
@@ -1101,7 +1102,7 @@ func XFSCheckDevice(w http.ResponseWriter, r *http.Request) {
 	outputString, err = bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params, "Error: ", err)
 		return
 	}
@@ -1117,7 +1118,7 @@ func XFSCheckDevice(w http.ResponseWriter, r *http.Request) {
 	outputString, err = bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params, "Error: ", err)
 		return
 	}
@@ -1137,13 +1138,13 @@ func FsFreezeDevice(w http.ResponseWriter, r *http.Request) {
 
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&device); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	klog.Info("Running fs freeze on device, data: %v", device)
 	if device.DevicePath == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no device path passed")
+		_, _ = fmt.Fprint(w, "no device path passed")
 		klog.Error("no device path passed")
 		return
 	}
@@ -1151,7 +1152,7 @@ func FsFreezeDevice(w http.ResponseWriter, r *http.Request) {
 	mountPath, err := listMountPoint(device.DevicePath)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to list mountpoint for ", device.DevicePath, "Error: ", err)
 		return
 	}
@@ -1160,7 +1161,7 @@ func FsFreezeDevice(w http.ResponseWriter, r *http.Request) {
 	outputString, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params, "Error: ", err)
 		return
 	}
@@ -1174,13 +1175,13 @@ func FsUnfreezeDevice(w http.ResponseWriter, r *http.Request) {
 
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&device); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	klog.Info("Running fs unfreeze on device, data: %v", device)
 	if device.DevicePath == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no device path passed")
+		_, _ = fmt.Fprint(w, "no device path passed")
 		klog.Error("no device path passed")
 		return
 	}
@@ -1188,7 +1189,7 @@ func FsUnfreezeDevice(w http.ResponseWriter, r *http.Request) {
 	mountPath, err := listMountPoint(device.DevicePath)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to list mountpoint for ", device.DevicePath, "Error: ", err)
 		return
 	}
@@ -1197,7 +1198,7 @@ func FsUnfreezeDevice(w http.ResponseWriter, r *http.Request) {
 	outputString, err := bashLocal(params)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params, "Error: ", err)
 		return
 	}
@@ -1216,11 +1217,11 @@ func ListDevice(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params[1], "Error: ", err)
 		return
 	}
-	fmt.Fprint(w, string(output))
+	_, _ = fmt.Fprint(w, string(output))
 }
 
 func flushDiskWriteCache(w http.ResponseWriter, r *http.Request) {
@@ -1248,12 +1249,12 @@ func ZeroingDisk(w http.ResponseWriter, r *http.Request) {
 
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&disk); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	if disk.Device == "" || disk.SeekParam == "" || disk.BlockSizeParam == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no device or seek or block param passed")
+		_, _ = fmt.Fprint(w, "no device or seek or block param passed")
 		klog.Error("no device or seek or block param passed")
 		return
 	}
@@ -1270,11 +1271,11 @@ func ZeroingDisk(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params[1], "Error", err)
 		return
 	}
-	fmt.Fprint(w, string(output))
+	_, _ = fmt.Fprint(w, string(output))
 	klog.Info(string(output))
 }
 
@@ -1302,12 +1303,12 @@ func Parted(w http.ResponseWriter, r *http.Request) {
 	var cmd *exec.Cmd
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&cmdline); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	if len(cmdline.Cmd) == 0 {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no command passed")
+		_, _ = fmt.Fprint(w, "no command passed")
 		klog.Error("no command passed")
 		return
 	}
@@ -1318,10 +1319,10 @@ func Parted(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command", cmdArgs, "Error: ", err)
 	} else {
-		fmt.Fprint(w, string(output))
+		_, _ = fmt.Fprint(w, string(output))
 		klog.Info(string(output))
 	}
 }
@@ -1333,10 +1334,10 @@ func bashit(command string, w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", command, "Error", err)
 	} else {
-		fmt.Fprint(w, string(output))
+		_, _ = fmt.Fprint(w, string(output))
 		klog.Info(string(output))
 	}
 }
@@ -1361,12 +1362,12 @@ func ListReservation(w http.ResponseWriter, r *http.Request) {
 	var device Device
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&device); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	if device.DevicePath == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no device path passed")
+		_, _ = fmt.Fprint(w, "no device path passed")
 		klog.Error("no device path passed")
 		return
 	}
@@ -1380,12 +1381,12 @@ func NvmeConnectWithHostId(w http.ResponseWriter, r *http.Request) {
 
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&nvme); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	if nvme.TargetIp == "" || nvme.Nqn == "" || nvme.HostId == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no nvme target or nqn or host id passed")
+		_, _ = fmt.Fprint(w, "no nvme target or nqn or host id passed")
 		klog.Error("no nvme target or nqn or host id passed")
 		return
 	}
@@ -1398,11 +1399,11 @@ func NvmeConnectWithHostId(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params[1], "Error", err)
 		return
 	}
-	fmt.Fprint(w, string(output))
+	_, _ = fmt.Fprint(w, string(output))
 	klog.Info(string(output))
 }
 
@@ -1446,19 +1447,19 @@ func Cmp(w http.ResponseWriter, r *http.Request) {
 
 	d := json.NewDecoder(r.Body)
 	if err := d.Decode(&paths); err != nil {
-		fmt.Fprint(w, err.Error())
+		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 	}
 	klog.Info("Running cmp on device, data: %v", paths)
 	if paths.Path1 == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no path1 passed")
+		_, _ = fmt.Fprint(w, "no path1 passed")
 		klog.Error("no device path1 passed")
 		return
 	}
 	if paths.Path2 == "" {
 		w.WriteHeader(UnprocessableEntityErrorCode)
-		fmt.Fprint(w, "no path2 passed")
+		_, _ = fmt.Fprint(w, "no path2 passed")
 		klog.Error("no path2 passed")
 		return
 	}
@@ -1466,7 +1467,7 @@ func Cmp(w http.ResponseWriter, r *http.Request) {
 	params[0] = "-c"
 	params[1] = fmt.Sprintf("cmp -b %s %s", paths.Path1, paths.Path2)
 
-	var errCode E2eAgentErrcode = ErrNone
+	var errCode = ErrNone
 
 	klog.Info("executing command ", params[1])
 	cmd := exec.Command(cmdStr, params...)

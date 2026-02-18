@@ -100,6 +100,7 @@ func unTar(fileName string) error {
 	if err != nil {
 		return err
 	}
+	//nolint:errcheck
 	defer gzr.Close()
 	tr := tar.NewReader(gzr)
 	for {
@@ -129,6 +130,7 @@ func unTar(fileName string) error {
 			if _, err := io.Copy(f, tr); err != nil {
 				return err
 			}
+			//nolint:errcheck
 			f.Close()
 		}
 	}

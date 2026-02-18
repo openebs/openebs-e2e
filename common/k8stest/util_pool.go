@@ -16,8 +16,6 @@ import (
 
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -34,7 +32,7 @@ func GetConfiguredClusterNodePoolDevices() (map[string][]string, error) {
 			if err = yaml.Unmarshal([]byte(v), &devices); err == nil {
 				nodesPoolDevices[k] = devices
 			} else {
-				log.Log.Info("GetConfiguredClusterNodePoolDevices", k, v, "err", err)
+				logf.Log.Info("GetConfiguredClusterNodePoolDevices", k, v, "err", err)
 				nodesPoolDevices = make(map[string][]string)
 				break
 			}
@@ -52,7 +50,7 @@ func GetConfiguredNodePoolDevices(nodeName string) ([]string, error) {
 	nodesPoolDevices, err := GetConfiguredClusterNodePoolDevices()
 	if err == nil {
 		if devices, ok = nodesPoolDevices[nodeName]; !ok {
-			log.Log.Info("Configure cluster node pool devices", nodesPoolDevices)
+			logf.Log.Info("Configure cluster node pool devices", nodesPoolDevices)
 			err = fmt.Errorf("no pool devices configured for node %s", nodeName)
 		}
 	}
@@ -62,7 +60,7 @@ func GetConfiguredNodePoolDevices(nodeName string) ([]string, error) {
 // CreateConfiguredPools (re)create pools as defined by the configuration.
 // No check is made on the status of pools
 func CreateConfiguredPools() error {
-	log.Log.Info("CreateConfiguredPools")
+	logf.Log.Info("CreateConfiguredPools")
 	var nodes []IOEngineNodeLocation
 	nodesPoolDevices, err := GetConfiguredClusterNodePoolDevices()
 	if err != nil {
@@ -81,7 +79,7 @@ func CreateConfiguredPools() error {
 				if err != nil {
 					errs.Accumulate(fmt.Errorf("failed to create pool on %v , disks: %s, error: %v", node, device, err))
 				}
-				log.Log.Info("Created", "pool", pool)
+				logf.Log.Info("Created", "pool", pool)
 			}
 		}
 	}
@@ -160,14 +158,14 @@ func CreateDiskPoolsConfiguration() error {
 		// if the configmap already exists the use it as is
 		for _, cm := range cmLst.Items {
 			if cm.Name == configMapName {
-				log.Log.Info("CreateDiskPoolsConfiguration: using existing config map", "name", cm.Name)
+				logf.Log.Info("CreateDiskPoolsConfiguration: using existing config map", "name", cm.Name)
 				return nil
 			}
 		}
 		// compile a list of devices on each node.
 		nodes, err := GetMayastorNodeNames()
 		if err != nil {
-			log.Log.Info("CreateDiskPoolsConfiguration: GetMayastorNodeName", "error", err)
+			logf.Log.Info("CreateDiskPoolsConfiguration: GetMayastorNodeName", "error", err)
 			return err
 		}
 		cmapData := make(map[string]string)
@@ -175,19 +173,19 @@ func CreateDiskPoolsConfiguration() error {
 			// retrieve block devices on a node in json format
 			cmd := mcpV1.GetMayastorPluginCmd("-n", common.NSMayastor(), "get", "block-devices", node, "-o", "json")
 			var out bytes.Buffer
-			log.Log.Info("About to execute:", "cmd", cmd)
+			logf.Log.Info("About to execute:", "cmd", cmd)
 			cmd.Stdout = &out
 			err = cmd.Run()
 			if err != nil {
-				log.Log.Info("CreateDiskPoolsConfiguration:", "cmd", cmd, "error", err)
+				logf.Log.Info("CreateDiskPoolsConfiguration:", "cmd", cmd, "error", err)
 				return err
 			}
-			log.Log.Info("CreateDiskPoolsConfiguration:", "raw data", out.String())
+			logf.Log.Info("CreateDiskPoolsConfiguration:", "raw data", out.String())
 			// de-serialise the json data
 			var data []msBlockDev
 			err = json.Unmarshal(out.Bytes(), &data)
 			if err != nil {
-				log.Log.Info("CreateDiskPoolsConfiguration: json Unmarshal", "error", err)
+				logf.Log.Info("CreateDiskPoolsConfiguration: json Unmarshal", "error", err)
 				return err
 			}
 			var disks []string
@@ -231,7 +229,7 @@ func CreateDiskPoolsConfiguration() error {
 				var yamlBytes []byte
 				yamlBytes, err = yaml.Marshal(disks)
 				if err != nil {
-					log.Log.Info("CreateDiskPoolsConfiguration: yaml Marshal", "error", err)
+					logf.Log.Info("CreateDiskPoolsConfiguration: yaml Marshal", "error", err)
 					return err
 				}
 				cmapData[node] = string(yamlBytes)
@@ -253,9 +251,9 @@ func CreateDiskPoolsConfiguration() error {
 		}
 		_, err = configMapApi.Create(context.TODO(), &cmap, metaV1.CreateOptions{})
 		if err == nil {
-			log.Log.Info("Created config map", "name", cmap.ObjectMeta.Name)
+			logf.Log.Info("Created config map", "name", cmap.Name)
 		} else {
-			log.Log.Info("failed to create config map", "name", cmap.ObjectMeta.Name, "error", err)
+			logf.Log.Info("failed to create config map", "name", cmap.Name, "error", err)
 		}
 	}
 	return err

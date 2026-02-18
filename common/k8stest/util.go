@@ -192,7 +192,7 @@ func SetReplication(appLabel string, namespace string, replicas *int32) error {
 // Wait until all instances of the specified pod are absent from the given node
 func WaitForPodAbsentFromNode(podNameRegexp string, namespace string, nodeName string, timeoutSeconds int) error {
 	var validID = regexp.MustCompile(podNameRegexp)
-	var podAbsent bool = false
+	var podAbsent = false
 
 	podApi := gTestEnv.KubeInt.CoreV1().Pods
 
@@ -913,7 +913,7 @@ func GetSystemNamespaceUuid() (string, error) {
 			err,
 		)
 	}
-	return string(ns.ObjectMeta.UID), nil
+	return string(ns.UID), nil
 }
 
 func GetKubernetesSecret(secret string, namespace string) error {
@@ -1162,7 +1162,7 @@ func DiscoverProduct() (string, error) {
 			return name, nil
 		}
 	}
-	return "", fmt.Errorf("Product not found on cluster")
+	return "", fmt.Errorf("product not found on cluster")
 }
 
 func CreateDiskPartitionsMib(addr string, count int, partitionSizeInMiB int, diskPath string) error {
@@ -2079,6 +2079,7 @@ func WaitForDeploymentToMatchExpectedState(deployName string, namespace string, 
 // SizeToBytes return size in bytes, input can be string like 10 GiB , 512 MiB
 func SizeToBytes(capacity string) (uint64, error) {
 	// Map for unit multipliers
+	//nolint:staticcheck // QF1005: Pow kept for clarity in unit table
 	unitMultipliers := map[string]float64{
 		"KiB": 1024,
 		"MiB": math.Pow(1024, 2),

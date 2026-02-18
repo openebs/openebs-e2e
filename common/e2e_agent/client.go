@@ -159,6 +159,7 @@ func sendRequestGetResponse(reqType, url string, data interface{}, verbose bool)
 	if err != nil {
 		return "", err
 	}
+	//nolint:errcheck // Close error is not critical in test cleanup
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		return "", fmt.Errorf("request returned code %d, %v, %s", resp.StatusCode, reqType, url)

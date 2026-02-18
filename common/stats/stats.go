@@ -81,7 +81,7 @@ func (context *StatsContext) ParseStats(raw string, statsType StatsType, statsAc
 
 	item, exists := mf[typekey]
 	if !exists {
-		return 0, fmt.Errorf("Failed to find typekey %s", typekey)
+		return 0, fmt.Errorf("failed to find typekey %s", typekey)
 	}
 
 	for _, m := range item.Metric {

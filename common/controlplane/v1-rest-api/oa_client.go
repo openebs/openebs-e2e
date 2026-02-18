@@ -47,6 +47,7 @@ func (oacw *OAClientWrapper) client() *openapiClient.APIClient {
 	return oacw.clients[oacw.clindex]
 }
 
+//nolint:staticcheck // ST1008: error intentionally not last to match OpenAPI client pattern
 func (oacw OAClientWrapper) getVolume(uuid string) (openapiClient.Volume, error, int) {
 	var statusCode int
 
@@ -58,6 +59,7 @@ func (oacw OAClientWrapper) getVolume(uuid string) (openapiClient.Volume, error,
 	return *volume, err, statusCode
 }
 
+//nolint:staticcheck // ST1008: error intentionally not last to match OpenAPI client pattern
 func (oacw OAClientWrapper) getVolumes() (openapiClient.Volumes, error, int) {
 	var volumes *openapiClient.Volumes
 	var statusCode int
@@ -73,6 +75,7 @@ func (oacw OAClientWrapper) getVolumes() (openapiClient.Volumes, error, int) {
 	return *volumes, err, statusCode
 }
 
+//nolint:staticcheck // ST1008: error intentionally not last to match OpenAPI client pattern
 func (oacw OAClientWrapper) deleteVolume(uuid string) (error, int) {
 	var statusCode int
 
@@ -84,6 +87,7 @@ func (oacw OAClientWrapper) deleteVolume(uuid string) (error, int) {
 	return err, statusCode
 }
 
+//nolint:staticcheck // ST1008: error intentionally not last to match OpenAPI client pattern
 func (oacw OAClientWrapper) putReplicaCount(uuid string, replicaCount int) (error, int) {
 	var statusCode int
 
@@ -191,6 +195,7 @@ func (oacw OAClientWrapper) getNodes() ([]openapiClient.Node, error) {
 	return nodes, err
 }
 
+//nolint:staticcheck // ST1008: error intentionally not last to match OpenAPI client pattern
 func (oacw OAClientWrapper) getPool(poolName string) (openapiClient.Pool, error, int) {
 	var statusCode int
 
@@ -202,6 +207,7 @@ func (oacw OAClientWrapper) getPool(poolName string) (openapiClient.Pool, error,
 	return *pool, err, statusCode
 }
 
+//nolint:staticcheck // ST1008: error intentionally not last to match OpenAPI client pattern
 func (oacw OAClientWrapper) getPools() ([]openapiClient.Pool, error, int) {
 	var statusCode int
 
@@ -213,6 +219,7 @@ func (oacw OAClientWrapper) getPools() ([]openapiClient.Pool, error, int) {
 	return pools, err, statusCode
 }
 
+//nolint:staticcheck // ST1008: error intentionally not last to match OpenAPI client pattern
 func (oacw OAClientWrapper) setVolumeMaxSnapshotCount(uuid string, maxSnapshotCount int32) (error, int) {
 	var statusCode int
 
