@@ -93,6 +93,8 @@ const (
 	ConfirmDataLoss OfflinePoolDelete = iota
 	// confirmSnapshotLoss requires confirmation to delete the pool if snapshot loss may occur
 	ConfirmSnapshotLoss OfflinePoolDelete = iota
+	// CleanupCr deletes the DiskPool CR after pool deletion
+	CleanupCr OfflinePoolDelete = iota
 )
 
 // String returns the CLI flag name corresponding to the constraint.
@@ -122,6 +124,8 @@ func (c OfflinePoolDelete) String() string {
 		return "confirm-data-loss"
 	case ConfirmSnapshotLoss:
 		return "confirm-snapshot-loss"
+	case CleanupCr:
+		return "cleanup-cr"
 	default:
 		return ""
 	}
