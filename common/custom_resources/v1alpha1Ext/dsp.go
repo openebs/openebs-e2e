@@ -329,3 +329,7 @@ func (p v1alpha1ExtDSP) GetPoolErrorCount() uint64 {
 func (p v1alpha1ExtDSP) GetPoolAlertStatus() string {
 	panic(fmt.Errorf("pool alert status not supported in v1alpha1Ext"))
 }
+
+func (p v1alpha1ExtDSP) GetPoolErrorCode() string {
+	panic(fmt.Errorf("pool error code not supported in v1alpha1Ext"))
+}

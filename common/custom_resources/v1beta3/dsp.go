@@ -91,6 +91,13 @@ func (p v1beta3DSP) GetPoolErrorCount() uint64 {
 	return 0
 }
 
+func (p v1beta3DSP) GetPoolErrorCode() string {
+	if p.v1beta3 != nil {
+		return p.v1beta3.Status.Diag.Error.Code
+	}
+	return ""
+}
+
 func (p v1beta3DSP) GetPoolAlertStatus() string {
 	if p.v1beta3 != nil {
 		return p.v1beta3.Status.Diag.Errors.Status

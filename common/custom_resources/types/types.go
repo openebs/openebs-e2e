@@ -24,6 +24,7 @@ type DiskPool interface {
 	GetPoolReadyReason() string
 	GetPoolErrorCount() uint64
 	GetPoolAlertStatus() string
+	GetPoolErrorCode() string
 	GetPoolStatus() string
 	GetClusterSize() string
 	SetClusterSize(clusterSize string) (DiskPool, error)

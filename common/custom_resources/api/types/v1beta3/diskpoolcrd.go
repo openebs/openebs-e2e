@@ -43,6 +43,7 @@ type DiskPoolDiagErrors struct {
 
 type DiskPoolDiag struct {
 	Errors DiskPoolDiagErrors `json:"errors,omitempty"`
+	Error  DiskPoolError      `json:"error,omitempty"`
 }
 
 type DiskPoolStatus struct {
@@ -59,6 +60,11 @@ type DiskPoolStatus struct {
 	MaxExpandableSize string       `json:"maxExpandableSize,omitempty"`
 	Conditions        []Condition  `json:"conditions,omitempty"`
 	Diag              DiskPoolDiag `json:"diag,omitempty"`
+}
+
+type DiskPoolError struct {
+	Code    string `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
 }
 
 type DiskPool struct {
