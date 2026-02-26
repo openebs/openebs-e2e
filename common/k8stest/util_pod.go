@@ -913,3 +913,31 @@ func RemoveAnnotationFromPod(podName string, namespace string, annotationKeys []
 	logf.Log.Info("Removed annotations from pod", "podName", podName, "namespace", namespace, "annotationKeys", annotationKeys)
 	return nil
 }
+
+// ListPodNamesByPrefix returns a list of pod names in the given namespace with names that start with a prefix
+func ListPodNamesByPrefix(ns string, prefix string) ([]string, error) {
+	var podNames []string
+	podList, err := gTestEnv.KubeInt.CoreV1().Pods(ns).List(context.TODO(), metaV1.ListOptions{})
+	if err != nil {
+		return nil, errors.New("failed to list pods")
+	}
+	for _, pod := range podList.Items {
+		if strings.HasPrefix(pod.Name, prefix) {
+			podNames = append(podNames, pod.Name)
+		}
+	}
+	return podNames, nil
+}
+func WaitForPodsDeletion(podNames []string, namespace string, podDeletionTimeoutSecnds time.Duration) (bool, error) {
+	for _, podName := range podNames {
+		logf.Log.Info("Waiting for pod deletion", "podName", podName, "namespace", namespace)
+		exists, err := WaitForPodDeletion(podName, namespace, podDeletionTimeoutSecnds)
+		if err != nil {
+			return false, err
+		}
+		if !exists {
+			return false, fmt.Errorf("pod %s in namespace %s was not deleted", podName, namespace)
+		}
+	}
+	return true, nil
+}

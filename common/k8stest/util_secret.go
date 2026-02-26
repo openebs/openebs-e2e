@@ -188,3 +188,26 @@ func GetSecretStringData(secretName, namespace string) (map[string]string, error
 	logf.Log.Info("Secret StringData retrieved successfully", "name", secretName, "namespace", namespace)
 	return secret.StringData, nil
 }
+
+func CreateK8sSecret(secretName, namespace string, data map[string]string) (*corev1.Secret, error) {
+	// Create the Secret object
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+		},
+		Immutable:  boolPtr(true),
+		Type:       corev1.SecretTypeOpaque,
+		StringData: data,
+	}
+	secretApi := gTestEnv.KubeInt.CoreV1().Secrets
+
+	// Create the Secret in the cluster
+	secret, err := secretApi(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	if err != nil {
+		return secret, fmt.Errorf("failed to create secret: %v", err)
+	}
+
+	logf.Log.Info("Secret created successfully", "name", secretName, "namespace", namespace)
+	return secret, nil
+}
