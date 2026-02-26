@@ -294,3 +294,7 @@ func (p v1beta1DSP) GetPoolErrorCount() uint64 {
 func (p v1beta1DSP) GetPoolAlertStatus() string {
 	panic(fmt.Errorf("pool alert status not supported in v1beta1"))
 }
+
+func (p v1beta1DSP) GetPoolErrorCode() string {
+	panic(fmt.Errorf("pool error code not supported in v1beta1"))
+}
