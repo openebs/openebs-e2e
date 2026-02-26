@@ -1,5 +1,7 @@
 package common
 
+import "time"
+
 const NSE2EAgent = "e2e-agent"
 const NSE2EPrefix = "e2e-maya"
 const NSDefault = "default"
@@ -108,4 +110,10 @@ const (
 // Annotations for delete options for offline pools
 const (
 	DeleteOptsAnnotation = "openebs.io/delete-opts"
+)
+
+// These are used in waitFor functions in e2e tests and can be overridden by test cases if needed.
+const (
+	DefaultPoolTimeout  = 120 * time.Second
+	DefaultPoolInterval = 5 * time.Second
 )
