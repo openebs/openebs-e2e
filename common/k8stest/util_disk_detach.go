@@ -91,3 +91,24 @@ func CleanupTimeoutDevice(nodeAddr, poolDevice string) (string, error) {
 	}
 	return resp, nil
 }
+
+func GetPoolErrorThreshold(release, namespace, path string) (int, error) {
+
+	val, err := GetUserHelmValueByPath(
+		release,
+		namespace,
+		path,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	switch v := val.(type) {
+	case int:
+		return v, nil
+	case float64:
+		return int(v), nil
+	default:
+		return 0, fmt.Errorf("unexpected type")
+	}
+}
