@@ -175,6 +175,20 @@ func GetMayastorNodeIPAddresses() []string {
 	return addrs
 }
 
+// get master node IP addresses
+func GetMasterNodeIPAddress() (string, error) {
+	nodes, err := getNodeLocs()
+	if err != nil {
+		return "", err
+	}
+	for _, node := range nodes {
+		if node.K8sControlPlane {
+			return node.IPAddress, nil
+		}
+	}
+	return "", fmt.Errorf("no master node found")
+}
+
 func GetMayastorNodeNames() ([]string, error) {
 	var nodeNames []string
 	nodes, err := getNodeLocs()
