@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/openebs/openebs-e2e/common"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -282,4 +284,35 @@ func HelmUpgradeChartfromYaml(helmChart string, namespace string, releaseName st
 		return stderr.String(), fmt.Errorf("helm failed to upgrade, err:%v", err)
 	}
 	return stderr.String(), nil
+}
+
+func GetUserHelmValueByPath(release, namespace, path string) (interface{}, error) {
+	rawValues, err := HelmGetValues(release, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	helmValues := map[string]interface{}{}
+	if err := yaml.Unmarshal(rawValues, &helmValues); err != nil {
+		return nil, err
+	}
+
+	partSegments := strings.Split(path, ".")
+	var current interface{} = helmValues
+
+	for _, p := range partSegments {
+		m, ok := current.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid path %s", path)
+		}
+
+		v, ok := m[p]
+		if !ok {
+			return nil, fmt.Errorf("value %s not configured", path)
+		}
+
+		current = v
+	}
+
+	return current, nil
 }

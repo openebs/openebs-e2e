@@ -22,4 +22,5 @@ const (
 	NodeReadyTimeout        = 5 * time.Minute
 	NodeReadyInterval       = 10 * time.Second
 	NodeRebootWait          = 30 * time.Second
+	ThresholdPath           = "io_engine.pool.alerts.errorThreshold"
 )
