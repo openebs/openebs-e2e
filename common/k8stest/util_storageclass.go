@@ -136,6 +136,7 @@ func (b *ScBuilder) WithNodeAffinityTopologyLabel(topology map[string]string) *S
 	// Convert the map to a single-line string in YAML format
 	var yamlTopology strings.Builder
 	for key, value := range topology {
+		//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 		yamlTopology.WriteString(fmt.Sprintf("%s: %s\n", key, value))
 	}
 	b.sc.object.Parameters[string(common.ScNodeAffinityTopologyLabel)] = yamlTopology.String()
@@ -166,6 +167,7 @@ func (b *ScBuilder) WithPoolAffinityTopologyLabel(topology map[string]string) *S
 	// Convert the map to a single-line string in YAML format
 	var yamlTopology strings.Builder
 	for key, value := range topology {
+		//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 		yamlTopology.WriteString(fmt.Sprintf("%s: %s\n", key, value))
 	}
 	b.sc.object.Parameters[string(common.ScPoolAffinityTopologyLabel)] = yamlTopology.String()

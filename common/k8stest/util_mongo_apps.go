@@ -300,6 +300,7 @@ func (ycsb *YcsbApp) LoadYcsbApp() error {
 	outputChan := make(chan string, 1)
 	errChan := make(chan error, 1)
 	var builder strings.Builder
+	//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 	builder.WriteString(fmt.Sprintf(
 		"%s/bin/ycsb.sh load mongodb -P %s/workloads/%s -p %s -p recordcount=%d -p threadcount=%d",
 		appWorkdir,
@@ -310,12 +311,15 @@ func (ycsb *YcsbApp) LoadYcsbApp() error {
 		ycsb.BenchmarkParams.ThreadCount,
 	))
 	if ycsb.BenchmarkParams.InsertStart > 0 {
+		//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 		builder.WriteString(fmt.Sprintf(" -p insertstart=%d", ycsb.BenchmarkParams.InsertStart))
 	}
 	if ycsb.BenchmarkParams.InsertCount > 0 {
+		//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 		builder.WriteString(fmt.Sprintf(" -p insertcount=%d", ycsb.BenchmarkParams.InsertCount))
 	}
 	if ycsb.BenchmarkParams.OperationCount > 0 {
+		//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 		builder.WriteString(fmt.Sprintf(" -p operationcount=%d", ycsb.BenchmarkParams.OperationCount))
 	}
 	wg.Add(1)
@@ -349,6 +353,7 @@ func (ycsb *YcsbApp) RunYcsbApp(result *string) error {
 	outputChan := make(chan string, 1)
 	errChan := make(chan error, 1)
 	var builder strings.Builder
+	//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 	builder.WriteString(fmt.Sprintf(
 		"%s/bin/ycsb.sh run mongodb -P %s/workloads/%s -p %s -p recordcount=%d -p threadcount=%d",
 		appWorkdir,
@@ -359,12 +364,15 @@ func (ycsb *YcsbApp) RunYcsbApp(result *string) error {
 		ycsb.BenchmarkParams.ThreadCount,
 	))
 	if ycsb.BenchmarkParams.InsertStart > 0 {
+		//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 		builder.WriteString(fmt.Sprintf(" -p insertstart=%d", ycsb.BenchmarkParams.InsertStart))
 	}
 	if ycsb.BenchmarkParams.InsertCount > 0 {
+		//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 		builder.WriteString(fmt.Sprintf(" -p insertcount=%d", ycsb.BenchmarkParams.InsertCount))
 	}
 	if ycsb.BenchmarkParams.OperationCount > 0 {
+		//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 		builder.WriteString(fmt.Sprintf(" -p operationcount=%d", ycsb.BenchmarkParams.OperationCount))
 	}
 	wg.Add(1)

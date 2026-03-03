@@ -1570,6 +1570,20 @@ func RestartService(serverAddr string, serviceName string) (string, error) {
 	return out, nil
 }
 
+// StartRpcGssdService starts the gssd service on the node
+func StartRpcGssdService(serverAddr string) (string, error) {
+	url := "http://" + getAgentAddress(serverAddr) + "/startRpcGssdService"
+	logf.Log.Info("Executing startRpcGssdService", "addr", serverAddr)
+	return sendRequestGetResponse("POST", url, nil, true)
+}
+
+// StopRpcGssdService stops the gssd service on the node
+func StopRpcGssdService(serverAddr string) (string, error) {
+	url := "http://" + getAgentAddress(serverAddr) + "/stopRpcGssdService"
+	logf.Log.Info("Executing stopRpcGssdService", "addr", serverAddr)
+	return sendRequestGetResponse("POST", url, nil, true)
+}
+
 func GetProcessID(serverAddr string, processName string) (string, error) {
 
 	logf.Log.Info("Executing GetProcessID", "addr", serverAddr, "data", processName)

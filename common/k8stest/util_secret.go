@@ -29,8 +29,11 @@ func GetEncryptionParameterJsonString(cipherName, keyName string, keyMap map[str
 
 	// Start building the JSON string
 	var b strings.Builder
+	//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 	b.WriteString("{\n")
+	//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 	b.WriteString(fmt.Sprintf("  \"cipher\": \"%s\",\n", cipherName))
+	//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 	b.WriteString(fmt.Sprintf("  \"key_name\": \"%s\",\n", keyName))
 
 	// Get sorted keys for consistent output
@@ -43,7 +46,9 @@ func GetEncryptionParameterJsonString(cipherName, keyName string, keyMap map[str
 	// Add key/value pairs
 	for i, k := range sortedKeys {
 		v := keyMap[k]
+		//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 		b.WriteString(fmt.Sprintf("  \"%s\": \"%s\",\n", k, v.Value))
+		//nolint:staticcheck // QF1012 - string concatenation is more readable for command construction
 		b.WriteString(fmt.Sprintf("  \"%s_len\": %d", k, v.Length))
 		if i < len(sortedKeys)-1 {
 			b.WriteString(",\n")

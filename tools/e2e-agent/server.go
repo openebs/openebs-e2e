@@ -99,6 +99,15 @@ var Version = "undefined"
 const (
 	InternalServerErrorCode      = 500
 	UnprocessableEntityErrorCode = 422
+	rpcGssdServiceName           = "rpc-gssd"
+)
+
+type Command string
+
+const (
+	Start   Command = "start"
+	Stop    Command = "stop"
+	Restart Command = "restart"
 )
 
 func main() {
@@ -185,6 +194,8 @@ func handleRequests() {
 	router.HandleFunc("/isHugePagesPersistent", IsHugePagesPersistent).Methods("POST")
 	router.HandleFunc("/isHugePagesConfigured", IsHugePagesConfigured).Methods("POST")
 	router.HandleFunc("/restartService", RestartService).Methods("POST")
+	router.HandleFunc("/startRpcGssdService", StartRpcGssdService).Methods("POST")
+	router.HandleFunc("/stopRpcGssdService", StopRpcGssdService).Methods("POST")
 	router.HandleFunc("/dm/createPassThrough", createPassThroughDevice).Methods("POST")
 	router.HandleFunc("/dm/suspend", suspendDevice).Methods("POST")
 	router.HandleFunc("/dm/resume", resumeDevice).Methods("POST")
@@ -467,9 +478,8 @@ func RestartService(w http.ResponseWriter, r *http.Request) {
 		klog.Error("failed to read JSON encoded data, Error: ", err)
 		return
 	}
-	params := fmt.Sprintf("nsenter --target 1 --mount --uts --ipc --net --pid -- systemctl restart %s ; echo $?", service)
 	klog.Info("Restarting service ", service)
-	output, err := bashLocal(params)
+	output, err := runSystemctlCommand(service, Restart)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
 		_, _ = fmt.Fprint(w, err.Error())
@@ -478,6 +488,44 @@ func RestartService(w http.ResponseWriter, r *http.Request) {
 	}
 	klog.Info("Successfully restarted service", service)
 	WrapResult(output, ErrNone, w)
+}
+
+func StartRpcGssdService(w http.ResponseWriter, r *http.Request) {
+	klog.Info("Starting service ", rpcGssdServiceName)
+	output, err := runSystemctlCommand(rpcGssdServiceName, Start)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to start service:", rpcGssdServiceName, "Error: ", err)
+		return
+	}
+	klog.Info("Successfully started service", rpcGssdServiceName)
+	WrapResult(output, ErrNone, w)
+}
+
+func StopRpcGssdService(w http.ResponseWriter, r *http.Request) {
+	klog.Info("Stopping service ", rpcGssdServiceName)
+	output, err := runSystemctlCommand(rpcGssdServiceName, Stop)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to stop service:", rpcGssdServiceName, "Error: ", err)
+		return
+	}
+	klog.Info("Successfully stopped service", rpcGssdServiceName)
+	WrapResult(output, ErrNone, w)
+}
+
+func runSystemctlCommand(service string, command Command) (string, error) {
+	params := fmt.Sprintf("nsenter --target 1 --mount --uts --ipc --net --pid -- systemctl %s %s ; echo $?", command, service)
+	klog.Info("Executing command ", params, " on service ", service)
+	output, err := bashLocal(params)
+	if err != nil {
+		klog.Error("failed to execute command:", params, " on service:", service, "Error: ", err)
+		return output, err
+	}
+	klog.Info("Successfully executed command ", params, " on service ", service)
+	return output, nil
 }
 
 func GetProcessID(w http.ResponseWriter, r *http.Request) {
