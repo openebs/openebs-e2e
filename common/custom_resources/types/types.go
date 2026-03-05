@@ -25,6 +25,9 @@ type DiskPool interface {
 	GetPoolErrorCount() uint64
 	GetPoolAlertStatus() string
 	GetPoolErrorCode() string
+	// Optional: detailed error message (e.g. status.error.message in v1beta3).
+	// May return empty string for CR versions that don't expose it.
+	GetPoolErrorMessage() string
 	GetPoolStatus() string
 	GetClusterSize() string
 	SetClusterSize(clusterSize string) (DiskPool, error)

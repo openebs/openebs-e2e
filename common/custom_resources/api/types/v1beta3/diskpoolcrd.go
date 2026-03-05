@@ -47,19 +47,20 @@ type DiskPoolDiag struct {
 }
 
 type DiskPoolStatus struct {
-	Available         uint64       `json:"available"`
-	Capacity          uint64       `json:"capacity"`
-	Used              uint64       `json:"used"`
-	CRStatus          string       `json:"cr_state"`
-	PoolStatus        string       `json:"pool_status"`
-	Encrypted         bool         `json:"encrypted"`
-	CapacityQ         string       `json:"capacity_q"`
-	AvailableQ        string       `json:"available_q"`
-	UsedQ             string       `json:"used_q"`
-	ClusterSize       string       `json:"clusterSize"`
-	MaxExpandableSize string       `json:"maxExpandableSize,omitempty"`
-	Conditions        []Condition  `json:"conditions,omitempty"`
-	Diag              DiskPoolDiag `json:"diag,omitempty"`
+	Available         uint64        `json:"available"`
+	Capacity          uint64        `json:"capacity"`
+	Used              uint64        `json:"used"`
+	CRStatus          string        `json:"cr_state"`
+	PoolStatus        string        `json:"pool_status"`
+	Encrypted         bool          `json:"encrypted"`
+	CapacityQ         string        `json:"capacity_q"`
+	AvailableQ        string        `json:"available_q"`
+	UsedQ             string        `json:"used_q"`
+	ClusterSize       string        `json:"clusterSize"`
+	MaxExpandableSize string        `json:"maxExpandableSize,omitempty"`
+	Conditions        []Condition   `json:"conditions,omitempty"`
+	Diag              DiskPoolDiag  `json:"diag,omitempty"`
+	Error             DiskPoolError `json:"error,omitempty"`
 }
 
 type DiskPoolError struct {

@@ -98,6 +98,15 @@ func (p v1beta3DSP) GetPoolErrorCode() string {
 	return ""
 }
 
+// GetPoolErrorMessage returns the detailed error message from status.error.message
+// when available on the DiskPool CR.
+func (p v1beta3DSP) GetPoolErrorMessage() string {
+	if p.v1beta3 != nil {
+		return p.v1beta3.Status.Error.Message
+	}
+	return ""
+}
+
 func (p v1beta3DSP) GetPoolAlertStatus() string {
 	if p.v1beta3 != nil {
 		return p.v1beta3.Status.Diag.Errors.Status
