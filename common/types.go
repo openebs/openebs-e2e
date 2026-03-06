@@ -197,6 +197,7 @@ type DiskPoolStatus int
 const (
 	DiskPoolOnline   DiskPoolStatus = iota
 	DiskPoolUnknown  DiskPoolStatus = iota
+	DiskPoolOffline  DiskPoolStatus = iota
 	DiskPoolDegraded DiskPoolStatus = iota
 	DiskPoolFaulted  DiskPoolStatus = iota
 )
@@ -207,6 +208,8 @@ func (poolStatus DiskPoolStatus) String() string {
 		return "Online"
 	case DiskPoolUnknown:
 		return "Unknown"
+	case DiskPoolOffline:
+		return "Offline"
 	case DiskPoolDegraded:
 		return "Degraded"
 	case DiskPoolFaulted:

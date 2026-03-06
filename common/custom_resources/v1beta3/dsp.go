@@ -54,10 +54,21 @@ func (p v1beta3DSP) GetName() string {
 	return ""
 }
 
-// For v1beta3 map Status.State to pool status
 func (p v1beta3DSP) GetPoolStatus() string {
 	if p.v1beta3 != nil {
 		return p.v1beta3.Status.PoolStatus
+	}
+	return ""
+}
+
+// GetPoolStatusWithFallback prefers the explicit PoolStatus field when present,
+// falling back to the generic Status field (e.g. "Offline") when PoolStatus is not set.
+func (p v1beta3DSP) GetPoolStatusWithFallback() string {
+	if p.v1beta3 != nil {
+		if p.v1beta3.Status.PoolStatus != "" {
+			return p.v1beta3.Status.PoolStatus
+		}
+		return p.v1beta3.Status.Status
 	}
 	return ""
 }

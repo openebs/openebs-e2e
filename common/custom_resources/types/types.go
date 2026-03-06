@@ -29,6 +29,10 @@ type DiskPool interface {
 	// May return empty string for CR versions that don't expose it.
 	GetPoolErrorMessage() string
 	GetPoolStatus() string
+	// GetPoolStatusWithFallback returns the most usable pool state string
+	// across CRD versions, preferring the explicit pool_status field when
+	// present and falling back to generic status/state fields when needed.
+	GetPoolStatusWithFallback() string
 	GetClusterSize() string
 	SetClusterSize(clusterSize string) (DiskPool, error)
 	GetSpecEncryptionSecret() string

@@ -47,10 +47,13 @@ type DiskPoolDiag struct {
 }
 
 type DiskPoolStatus struct {
-	Available         uint64        `json:"available"`
-	Capacity          uint64        `json:"capacity"`
-	Used              uint64        `json:"used"`
-	CRStatus          string        `json:"cr_state"`
+	Available uint64 `json:"available"`
+	Capacity  uint64 `json:"capacity"`
+	Used      uint64 `json:"used"`
+	CRStatus  string `json:"cr_state"`
+	// Status is a generic pool state field used by some control-plane versions.
+	// When present, it may carry values like "Offline" even if PoolStatus is empty.
+	Status            string        `json:"status,omitempty"`
 	PoolStatus        string        `json:"pool_status"`
 	Encrypted         bool          `json:"encrypted"`
 	CapacityQ         string        `json:"capacity_q"`

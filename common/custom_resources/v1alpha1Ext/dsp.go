@@ -68,6 +68,10 @@ func (p v1alpha1ExtDSP) GetPoolStatus() string {
 	return ""
 }
 
+func (p v1alpha1ExtDSP) GetPoolStatusWithFallback() string {
+	return p.GetPoolStatus()
+}
+
 func (p v1alpha1ExtDSP) GetCRStatus() string {
 	if p.v1alpha1 != nil {
 		if p.extended {
