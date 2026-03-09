@@ -61,6 +61,10 @@ func (p v1beta2DSP) GetPoolStatus() string {
 	return ""
 }
 
+func (p v1beta2DSP) GetPoolStatusWithFallback() string {
+	return p.GetPoolStatus()
+}
+
 // For v1beta2 map Status.State to CR status
 func (p v1beta2DSP) GetCRStatus() string {
 	if p.v1beta2 != nil {
