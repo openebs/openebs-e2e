@@ -364,11 +364,15 @@ func (cp CPv1) DeleteOfflinePoolViaPlugin(poolName string, flags ...common.Offli
 		case common.PurgePool:
 			args = append(args, "--purge")
 		case common.ConfirmPoolDelete:
-			args = append(args, "--confirm")
-		case common.ConfirmDataLoss:
-			args = append(args, "--confirm-data-loss")
-		case common.ConfirmSnapshotLoss:
-			args = append(args, "--confirm-snapshot-loss")
+			args = append(args, "--yes")
+		case common.AcceptDataLoss:
+			args = append(args, "--accept-data-loss")
+		case common.AcceptVolumeLoss:
+			args = append(args, "--accept-volume-loss")
+		case common.AcceptSnapshotLoss:
+			args = append(args, "--accept-snapshot-loss")
+		case common.CleanupCr:
+			args = append(args, "--cleanup-cr")
 		}
 	}
 

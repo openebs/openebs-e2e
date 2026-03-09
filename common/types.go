@@ -89,10 +89,12 @@ const (
 	PurgePool OfflinePoolDelete = iota
 	// ConfirmPoolDelete requires confirmation to delete the pool
 	ConfirmPoolDelete OfflinePoolDelete = iota
-	// confirmDataLoss requires confirmation to delete the pool if data loss may occur
-	ConfirmDataLoss OfflinePoolDelete = iota
-	// confirmSnapshotLoss requires confirmation to delete the pool if snapshot loss may occur
-	ConfirmSnapshotLoss OfflinePoolDelete = iota
+	// AcceptDataLoss requires confirmation to delete the pool if data loss may occur
+	AcceptDataLoss OfflinePoolDelete = iota
+	// AcceptVolumeLoss requires confirmation to delete the pool if volume loss may occur
+	AcceptVolumeLoss OfflinePoolDelete = iota
+	// AcceptSnapshotLoss requires confirmation to delete the pool if snapshot loss may occur
+	AcceptSnapshotLoss OfflinePoolDelete = iota
 	// CleanupCr deletes the DiskPool CR after pool deletion
 	CleanupCr OfflinePoolDelete = iota
 )
@@ -119,11 +121,13 @@ func (c OfflinePoolDelete) String() string {
 	case PurgePool:
 		return "purge"
 	case ConfirmPoolDelete:
-		return "confirm"
-	case ConfirmDataLoss:
-		return "confirm-data-loss"
-	case ConfirmSnapshotLoss:
-		return "confirm-snapshot-loss"
+		return "yes"
+	case AcceptDataLoss:
+		return "accept-data-loss"
+	case AcceptVolumeLoss:
+		return "accept-volume-loss"
+	case AcceptSnapshotLoss:
+		return "accept-snapshot-loss"
 	case CleanupCr:
 		return "cleanup-cr"
 	default:
