@@ -15,6 +15,7 @@ var (
 	ErrPoolAlertStatus  = errors.New("pool alert status is not attention")
 	ErrPoolImport       = errors.New("pool error code is not pool import error")
 	ErrPoolOffline      = errors.New("pool status is not offline")
+	ErrPoolOnline       = errors.New("pool status is not online")
 )
 
 const (
@@ -25,4 +26,7 @@ const (
 	NodeRebootWait          = 30 * time.Second
 	IoEngineTimeout         = 120
 	ThresholdPath           = "io_engine.pool.alerts.errorThreshold"
+	VolumeStateTimeout      = 120
+	VolumeStateInterval     = "5s"
+	RebuildTimeout          = 240
 )
