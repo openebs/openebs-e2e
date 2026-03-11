@@ -154,6 +154,7 @@ func handleRequests() {
 	router.HandleFunc("/killCsiController", killCsiController).Methods("POST")
 	router.HandleFunc("/killCsiNode", killCsiNode).Methods("POST")
 	router.HandleFunc("/getdevicestate", getDeviceState).Methods("POST")
+	router.HandleFunc("/gethostid", getHostID).Methods("POST")
 	router.HandleFunc("/nvmeconnect", NvmeConnect).Methods("POST")
 	router.HandleFunc("/nvmedisconnect", NvmeDisconnect).Methods("POST")
 	router.HandleFunc("/nvmelist", NvmeList).Methods("POST")
@@ -827,6 +828,25 @@ func getDeviceState(w http.ResponseWriter, r *http.Request) {
 	klog.Info(string(output))
 }
 
+func getHostID(w http.ResponseWriter, r *http.Request) {
+	params := make([]string, 2)
+
+	cmdStr := "bash"
+	params[0] = "-c"
+	params[1] = "cat /sys/class/dmi/id/product_uuid"
+	klog.Info("running command ", params[1])
+	cmd := exec.Command(cmdStr, params...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to run command ", params[1], "Error: ", err)
+		return
+	}
+	_, _ = fmt.Fprint(w, strings.TrimSpace(string(output)))
+	klog.Info(strings.TrimSpace(string(output)))
+}
+
 func NvmeConnect(w http.ResponseWriter, r *http.Request) {
 	var nvme Nvme
 	params := make([]string, 2)
@@ -847,6 +867,8 @@ func NvmeConnect(w http.ResponseWriter, r *http.Request) {
 	params[0] = "-c"
 	if nvme.HostNqn == "" {
 		params[1] = fmt.Sprintf("nvme connect -a %s -t tcp -s 8420 -n %s", nvme.TargetIp, nvme.Nqn)
+	} else if nvme.HostId != "" {
+		params[1] = fmt.Sprintf("nvme connect -a %s -t tcp -s 8420 -n %s -q %s -I %s", nvme.TargetIp, nvme.Nqn, nvme.HostNqn, nvme.HostId)
 	} else {
 		params[1] = fmt.Sprintf("nvme connect -a %s -t tcp -s 8420 -n %s -q %s", nvme.TargetIp, nvme.Nqn, nvme.HostNqn)
 	}
