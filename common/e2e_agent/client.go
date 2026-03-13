@@ -380,6 +380,13 @@ func GetDeviceState(serverAddr string, disk string) (string, error) {
 	return sendRequestGetResponse("POST", url, data, false)
 }
 
+// GetHostID returns the nvme host ID of the node where e2e-agent is running
+func GetHostID(serverAddr string) (string, error) {
+	url := "http://" + getAgentAddress(serverAddr) + "/gethostid"
+	logf.Log.Info("Executing gethostid", "addr", serverAddr)
+	return sendRequestGetResponse("POST", url, nil, false)
+}
+
 // NvmeConnect to connect to the target
 func NvmeConnect(serverAddr string, targetIp string, nqn string, hostNqn string) (string, error) {
 	data := Nvme{
@@ -388,6 +395,11 @@ func NvmeConnect(serverAddr string, targetIp string, nqn string, hostNqn string)
 		HostNqn:  hostNqn,
 		HostId:   "",
 	}
+	hostId, err := GetHostID(serverAddr)
+	if err != nil {
+		return "", fmt.Errorf("failed to get host ID, error: %s", err.Error())
+	}
+	data.HostId = hostId
 	logf.Log.Info("Executing nvmeconnect", "addr", serverAddr, "data", data)
 	url := "http://" + getAgentAddress(serverAddr) + "/nvmeconnect"
 	return sendRequestGetResponse("POST", url, data, false)
