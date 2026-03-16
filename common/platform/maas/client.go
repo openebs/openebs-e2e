@@ -114,6 +114,16 @@ func (h *maas) DetachVolume(volName string, node string) error {
 	panic("API to detach dsik from maas node not implemented")
 }
 
+func (h *maas) DetachVolumeFromNode(node string) error {
+	logf.Log.Info("Detach Volume from node", "node", node)
+	panic("API to detach dsik from maas node not implemented")
+}
+
+func (h *maas) AttachVolumeToNode(node string) error {
+	logf.Log.Info("Attach Volume to node", "node", node)
+	panic("API to attach dsik to maas node not implemented")
+}
+
 // FIXME implement Maas API to attach disk
 func (h *maas) AttachVolume(volName, node string) error {
 	logf.Log.Info("Attach Volume to node", "volName", volName, "node", node)

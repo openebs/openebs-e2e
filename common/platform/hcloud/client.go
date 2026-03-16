@@ -3,7 +3,7 @@ package client
 import (
 	"fmt"
 	"os/exec"
-    "regexp"
+	"regexp"
 	"strings"
 
 	"github.com/openebs/openebs-e2e/common/e2e_agent"
@@ -80,11 +80,33 @@ func (h *hcloud) DetachVolume(volName string, node string) error {
 	return err
 }
 
+func (h *hcloud) DetachVolumeFromNode(node string) error {
+	volName := fmt.Sprintf("mayastor-%s", node)
+
+	logf.Log.Info("Detaching volume from node",
+		"node", node,
+		"volume", volName,
+	)
+
+	return h.DetachVolume(volName, node)
+}
+
 func (h *hcloud) AttachVolume(volName, node string) error {
 	logf.Log.Info("Attach Volume to node", "volName", volName, "node", node)
 	cmd := exec.Command("sh", "-c", fmt.Sprintf("hcloud volume attach %s --server %s", volName, node))
 	_, err := cmd.Output()
 	return err
+}
+
+func (h *hcloud) AttachVolumeToNode(node string) error {
+	volName := fmt.Sprintf("mayastor-%s", node)
+
+	logf.Log.Info("Attaching volume to node",
+		"node", node,
+		"volume", volName,
+	)
+
+	return h.AttachVolume(volName, node)
 }
 
 func (h *hcloud) ResizeVolume(volName string, newSizeGB int) error {
@@ -114,19 +136,19 @@ func (h *hcloud) GetNodeStatus(node string) (string, error) {
 
 // ExtractVolumeIdFromDevicePath parses Hetzner by-id device path and extracts the numeric volume id.
 // Example inputs:
-//  - /dev/disk/by-id/scsi-0HC_Volume_12345678
-//  - /dev/disk/by-id/scsi-0HC-VOLUME-12345678
-//  - /dev/disk/by-id/scsi-0HC_Volume_12345678-part1
+//   - /dev/disk/by-id/scsi-0HC_Volume_12345678
+//   - /dev/disk/by-id/scsi-0HC-VOLUME-12345678
+//   - /dev/disk/by-id/scsi-0HC_Volume_12345678-part1
 func (h *hcloud) ExtractVolumeIdFromDevicePath(dev string) (string, error) {
-    re := regexp.MustCompile(`(?i)HC[_-]?VOLUME_(\d+)`)
-    m := re.FindStringSubmatch(dev)
-    if len(m) == 2 {
-        return m[1], nil
-    }
-    // Fallback: try to find trailing numeric id possibly followed by -partX
-    tail := regexp.MustCompile(`(\d+)(?:-?part\d+)?$`).FindStringSubmatch(strings.ToLower(dev))
-    if len(tail) == 2 {
-        return tail[1], nil
-    }
-    return "", fmt.Errorf("device path %s does not look like a Hetzner volume by-id path", dev)
+	re := regexp.MustCompile(`(?i)HC[_-]?VOLUME_(\d+)`)
+	m := re.FindStringSubmatch(dev)
+	if len(m) == 2 {
+		return m[1], nil
+	}
+	// Fallback: try to find trailing numeric id possibly followed by -partX
+	tail := regexp.MustCompile(`(\d+)(?:-?part\d+)?$`).FindStringSubmatch(strings.ToLower(dev))
+	if len(tail) == 2 {
+		return tail[1], nil
+	}
+	return "", fmt.Errorf("device path %s does not look like a Hetzner volume by-id path", dev)
 }

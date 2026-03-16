@@ -134,6 +134,11 @@ func (h *gcp) DetachVolume(volName string, node string) error {
 	return err
 }
 
+func (h *gcp) DetachVolumeFromNode(node string) error {
+	logf.Log.Info("GCP: Detach volume from node", "node", node)
+	panic(fmt.Errorf("GCP: DetachVolumeFromNode not implemented for GCP platform"))
+}
+
 func (h *gcp) AttachVolume(volName, node string) error {
 	deviceName := "mayastor-disk"
 	logf.Log.Info("GCP: Attach volume", "volume", volName, "node", node, "device-name", deviceName)
@@ -154,6 +159,11 @@ func (h *gcp) AttachVolume(volName, node string) error {
 		return fmt.Errorf("GCP Attach volume failed: %v", err)
 	}
 	return err
+}
+
+func (h *gcp) AttachVolumeToNode(node string) error {
+	logf.Log.Info("GCP: Attach volume to node", "node", node)
+	panic(fmt.Errorf("GCP: AttachVolumeToNode not implemented for GCP platform"))
 }
 
 func (h *gcp) ResizeVolume(volName string, newSizeGB int) error {
