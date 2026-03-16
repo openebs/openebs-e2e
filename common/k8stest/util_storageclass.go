@@ -516,3 +516,15 @@ func (b *ScBuilder) WithMayastorPoolClusterSize(size string) *ScBuilder {
 	b.sc.object.Parameters[common.ScPoolClusterSize] = size
 	return b
 }
+
+// WithParameter sets the parameter of storageclass to given argument
+func (b *ScBuilder) WithParameter(key string, value string) *ScBuilder {
+	if value == "" || key == "" {
+		return b // Don't set parameter if value or key is empty
+	}
+	if b.sc.object.Parameters == nil {
+		b.sc.object.Parameters = map[string]string{}
+	}
+	b.sc.object.Parameters[key] = value
+	return b
+}
