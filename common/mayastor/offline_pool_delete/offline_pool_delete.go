@@ -1,6 +1,8 @@
 package offline_pool_delete
 
 import (
+	"fmt"
+
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/controlplane"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -28,4 +30,22 @@ func DeleteOfflinePool(poolName string, flags ...common.OfflinePoolDelete) error
 		return err
 	}
 	return nil
+}
+
+// GetNodeNameFromPool returns the node name for a given pool.
+// It is a small helper used by multiple tests that need to
+// map a DiskPool/MSP name to the corresponding node.
+func GetNodeNameFromPool(poolName string) (string, error) {
+	poolsInCluster, err := controlplane.ListMsPools()
+	if err != nil {
+		return "", fmt.Errorf("failed to list disk pools: %v", err)
+	}
+
+	for _, pool := range poolsInCluster {
+		if pool.Name == poolName {
+			return pool.Spec.Node, nil
+		}
+	}
+
+	return "", fmt.Errorf("pool %s not found in cluster", poolName)
 }
