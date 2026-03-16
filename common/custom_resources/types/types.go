@@ -54,6 +54,9 @@ type DiskPoolFunctions interface {
 	CreateMsPoolWithTopologySpec(poolName string, node string, disks []string, labels map[string]string) (DiskPool, error)
 	CreateMsPoolWithEncryption(poolName string, node string, disks []string, encryptionSecretName string) (DiskPool, error)
 	CreateMsPoolWithClusterSize(poolName string, node string, disks []string, clusterSize string) (DiskPool, error)
+	// CreateMsPoolWithDeleteOpts creates a DiskPool with delete options pre-configured
+	// as annotations on the DiskPool CR. Implemented for v1beta3 only.
+	CreateMsPoolWithDeleteOpts(poolName string, node string, disks []string, opts ...string) (DiskPool, error)
 	GetMsPool(poolName string) (DiskPool, error)
 	DeleteMsPool(poolName string) error
 	ListMsPoolCrs() ([]DiskPool, error)

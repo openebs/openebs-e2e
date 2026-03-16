@@ -238,6 +238,10 @@ func (ifc v1beta2Ifc) CreateMsPoolWithEncryption(poolName string, node string, d
 	panic(fmt.Errorf("not implemented encrypted pool in v1beta2"))
 }
 
+func (ifc v1beta2Ifc) CreateMsPoolWithDeleteOpts(poolName string, node string, disks []string, opts ...string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("not implemented encrypted pool in v1beta2"))
+}
+
 func (p v1beta2DSP) SetSpecEncryptionSecret(secretName string) (crtypes.DiskPool, error) {
 	panic(fmt.Errorf("not implemented encrypted pool in v1beta2"))
 }

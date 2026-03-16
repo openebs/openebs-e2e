@@ -321,6 +321,27 @@ func (ifc v1beta3Ifc) CreateMsPool(poolName string, node string, disks []string)
 	return dsp, err
 }
 
+// CreateMsPoolWithDeleteOpts creates a DiskPool CR with delete options configured
+// as annotations on the DiskPool object at creation time.
+func (ifc v1beta3Ifc) CreateMsPoolWithDeleteOpts(poolName string, node string, disks []string, opts ...string) (crtypes.DiskPool, error) {
+	annotations := ifc.buildDeleteOptsAnnotations(opts...)
+	msp := v1beta3.DiskPool{
+		TypeMeta: metaV1.TypeMeta{Kind: "DiskPool"},
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:        poolName,
+			Namespace:   common.NSMayastor(),
+			Annotations: annotations,
+		},
+		Spec: v1beta3.DiskPoolSpec{
+			Node:  node,
+			Disks: disks,
+		},
+	}
+	mspOut, err := poolClientSet.DiskPools().Create(context.TODO(), &msp, metaV1.CreateOptions{})
+	dsp := v1beta3DSP{mspOut}
+	return dsp, err
+}
+
 func (ifc v1beta3Ifc) CreateMsPoolWithTopologySpec(poolName string, node string, disks []string, labels map[string]string) (crtypes.DiskPool, error) {
 
 	topology := &v1beta3.Topology{
@@ -542,8 +563,14 @@ func (ifc v1beta3Ifc) VerifyPoolCapacityAndMaxExpansion(poolName string, expecte
 	return nil
 }
 
-// AnnotateOfflinePoolForDelete adds the openebs.io/delete-opts annotation for offline pool deletion
-// with specified options passed as strings
+// AnnotateOfflinePoolForDelete adds per-option annotations for offline pool deletion
+// with specified options passed as strings.
+// Supported options:
+//   - purge              -> annotation "purge": "true"
+//   - accept             -> annotation "accept": "true"
+//   - accept_volume_loss -> annotation "accept_volume_loss": "true"
+//   - accept_snapshot_loss -> annotation "accept_snapshot_loss": "true"
+//   - accept_data_loss   -> annotation "accept_data_loss": "true"
 func (ifc v1beta3Ifc) AnnotateOfflinePoolForDelete(poolName string, opts ...string) error {
 	res, err := poolClientSet.DiskPools().Get(context.TODO(), poolName, metaV1.GetOptions{})
 	if err != nil {
@@ -553,47 +580,61 @@ func (ifc v1beta3Ifc) AnnotateOfflinePoolForDelete(poolName string, opts ...stri
 		return fmt.Errorf("pool %s not found", poolName)
 	}
 
-	// Build the annotation value based on provided options
-	annotationValue := ifc.buildDeleteOptsAnnotation(opts...)
-
-	if annotationValue == "" {
+	// Build the per-option annotations from the provided options
+	optionAnnos := ifc.buildDeleteOptsAnnotations(opts...)
+	if len(optionAnnos) == 0 {
 		return fmt.Errorf("at least one delete option must be specified")
 	}
 
-	// Add or update the delete-opts annotation for offline pool
+	// Add or update per-option annotations for offline pool
 	if res.Annotations == nil {
 		res.Annotations = make(map[string]string)
 	}
-	res.Annotations[common.DeleteOptsAnnotation] = annotationValue
+	for annotationKey, annotationValue := range optionAnnos {
+		res.Annotations[annotationKey] = annotationValue
+	}
 
 	_, err = poolClientSet.DiskPools().Update(context.TODO(), res, metaV1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to annotate offline pool %s for deletion: %v", poolName, err)
 	}
 
-	logf.Log.Info("Successfully annotated offline pool for deletion", "pool", poolName, "options", annotationValue)
+	logf.Log.Info("Successfully annotated offline pool for deletion", "pool", poolName, "options", optionAnnos)
 	return nil
 }
 
-// buildDeleteOptsAnnotation constructs the YAML-formatted annotation value from option strings
-func (ifc v1beta3Ifc) buildDeleteOptsAnnotation(opts ...string) string {
-	var parts []string
-	validOpts := map[string]string{
-		"purge":                 "purge: true",
-		"confirm":               "confirm: true",
-		"confirm_data_loss":     "confirm_data_loss: true",
-		"confirm_snapshot_loss": "confirm_snapshot_loss: true",
-	}
+// buildDeleteOptsAnnotations constructs a single annotation whose value is a YAML
+// block listing the delete options as key: true entries. This ensures that the
+// DiskPool YAML shows:
+//
+//	annotations:
+//	  openebs.io/delete-opts: |
+//	    purge: true
+//	    accept: true
+func (ifc v1beta3Ifc) buildDeleteOptsAnnotations(opts ...string) map[string]string {
+	results := []string{}
 
 	for _, opt := range opts {
-		if value, exists := validOpts[opt]; exists {
-			parts = append(parts, value)
+		switch opt {
+		case "purge":
+			results = append(results, "purge: true")
+		case "accept":
+			results = append(results, "accept: true")
+		case "accept_volume_loss":
+			results = append(results, "accept_volume_loss: true")
+		case "accept_snapshot_loss":
+			results = append(results, "accept_snapshot_loss: true")
+		case "accept_data_loss":
+			results = append(results, "accept_data_loss: true")
 		}
 	}
 
-	if len(parts) == 0 {
-		return ""
+	if len(results) == 0 {
+		return map[string]string{}
 	}
 
-	return strings.Join(parts, "\n")
+	// Store all options under the openebs.io/delete-opts key so kubectl prints a block.
+	return map[string]string{
+		"openebs.io/delete-opts": strings.Join(results, "\n"),
+	}
 }

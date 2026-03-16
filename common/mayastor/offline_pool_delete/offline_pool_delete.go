@@ -5,6 +5,9 @@ import (
 
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/controlplane"
+	"github.com/openebs/openebs-e2e/common/custom_resources"
+	"github.com/openebs/openebs-e2e/common/k8stest"
+
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -48,4 +51,52 @@ func GetNodeNameFromPool(poolName string) (string, error) {
 	}
 
 	return "", fmt.Errorf("pool %s not found in cluster", poolName)
+}
+
+// CreatePoolWithDeleteOpts creates a DiskPool CR on a given node/disk and
+// immediately sets the requested delete options as annotations on the CR.
+// From a caller's perspective this behaves as "create pool with delete options".
+func CreatePoolWithDeleteOpts(poolName, node, disk string, opts ...string) error {
+	logf.Log.Info("Creating DiskPool with delete options", "poolName", poolName, "node", node, "disk", disk, "opts", opts)
+
+	// Create the DiskPool CR with delete options pre-configured via the v1beta3 helper.
+	_, err := custom_resources.CreateMsPoolWithDeleteOpts(poolName, node, []string{disk}, opts...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// CreatePoolsWithDeleteOptsOnAllNodes creates a DiskPool on each provided node and
+// annotates it with the given delete-opts options (e.g. "purge", "accept",
+// "accept_volume_loss", "accept_snapshot_loss", "accept_data_loss"). It returns the created pool names.
+
+func CreatePoolsWithDeleteOptsOnAllNodes(allNodes []string, poolNamePrefix string, opts ...string) (createdPools []string, err error) {
+	createdPools = make([]string, 0)
+
+	for _, nodeName := range allNodes {
+		// Get the first available disk on this node
+		devices, deviceErr := k8stest.GetConfiguredNodePoolDevices(nodeName)
+		if deviceErr != nil || len(devices) == 0 {
+			logf.Log.Info("Skipping node without configured pool device", "node", nodeName, "err", deviceErr)
+			continue
+		}
+		diskDevice := devices[0]
+
+		poolName := fmt.Sprintf("%s-%s", poolNamePrefix, nodeName)
+		logf.Log.Info("Creating pool for delete-opts tests", "poolName", poolName, "node", nodeName, "disk", diskDevice, "opts", opts)
+
+		// Create the DiskPool CR and set delete options using the helper.
+		if err = CreatePoolWithDeleteOpts(poolName, nodeName, diskDevice, opts...); err != nil {
+			return
+		}
+
+		createdPools = append(createdPools, poolName)
+	}
+
+	if len(createdPools) == 0 {
+		err = fmt.Errorf("no pools could be created on any node for delete-opts")
+		return
+	}
+	return createdPools, nil
 }

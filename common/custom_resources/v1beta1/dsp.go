@@ -306,3 +306,7 @@ func (p v1beta1DSP) GetPoolErrorCode() string {
 func (p v1beta1DSP) GetPoolErrorMessage() string {
 	panic(fmt.Errorf("pool error message not supported in v1beta1"))
 }
+
+func (ifc v1beta1Ifc) CreateMsPoolWithDeleteOpts(poolName string, node string, disks []string, opts ...string) (crtypes.DiskPool, error) {
+	panic(fmt.Errorf("create pool with delete options not supported in v1beta1"))
+}
