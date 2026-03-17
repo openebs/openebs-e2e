@@ -97,6 +97,8 @@ const (
 	AcceptSnapshotLoss OfflinePoolDelete = iota
 	// CleanupCr deletes the DiskPool CR after pool deletion
 	CleanupCr OfflinePoolDelete = iota
+	// IgnoreNotFound makes pool delete succeed even if the pool is already deleted
+	IgnoreNotFound OfflinePoolDelete = iota
 )
 
 // String returns the CLI flag name corresponding to the constraint.
@@ -130,6 +132,8 @@ func (c OfflinePoolDelete) String() string {
 		return "accept-snapshot-loss"
 	case CleanupCr:
 		return "cleanup-cr"
+	case IgnoreNotFound:
+		return "ignore-not-found"
 	default:
 		return ""
 	}
