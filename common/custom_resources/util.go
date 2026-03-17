@@ -233,6 +233,10 @@ func CreateMsPoolWithClusterSize(poolName string, node string, disks []string, c
 	return getDspFuncs().CreateMsPoolWithClusterSize(poolName, node, disks, clusterSize)
 }
 
+func CreateMsPoolWithDeleteOpts(poolName string, node string, disks []string, opts ...string) (crtypes.DiskPool, error) {
+	return getDspFuncs().CreateMsPoolWithDeleteOpts(poolName, node, disks, opts...)
+}
+
 func GetMsPool(poolName string) (crtypes.DiskPool, error) {
 	return getDspFuncs().GetMsPool(poolName)
 }
@@ -281,7 +285,7 @@ func DeleteOfflinePoolViaPluginCp(poolName string, flags ...common.OfflinePoolDe
 
 // AnnotateOfflinePoolForDelete annotates the offline pool for delete
 func AnnotateOfflinePoolForDelete(poolName string, opts ...string) error {
-	return getDspFuncs().AnnotateOfflinePoolForDelete(poolName)
+	return getDspFuncs().AnnotateOfflinePoolForDelete(poolName, opts...)
 }
 
 // DeleteOfflineNodeViaPluginCp deletes the offline node via control plane plugin

@@ -198,6 +198,10 @@ func (ifc v1alpha1ExtIfc) CreateMsPoolWithTopologySpec(poolName string, node str
 	panic(fmt.Errorf("not implemented labelled topolgy pool in v1alpha1Ext"))
 }
 
+func (ifc v1alpha1ExtIfc) CreateMsPoolWithDeleteOpts(poolName string, node string, disks []string, opts ...string) (crtypes.DiskPool, error) {
+	return nil, fmt.Errorf("create pool with delete options not supported in v1alpha1Ext")
+}
+
 func (ifc v1alpha1ExtIfc) GetMsPool(poolName string) (crtypes.DiskPool, error) {
 	msp := v1alpha12.DiskPool{}
 	res, err := poolClientSet.DiskPools().Get(context.TODO(), poolName, metaV1.GetOptions{})
