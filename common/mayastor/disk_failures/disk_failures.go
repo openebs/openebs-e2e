@@ -37,4 +37,6 @@ const (
 	PoolStateOnline         = "Online"
 	PoolStateOffline        = "Offline"
 	PoolStateSuspected      = "Suspected"
+	PoolAlertStatusCritical = "Critical"
+	PoolAlertStatusHealthy  = "Healthy"
 )
