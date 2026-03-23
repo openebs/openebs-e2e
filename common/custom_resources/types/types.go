@@ -1,6 +1,10 @@
 package types
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/openebs/openebs-e2e/common/mayastor/disk_failures"
+)
 
 // Types to support DiskPool CRD abstraction to support multiple
 // CRD versions
@@ -24,7 +28,9 @@ type DiskPool interface {
 	GetPoolReadyReason() string
 	GetPoolErrorCount() uint64
 	GetPoolAlertStatus() string
+	GetAlerts() disk_failures.DiskPoolAlerts
 	GetPoolErrorCode() string
+	GetIOStallValue() bool
 	// Optional: detailed error message (e.g. status.error.message in v1beta3).
 	// May return empty string for CR versions that don't expose it.
 	GetPoolErrorMessage() string

@@ -3,7 +3,9 @@ package k8stest
 import (
 	"fmt"
 
+	"github.com/openebs/openebs-e2e/common/custom_resources"
 	e2eagent "github.com/openebs/openebs-e2e/common/e2e_agent"
+	"github.com/openebs/openebs-e2e/common/mayastor/disk_failures"
 )
 
 // InjectIOError injects IO error on the given pool device present on the given node.
@@ -110,5 +112,60 @@ func GetPoolErrorThreshold(release, namespace, path string) (int, error) {
 		return int(v), nil
 	default:
 		return 0, fmt.Errorf("unexpected type")
+	}
+}
+
+func containsAlert(alerts []disk_failures.PoolAlert, expected disk_failures.PoolAlert) bool {
+	for _, a := range alerts {
+		if a == expected {
+			return true
+		}
+	}
+	return false
+}
+
+func PoolStateCheck(
+	poolName string,
+	expectedState string,
+	expectedAlertStatus string,
+	expectedAlert disk_failures.PoolAlert,
+	alertType string,
+) func() error {
+	return func() error {
+		poolCR, err := custom_resources.GetMsPool(poolName)
+		if err != nil {
+			return err
+		}
+
+		if poolCR.GetPoolStatus() != expectedState {
+			return fmt.Errorf("expected state %s, got %s",
+				expectedState, poolCR.GetPoolStatus())
+		}
+
+		if poolCR.GetPoolAlertStatus() != expectedAlertStatus {
+			return fmt.Errorf("expected alert status %s, got %s",
+				expectedAlertStatus, poolCR.GetPoolAlertStatus())
+		}
+
+		alerts := poolCR.GetAlerts()
+
+		var alertList []disk_failures.PoolAlert
+		switch alertType {
+		case disk_failures.PoolAlertStatusCritical:
+			alertList = alerts.Critical
+		case disk_failures.PoolAlertStatusAttention:
+			alertList = alerts.Attention
+		case disk_failures.PoolAlertStatusWarning:
+			alertList = alerts.Warning
+		default:
+			return fmt.Errorf("unknown alert type %s", alertType)
+		}
+
+		if !containsAlert(alertList, expectedAlert) {
+			return fmt.Errorf("alert %s not found in %s list",
+				expectedAlert, alertType)
+		}
+
+		return nil
 	}
 }
