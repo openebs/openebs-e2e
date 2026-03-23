@@ -373,6 +373,8 @@ func (cp CPv1) DeleteOfflinePoolViaPlugin(poolName string, flags ...common.Offli
 			args = append(args, "--accept-snapshot-loss")
 		case common.CleanupCr:
 			args = append(args, "--cleanup-cr")
+		case common.IgnoreNotFound:
+			args = append(args, "--ignore-not-found")
 		}
 	}
 
