@@ -4,6 +4,7 @@ import (
 	"context"
 
 	v1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -23,4 +24,15 @@ func ReplaceConfigMapData(name string, nameSpace string, data map[string]string)
 	cm.Data = data
 	_, err = gTestEnv.KubeInt.CoreV1().ConfigMaps(nameSpace).Update(context.TODO(), cm, metaV1.UpdateOptions{})
 	return err
+}
+
+func IsConfigMapExists(name string, nameSpace string) (bool, error) {
+	_, err := gTestEnv.KubeInt.CoreV1().ConfigMaps(nameSpace).Get(context.TODO(), name, metaV1.GetOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
