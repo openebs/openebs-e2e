@@ -937,10 +937,10 @@ func WaitPvcToBound(pvcName string, nameSpace string) error {
 
 // Refresh the PVC contents, so that we can get the PV name.
 func RefreshPvcToGetPvName(pvcName string, nameSpace string) (string, error) {
-	const timoSleepSecs = 1
+	const timeSleepSecs = 1
 	var getPvcErr error
 	var pvc *coreV1.PersistentVolumeClaim
-	for ix := 0; ix < defTimeoutSecs/timoSleepSecs && pvcName != ""; ix++ {
+	for ix := 0; ix < defTimeoutSecs/timeSleepSecs && pvcName != ""; ix++ {
 		pvc, getPvcErr = GetPVC(pvcName, nameSpace)
 		if getPvcErr != nil {
 			return "", fmt.Errorf("failed to get pvc: %s, namespace: %s, error: %v", pvcName, nameSpace, getPvcErr)
@@ -950,7 +950,7 @@ func RefreshPvcToGetPvName(pvcName string, nameSpace string) (string, error) {
 		if pvc.Spec.VolumeName != "" {
 			break
 		}
-		time.Sleep(timoSleepSecs * time.Second)
+		time.Sleep(timeSleepSecs * time.Second)
 	}
 	if pvc == nil {
 		return "", fmt.Errorf("PVC is nil, pvc: %s", pvcName)
@@ -960,17 +960,91 @@ func RefreshPvcToGetPvName(pvcName string, nameSpace string) (string, error) {
 	return pvc.Spec.VolumeName, getPvcErr
 }
 
+// Wait for the PVC to be created
+func WaitForPvcCreation(pvcName string, nameSpace string) (string, error) {
+	const timeSleepSecs = 1
+	var pvc *coreV1.PersistentVolumeClaim
+	var err error
+	for ix := 0; ix < defTimeoutSecs/timeSleepSecs; ix++ {
+		pvc, err = GetPVC(pvcName, nameSpace)
+		if err == nil && pvc != nil {
+			break
+		}
+		time.Sleep(timeSleepSecs * time.Second)
+	}
+	if k8serrors.IsNotFound(err) {
+		return "", fmt.Errorf("pvc not found, pvc: %s, namespace: %s", pvcName, nameSpace)
+	} else if err != nil {
+		return "", fmt.Errorf("failed to get pvc, pvc: %s, namespace:  %s, error: %v", pvcName, nameSpace, err)
+	} else if pvc == nil {
+		return "", fmt.Errorf("PVC is nil, pvc: %s", pvcName)
+	}
+	return pvc.Name, err
+}
+
+// Wait for the PVC to be created
+func WaitForPvcDeletion(pvcName string, nameSpace string) error {
+	const timeSleepSecs = 1
+	var err error
+	var isDeleted bool
+	for ix := 0; ix < defTimeoutSecs/timeSleepSecs; ix++ {
+		isDeleted, err = IsPVCDeleted(pvcName, nameSpace)
+		if err == nil && isDeleted {
+			return nil
+		}
+		time.Sleep(timeSleepSecs * time.Second)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to check pvc deletion, pvc: %s, namespace:  %s, error: %v", pvcName, nameSpace, err)
+	}
+	return fmt.Errorf("pvc not deleted, pvc: %s, namespace:  %s", pvcName, nameSpace)
+}
+
+// wait for pv to be deleted
+func WaitForPvDeletion(pvName string) error {
+	logf.Log.Info("Waiting for PV to be deleted", "PV", pvName)
+	const timeSleepSecs = 1
+	var err error
+	var isDeleted bool
+	for ix := 0; ix < defTimeoutSecs/timeSleepSecs; ix++ {
+		isDeleted, err = IsPVDeleted(pvName)
+		if err == nil && isDeleted {
+			return nil
+		}
+		time.Sleep(timeSleepSecs * time.Second)
+	}
+	if err != nil {
+		return err
+	}
+	return fmt.Errorf("pv not deleted, pv: %s", pvName)
+}
+
+// wait for mayastor volume to be deleted
+func WaitForMayastorVolumeDeletion(msvName string) error {
+	logf.Log.Info("Waiting for MayastorVolume to be deleted", "MayastorVolume", msvName)
+	const timeSleepSecs = 1
+	var isDeleted bool
+	for ix := 0; ix < defTimeoutSecs/timeSleepSecs; ix++ {
+		isDeleted = IsMsvDeleted(msvName)
+		if isDeleted {
+			return nil
+		}
+		time.Sleep(timeSleepSecs * time.Second)
+	}
+	return fmt.Errorf("mayastor volume not deleted, uuid: %s", msvName)
+}
+
 // Wait for the PV to be provisioned
 func WaitForPvToProvision(pvName string) error {
-	const timoSleepSecs = 1
+	const timeSleepSecs = 1
 	var pv *coreV1.PersistentVolume
 	var err error
-	for ix := 0; ix < defTimeoutSecs/timoSleepSecs; ix++ {
+	for ix := 0; ix < defTimeoutSecs/timeSleepSecs; ix++ {
 		pv, err = GetPV(pvName)
 		if err == nil && pv != nil {
 			break
 		}
-		time.Sleep(timoSleepSecs * time.Second)
+		time.Sleep(timeSleepSecs * time.Second)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to get pv, pvc.Spec.VolumeName: %s, error: %v", pvName, err)
@@ -982,15 +1056,15 @@ func WaitForPvToProvision(pvName string) error {
 
 // Wait for the PV to bound
 func WaitPvToBound(pvName string) error {
-	const timoSleepSecs = 1
+	const timeSleepSecs = 1
 	var pvPhase coreV1.PersistentVolumePhase
 	var err error
-	for ix := 0; ix < defTimeoutSecs/timoSleepSecs; ix++ {
+	for ix := 0; ix < defTimeoutSecs/timeSleepSecs; ix++ {
 		pvPhase, err = GetPvStatusPhase(pvName)
 		if err == nil && pvPhase == coreV1.VolumeBound {
 			break
 		}
-		time.Sleep(timoSleepSecs * time.Second)
+		time.Sleep(timeSleepSecs * time.Second)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to get pv status, pv: %s, error: %v", pvName, err)
@@ -1004,13 +1078,13 @@ func WaitPvToBound(pvName string) error {
 func WaitForMayastorVolumeToProvision(msvName string) (*common.MayastorVolume, error) {
 	var msv *common.MayastorVolume
 	var err error
-	const timoSleepSecs = 1
-	for ix := 0; ix < defTimeoutSecs/timoSleepSecs; ix++ {
+	const timeSleepSecs = 1
+	for ix := 0; ix < defTimeoutSecs/timeSleepSecs; ix++ {
 		msv, err = GetMSV(msvName)
 		if err == nil && msv != nil {
 			break
 		}
-		time.Sleep(timoSleepSecs * time.Second)
+		time.Sleep(timeSleepSecs * time.Second)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mayastor volume, uuid: %s, error: %v", msvName, err)

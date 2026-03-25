@@ -566,3 +566,23 @@ func WaitForStsReady(statefulSetName string, namespace string, timeout time.Dura
 	}
 	return nil
 }
+
+func WaitForStsDeletion(statefulSetName string, namespace string, timeout time.Duration) error {
+	logf.Log.Info("Waiting for statefulset to be deleted", "statefulset", statefulSetName, "namespace", namespace)
+	start := time.Now()
+	for {
+		isStsFound, err := StsExists(statefulSetName, namespace)
+		if err != nil {
+			return fmt.Errorf("failed to check if statefulset %s exists in namespace %s: %v", statefulSetName, namespace, err)
+		}
+		if !isStsFound {
+			logf.Log.Info("Statefulset is deleted", "statefulset", statefulSetName, "namespace", namespace)
+			break
+		}
+		if time.Since(start) > timeout {
+			return fmt.Errorf("timed out waiting for statefulset %s to be deleted in namespace %s", statefulSetName, namespace)
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return nil
+}
