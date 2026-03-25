@@ -53,22 +53,29 @@ type DiskPoolStatus struct {
 	CRStatus  string `json:"cr_state"`
 	// Status is a generic pool state field used by some control-plane versions.
 	// When present, it may carry values like "Offline" even if PoolStatus is empty.
-	Status            string        `json:"status,omitempty"`
-	PoolStatus        string        `json:"pool_status"`
-	Encrypted         bool          `json:"encrypted"`
-	CapacityQ         string        `json:"capacity_q"`
-	AvailableQ        string        `json:"available_q"`
-	UsedQ             string        `json:"used_q"`
-	ClusterSize       string        `json:"clusterSize"`
-	MaxExpandableSize string        `json:"maxExpandableSize,omitempty"`
-	Conditions        []Condition   `json:"conditions,omitempty"`
-	Diag              DiskPoolDiag  `json:"diag,omitempty"`
-	Error             DiskPoolError `json:"error,omitempty"`
+	Status            string            `json:"status,omitempty"`
+	PoolStatus        string            `json:"pool_status"`
+	Encrypted         bool              `json:"encrypted"`
+	CapacityQ         string            `json:"capacity_q"`
+	AvailableQ        string            `json:"available_q"`
+	UsedQ             string            `json:"used_q"`
+	ClusterSize       string            `json:"clusterSize"`
+	MaxExpandableSize string            `json:"maxExpandableSize,omitempty"`
+	Conditions        []Condition       `json:"conditions,omitempty"`
+	Diag              DiskPoolDiag      `json:"diag,omitempty"`
+	Error             DiskPoolError     `json:"error,omitempty"`
+	ErrorInfo         DiskPoolErrorInfo `json:"errorInfo,omitempty"`
 }
 
 type DiskPoolError struct {
 	Code    string `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`
+}
+
+type DiskPoolErrorInfo struct {
+	IoStallTransitionCount uint64         `json:"io_stall_transition_count,omitempty"`
+	IoStalled              bool           `json:"io_stalled,omitempty"`
+	Alerts                 DiskPoolAlerts `json:"alerts,omitempty"`
 }
 
 type DiskPool struct {
@@ -84,4 +91,12 @@ type DiskPoolList struct {
 	metaV1.ListMeta `json:"metadata,omitempty"`
 
 	Items []DiskPool `json:"items"`
+}
+
+type DiskPoolAlerts struct {
+	Status    string   `json:"status,omitempty"`
+	Notice    []string `json:"notice,omitempty"`
+	Attention []string `json:"attention,omitempty"`
+	Warning   []string `json:"warning,omitempty"`
+	Critical  []string `json:"critical,omitempty"`
 }

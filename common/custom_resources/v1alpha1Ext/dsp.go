@@ -9,6 +9,7 @@ import (
 	v1alpha12 "github.com/openebs/openebs-e2e/common/custom_resources/api/types/v1alpha1Ext"
 	v1alpha1Client "github.com/openebs/openebs-e2e/common/custom_resources/clientset/v1alpha1Ext"
 	crtypes "github.com/openebs/openebs-e2e/common/custom_resources/types"
+	"github.com/openebs/openebs-e2e/common/mayastor/disk_failures"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -344,4 +345,12 @@ func (p v1alpha1ExtDSP) GetPoolErrorCode() string {
 
 func (p v1alpha1ExtDSP) GetPoolErrorMessage() string {
 	panic(fmt.Errorf("pool error message not supported in v1alpha1Ext"))
+}
+
+func (p v1alpha1ExtDSP) GetIOStallValue() bool {
+	panic(fmt.Errorf("i/o stall value not supported in v1alpha1Ext"))
+}
+
+func (p v1alpha1ExtDSP) GetAlerts() disk_failures.DiskPoolAlerts {
+	panic(fmt.Errorf("pool alerts not supported in v1alpha1Ext"))
 }

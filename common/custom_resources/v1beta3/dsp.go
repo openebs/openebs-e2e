@@ -13,6 +13,7 @@ import (
 	v1beta3 "github.com/openebs/openebs-e2e/common/custom_resources/api/types/v1beta3"
 	v1beta3Client "github.com/openebs/openebs-e2e/common/custom_resources/clientset/v1beta3"
 	crtypes "github.com/openebs/openebs-e2e/common/custom_resources/types"
+	"github.com/openebs/openebs-e2e/common/mayastor/disk_failures"
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -107,6 +108,37 @@ func (p v1beta3DSP) GetPoolErrorCode() string {
 		return p.v1beta3.Status.Diag.Error.Code
 	}
 	return ""
+}
+
+func (p v1beta3DSP) GetIOStallValue() bool {
+	if p.v1beta3 != nil {
+		return p.v1beta3.Status.ErrorInfo.IoStalled
+	}
+	return false
+}
+
+func (p v1beta3DSP) GetAlerts() disk_failures.DiskPoolAlerts {
+	if p.v1beta3 == nil {
+		return disk_failures.DiskPoolAlerts{}
+	}
+
+	a := p.v1beta3.Status.ErrorInfo.Alerts
+
+	return disk_failures.DiskPoolAlerts{
+		Status:    disk_failures.PoolAlertStatus(a.Status),
+		Notice:    convertAlerts(a.Notice),
+		Attention: convertAlerts(a.Attention),
+		Warning:   convertAlerts(a.Warning),
+		Critical:  convertAlerts(a.Critical),
+	}
+}
+
+func convertAlerts(alerts []string) []disk_failures.PoolAlert {
+	out := make([]disk_failures.PoolAlert, len(alerts))
+	for i, a := range alerts {
+		out[i] = disk_failures.PoolAlert(a)
+	}
+	return out
 }
 
 // GetPoolErrorMessage returns the detailed error message from status.error.message

@@ -12,6 +12,7 @@ import (
 	v1beta12 "github.com/openebs/openebs-e2e/common/custom_resources/api/types/v1beta1"
 	v1beta1Client "github.com/openebs/openebs-e2e/common/custom_resources/clientset/v1beta1"
 	crtypes "github.com/openebs/openebs-e2e/common/custom_resources/types"
+	"github.com/openebs/openebs-e2e/common/mayastor/disk_failures"
 
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -309,4 +310,12 @@ func (p v1beta1DSP) GetPoolErrorMessage() string {
 
 func (ifc v1beta1Ifc) CreateMsPoolWithDeleteOpts(poolName string, node string, disks []string, opts ...string) (crtypes.DiskPool, error) {
 	panic(fmt.Errorf("create pool with delete options not supported in v1beta1"))
+}
+
+func (p v1beta1DSP) GetIOStallValue() bool {
+	panic(fmt.Errorf("i/o stall value not supported in v1beta1"))
+}
+
+func (p v1beta1DSP) GetAlerts() disk_failures.DiskPoolAlerts {
+	panic(fmt.Errorf("pool alerts not supported in v1beta1"))
 }
