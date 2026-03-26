@@ -28,6 +28,7 @@ var (
 	ErrPoolImport                             = errors.New("pool error code is not pool import error")
 	ErrPoolOffline                            = errors.New("pool status is not offline")
 	ErrPoolOnline                             = errors.New("pool status is not online")
+	ErrPoolUnknown                            = errors.New("pool status is not unknown")
 	ErrPoolSuspected                          = errors.New("pool status is not suspected")
 	ErrPoolAlertCritical                      = errors.New("pool alert status is not critical")
 	ErrPoolAlertHealthy                       = errors.New("pool alert status is not healthy")
@@ -53,6 +54,7 @@ const (
 	StallDeadline                             = "10s"
 	PoolStateOnline                           = "Online"
 	PoolStateOffline                          = "Offline"
+	PoolStateUnknown                          = "Unknown"
 	PoolStateSuspected                        = "Suspected"
 	PoolAlertStatusCritical                   = "Critical"
 	PoolAlertStatusHealthy                    = "Healthy"
