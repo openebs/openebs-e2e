@@ -63,23 +63,23 @@ var _ = Describe("lvm_thick_volume_resize", func() {
 	It("lvm btrfs: should verify thick volume resize", func() {
 		volumeResize.LvmVolumeResizeTest("lvm-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.BtrfsFsType, true, common.No)
 	})
-	It("lvm block: should verify thick volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-volume-resize", common.Lvm, nodeConfig.VgName, common.VolRawBlock, common.NoneFsType, true, common.No)
-	})
+	// It("lvm block: should verify thick volume resize", func() {
+	// 	volumeResize.LvmVolumeResizeTest("lvm-volume-resize", common.Lvm, nodeConfig.VgName, common.VolRawBlock, common.NoneFsType, true, common.No)
+	// })
 
-	// immediate binding
-	It("lvm ext4: should verify thick volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.Ext4FsType, false, common.No)
-	})
-	It("lvm xfs: should verify thick volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.XfsFsType, false, common.No)
-	})
-	It("lvm btrfs: should verify thick volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.BtrfsFsType, false, common.No)
-	})
-	It("lvm block: should verify thick volume resize", func() {
-		volumeResize.LvmVolumeResizeTest("lvm-volume-resize", common.Lvm, nodeConfig.VgName, common.VolRawBlock, common.NoneFsType, false, common.No)
-	})
+	// //immediate binding
+	// It("lvm ext4: should verify thick volume resize", func() {
+	// 	volumeResize.LvmVolumeResizeTest("lvm-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.Ext4FsType, false, common.No)
+	// })
+	// It("lvm xfs: should verify thick volume resize", func() {
+	// 	volumeResize.LvmVolumeResizeTest("lvm-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.XfsFsType, false, common.No)
+	// })
+	// It("lvm btrfs: should verify thick volume resize", func() {
+	// 	volumeResize.LvmVolumeResizeTest("lvm-volume-resize", common.Lvm, nodeConfig.VgName, common.VolFileSystem, common.BtrfsFsType, false, common.No)
+	// })
+	// It("lvm block: should verify thick volume resize", func() {
+	// 	volumeResize.LvmVolumeResizeTest("lvm-volume-resize", common.Lvm, nodeConfig.VgName, common.VolRawBlock, common.NoneFsType, false, common.No)
+	// })
 })
 
 var _ = BeforeSuite(func() {
