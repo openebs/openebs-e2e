@@ -49,7 +49,7 @@ func LvmVolumeResizeTest(decor string, engine common.OpenEbsEngine, vgName strin
 	}
 
 	if ResizeApp.FsType == common.BtrfsFsType {
-		ResizeApp.FsPercent = 60
+		ResizeApp.FsPercent = 30
 	}
 
 	logf.Log.Info("create sc, pvc, fio pod")
