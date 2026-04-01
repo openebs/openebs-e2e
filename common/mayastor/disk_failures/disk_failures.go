@@ -46,12 +46,18 @@ const (
 	NodeReadyInterval                         = 10 * time.Second
 	NodeRebootWait                            = 30 * time.Second
 	IoEngineTimeout                           = 120
-	ThresholdPath                             = "io_engine.pool.alerts.errorThreshold"
+	ThresholdPath                             = "io_engine.pool.ioAlerts.errorThreshold"
 	VolumeStateTimeout                        = 120
 	VolumeStateInterval                       = "5s"
 	RebuildTimeout                            = 240
-	StallDeadlineHelmValue                    = "io_engine.pool.alerts.stallDeadline"
+	StallDeadlineHelmValue                    = "io_engine.pool.ioAlerts.stallDeadline"
+	StallTransitionThreshold                  = "io_engine.pool.ioAlerts.stallTransitionThreshold"
+	StallTransitionWindow                     = "io_engine.pool.ioAlerts.stallTransitionWindow"
+	Cache_Polling_Period                      = "cache_poll_period"
+	Cache_Polling_Period_Value                = "3s"
 	StallDeadline                             = "10s"
+	StallTransitionThresholdValue             = "5"
+	StallTransitionWindowValue                = "300s"
 	PoolStateOnline                           = "Online"
 	PoolStateOffline                          = "Offline"
 	PoolStateUnknown                          = "Unknown"
@@ -65,4 +71,5 @@ const (
 	PoolAlertIoStallIntermittentExc PoolAlert = "IoStallIntermittentExc"
 	PoolAlertIoError                PoolAlert = "IoError"
 	PoolAlertIoErrorExc             PoolAlert = "IoErrorExc"
+	DspOnlineCheckTimeout                     = 180
 )

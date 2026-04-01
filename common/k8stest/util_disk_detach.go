@@ -3,10 +3,14 @@ package k8stest
 import (
 	"fmt"
 
+	"time"
+
 	"github.com/openebs/openebs-e2e/common/custom_resources"
 	e2eagent "github.com/openebs/openebs-e2e/common/e2e_agent"
 	"github.com/openebs/openebs-e2e/common/mayastor/disk_failures"
 )
+
+const waitPoll = 1 * time.Second
 
 // InjectIOError injects IO error on the given pool device present on the given node.
 func InjectIOError(nodeAddr string, poolDevice string) (string, error) {
@@ -167,5 +171,14 @@ func PoolStateCheck(
 		}
 
 		return nil
+	}
+}
+
+func WaitUntilElapsed(start time.Time, target time.Duration) {
+	for {
+		if time.Since(start) >= target {
+			return
+		}
+		time.Sleep(waitPoll)
 	}
 }
