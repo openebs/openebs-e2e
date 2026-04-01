@@ -83,6 +83,12 @@ func (b *PodBuilder) WithTolerationsForTaints(taints ...corev1.Taint) *PodBuilde
 	return b
 }
 
+// WithTopologySpreadConstraints sets the Spec.TopologySpreadConstraints with provided spread constraints.
+func (b *PodBuilder) WithTopologySpreadConstraints(spreadConstraints []corev1.TopologySpreadConstraint) *PodBuilder {
+	b.pod.object.Spec.TopologySpreadConstraints = spreadConstraints
+	return b
+}
+
 // WithName sets the Name field of Pod with provided value.
 func (b *PodBuilder) WithName(name string) *PodBuilder {
 	if len(name) == 0 {
@@ -940,4 +946,56 @@ func WaitForPodsDeletion(podNames []string, namespace string, podDeletionTimeout
 		}
 	}
 	return true, nil
+}
+
+// wait for pods to be running or completed with the specified pod prefix
+func WaitForPodsByPrefixToBeRunningOrCompleted(namespace string, podPrefix string, timeoutSecs int) error {
+	logf.Log.Info("Waiting for pods with prefix to be running or completed", "namespace", namespace, "podPrefix", podPrefix, "timeoutSecs", timeoutSecs)
+	const sleepTime = 2
+	for ix := 0; ix < (timeoutSecs+sleepTime-1)/sleepTime; ix++ {
+		time.Sleep(sleepTime * time.Second)
+
+		pods, err := ListPodsByPrefix(namespace, podPrefix)
+		if err != nil {
+			return fmt.Errorf("failed to list pods with prefix %s in namespace %s: %v", podPrefix, namespace, err)
+		}
+
+		if len(pods) == 0 {
+			continue
+		}
+
+		allRunningOrCompleted := true
+		for _, pod := range pods {
+			switch pod.Status.Phase {
+			case corev1.PodRunning, corev1.PodSucceeded:
+				// pod is running or done, continue
+			default:
+				allRunningOrCompleted = false
+			}
+		}
+
+		if allRunningOrCompleted {
+			return nil
+		}
+	}
+	return fmt.Errorf("timeout waiting for pods with prefix %s in namespace %s to be running or complete", podPrefix, namespace)
+}
+
+// wait for pods to deleted with the specified pod prefix
+func WaitForPodsByPrefixToBeDeleted(namespace string, podPrefix string, timeoutSecs int) error {
+	logf.Log.Info("Waiting for pods with prefix to be deleted", "namespace", namespace, "podPrefix", podPrefix, "timeoutSecs", timeoutSecs)
+	const sleepTime = 2
+	for ix := 0; ix < (timeoutSecs+sleepTime-1)/sleepTime; ix++ {
+		time.Sleep(sleepTime * time.Second)
+
+		pods, err := ListPodsByPrefix(namespace, podPrefix)
+		if err != nil {
+			return fmt.Errorf("failed to list pods with prefix %s in namespace %s: %v", podPrefix, namespace, err)
+		}
+
+		if len(pods) == 0 {
+			return nil
+		}
+	}
+	return fmt.Errorf("timeout waiting for pods with prefix %s in namespace %s to be deleted", podPrefix, namespace)
 }
