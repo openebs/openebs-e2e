@@ -6,6 +6,7 @@ import (
 	"time"
 
 	batchV1 "k8s.io/api/batch/v1"
+	coreV1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -24,7 +25,11 @@ func GetJob(name, namespace string) (*batchV1.Job, error) {
 
 // delete kubernetes Job
 func DeleteJob(name, namespace string) error {
-	err := gTestEnv.KubeInt.BatchV1().Jobs(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	// Define the deletion policy
+	deletePolicy := metav1.DeletePropagationBackground
+	err := gTestEnv.KubeInt.BatchV1().Jobs(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to delete Job %s in namespace %s: %v", name, namespace, err)
 	}
@@ -88,4 +93,65 @@ func WaitForJobDeletion(name, namespace string, timeoutSeconds int) (bool, error
 		time.Sleep(sleepInterval * time.Second)
 	}
 	return false, fmt.Errorf("timeout waiting for Job %s in namespace %s to be deleted", name, namespace)
+}
+
+type JobBuilder struct {
+	job *batchV1.Job
+}
+
+func NewJobBuilder(name string) *JobBuilder {
+	return &JobBuilder{
+		job: &batchV1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+			},
+		},
+	}
+}
+
+func (b *JobBuilder) WithNamespace(ns string) *JobBuilder {
+	b.job.Namespace = ns
+	return b
+}
+
+func (b *JobBuilder) WithParallelism(p int32) *JobBuilder {
+	b.job.Spec.Parallelism = &p
+	return b
+}
+
+func (b *JobBuilder) WithCompletions(c int32) *JobBuilder {
+	b.job.Spec.Completions = &c
+	return b
+}
+
+func (b *JobBuilder) WithIndexedMode() *JobBuilder {
+	mode := batchV1.IndexedCompletion
+	b.job.Spec.CompletionMode = &mode
+	return b
+}
+
+func (b *JobBuilder) WithBackoffLimit(limit int32) *JobBuilder {
+	b.job.Spec.BackoffLimit = &limit
+	return b
+}
+
+func (b *JobBuilder) WithPodTemplate(pod *coreV1.Pod) *JobBuilder {
+	// We take the Spec and Labels from the Pod created by your PodBuilder
+	b.job.Spec.Template = coreV1.PodTemplateSpec{
+		ObjectMeta: pod.ObjectMeta,
+		Spec:       pod.Spec,
+	}
+	return b
+}
+
+func (b *JobBuilder) Build() (*batchV1.Job, error) {
+	return b.job, nil
+}
+
+func CreateJob(job *batchV1.Job) error {
+	_, err := gTestEnv.KubeInt.BatchV1().Jobs(job.Namespace).Create(context.TODO(), job, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create Job %s in namespace %s: %v", job.Name, job.Namespace, err)
+	}
+	return nil
 }
