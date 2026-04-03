@@ -586,3 +586,43 @@ func WaitForStsDeletion(statefulSetName string, namespace string, timeout time.D
 	}
 	return nil
 }
+
+func WaitForStsCreation(statefulSetName string, namespace string, timeout time.Duration) error {
+	logf.Log.Info("Waiting for statefulset to be created", "statefulset", statefulSetName, "namespace", namespace)
+	start := time.Now()
+	for {
+		isCreated, err := StsExists(statefulSetName, namespace)
+		if err != nil {
+			return fmt.Errorf("failed to check if statefulset %s exists in namespace %s: %v", statefulSetName, namespace, err)
+		}
+		if isCreated {
+			logf.Log.Info("Statefulset is created", "statefulset", statefulSetName, "namespace", namespace)
+			break
+		}
+		if time.Since(start) > timeout {
+			return fmt.Errorf("timed out waiting for statefulset %s to be created in namespace %s", statefulSetName, namespace)
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return nil
+}
+
+func WaitForStsReplica(statefulSetName string, namespace string, replicaCount int32, timeout time.Duration) error {
+	logf.Log.Info("Waiting for statefulset to have expected replica count", "statefulset", statefulSetName, "namespace", namespace, "expected replica count", replicaCount)
+	start := time.Now()
+	for {
+		replicas, err := GetStsStatusReplicas(statefulSetName, namespace)
+		if err != nil {
+			return fmt.Errorf("failed to check if statefulset %s exists in namespace %s: %v", statefulSetName, namespace, err)
+		}
+		if replicas == replicaCount {
+			logf.Log.Info("Statefulset has expected replica count", "statefulset", statefulSetName, "namespace", namespace, "current replica count", replicas)
+			break
+		}
+		if time.Since(start) > timeout {
+			return fmt.Errorf("timed out waiting for statefulset %s to have expected replica count in namespace %s", statefulSetName, namespace)
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return nil
+}
