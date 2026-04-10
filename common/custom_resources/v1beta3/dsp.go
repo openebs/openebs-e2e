@@ -595,14 +595,16 @@ func (ifc v1beta3Ifc) VerifyPoolCapacityAndMaxExpansion(poolName string, expecte
 	return nil
 }
 
-// AnnotateOfflinePoolForDelete adds per-option annotations for offline pool deletion
-// with specified options passed as strings.
+// AnnotateOfflinePoolForDelete annotates a DiskPool CR to configure annotation-based delete/purge.
+//
+// The diskpool operator consumes the `openebs.io/delete-opts` annotation.
 // Supported options:
-//   - purge              -> annotation "purge": "true"
-//   - accept             -> annotation "accept": "true"
-//   - accept_volume_loss -> annotation "accept_volume_loss": "true"
-//   - accept_snapshot_loss -> annotation "accept_snapshot_loss": "true"
-//   - accept_data_loss   -> annotation "accept_data_loss": "true"
+//   - purge                -> "purge=true"
+//   - accept               -> "accept=true"
+//   - accept_volume_loss   -> "accept-volume-loss=true"
+//   - accept_snapshot_loss -> "accept-snapshot-loss=true"
+//   - accept_data_loss     -> "accept-data-loss=true"
+//   - purge_accept_all     -> "purge-accept-all"
 func (ifc v1beta3Ifc) AnnotateOfflinePoolForDelete(poolName string, opts ...string) error {
 	res, err := poolClientSet.DiskPools().Get(context.TODO(), poolName, metaV1.GetOptions{})
 	if err != nil {
@@ -635,29 +637,39 @@ func (ifc v1beta3Ifc) AnnotateOfflinePoolForDelete(poolName string, opts ...stri
 	return nil
 }
 
-// buildDeleteOptsAnnotations constructs a single annotation whose value is a YAML
-// block listing the delete options as key: true entries. This ensures that the
-// DiskPool YAML shows:
+// buildDeleteOptsAnnotations constructs the `openebs.io/delete-opts` annotation value.
 //
-//	annotations:
-//	  openebs.io/delete-opts: |
-//	    purge: true
-//	    accept: true
+// New format: inline comma-separated values, e.g.
+//
+//	openebs.io/delete-opts: purge=true,accept=true,accept-volume-loss=true,accept-snapshot-loss=true
+//
+// It also supports a shorthand:
+//
+//	openebs.io/delete-opts: purge-accept-all
 func (ifc v1beta3Ifc) buildDeleteOptsAnnotations(opts ...string) map[string]string {
+	// Prefer shorthand if explicitly requested.
+	for _, opt := range opts {
+		if opt == "purge_accept_all" || opt == "purge-accept-all" {
+			return map[string]string{
+				"openebs.io/delete-opts": "purge-accept-all",
+			}
+		}
+	}
+
 	results := []string{}
 
 	for _, opt := range opts {
 		switch opt {
 		case "purge":
-			results = append(results, "purge: true")
+			results = append(results, "purge=true")
 		case "accept":
-			results = append(results, "accept: true")
+			results = append(results, "accept=true")
 		case "accept_volume_loss":
-			results = append(results, "accept_volume_loss: true")
+			results = append(results, "accept-volume-loss=true")
 		case "accept_snapshot_loss":
-			results = append(results, "accept_snapshot_loss: true")
+			results = append(results, "accept-snapshot-loss=true")
 		case "accept_data_loss":
-			results = append(results, "accept_data_loss: true")
+			results = append(results, "accept-data-loss=true")
 		}
 	}
 
@@ -665,8 +677,8 @@ func (ifc v1beta3Ifc) buildDeleteOptsAnnotations(opts ...string) map[string]stri
 		return map[string]string{}
 	}
 
-	// Store all options under the openebs.io/delete-opts key so kubectl prints a block.
+	// Store all options under the openebs.io/delete-opts key.
 	return map[string]string{
-		"openebs.io/delete-opts": strings.Join(results, "\n"),
+		"openebs.io/delete-opts": strings.Join(results, ","),
 	}
 }

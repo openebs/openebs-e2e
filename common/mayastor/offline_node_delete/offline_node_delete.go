@@ -23,10 +23,10 @@ var (
 
 // DeleteOfflineNode deletes the offline Node via control plane plugin
 func DeleteOfflineNode(nodeName string, flags ...common.OfflinePoolDelete) error {
-	logf.Log.Info("Deleting offline pool via plugin", "pool", nodeName, "flags", flags)
+	logf.Log.Info("Deleting offline node via plugin", "node", nodeName, "flags", flags)
 	err := controlplane.DeleteOfflineNodeViaPlugin(nodeName, flags...)
 	if err != nil {
-		logf.Log.Error(err, "Failed to delete offline pool via plugin", "pool", nodeName, "flags", flags)
+		logf.Log.Error(err, "Failed to delete offline node via plugin", "node", nodeName, "flags", flags)
 		return err
 	}
 	return nil

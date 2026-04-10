@@ -184,6 +184,8 @@ func (cp CPv1) DeleteOfflineNodeViaPlugin(nodeName string, flags ...common.Offli
 			args = append(args, "--accept-volume-loss")
 		case common.AcceptSnapshotLoss:
 			args = append(args, "--accept-snapshot-loss")
+		case common.IgnoreNotFound:
+			args = append(args, "--ignore-not-found")
 		}
 	}
 

@@ -1,10 +1,12 @@
 package offline_pool_delete
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/controlplane"
+	cpv1 "github.com/openebs/openebs-e2e/common/controlplane/v1"
 	"github.com/openebs/openebs-e2e/common/custom_resources"
 	"github.com/openebs/openebs-e2e/common/k8stest"
 
@@ -33,6 +35,27 @@ func DeleteOfflinePool(poolName string, flags ...common.OfflinePoolDelete) error
 		return err
 	}
 	return nil
+}
+
+// DeleteOfflinePoolWithOutput runs kubectl mayastor delete pool and returns combined stdout/stderr
+// so tests can assert on plugin output (for example data loss / snapshot loss details).
+func DeleteOfflinePoolWithOutput(poolName string, flags ...common.OfflinePoolDelete) (string, error) {
+	args := []string{"-n", common.NSMayastor(), "delete", "pool", poolName}
+	for _, flag := range flags {
+		if s := flag.String(); s != "" {
+			args = append(args, "--"+s)
+		}
+	}
+	logf.Log.Info("Deleting offline pool via plugin", "pool", poolName, "args", args)
+	cmd := cpv1.GetMayastorPluginCmd(args...)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	err := cmd.Run()
+	if err != nil {
+		return out.String(), fmt.Errorf("plugin failed to delete pool %s, error %v, output: %s", poolName, err, out.String())
+	}
+	return out.String(), nil
 }
 
 // GetNodeNameFromPool returns the node name for a given pool.
