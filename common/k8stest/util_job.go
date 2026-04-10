@@ -135,6 +135,21 @@ func (b *JobBuilder) WithBackoffLimit(limit int32) *JobBuilder {
 	return b
 }
 
+func (b *JobBuilder) WithIgnorePodFailurePolicy(values []int32) *JobBuilder {
+	b.job.Spec.PodFailurePolicy = &batchV1.PodFailurePolicy{
+		Rules: []batchV1.PodFailurePolicyRule{
+			{
+				Action: batchV1.PodFailurePolicyActionIgnore,
+				OnExitCodes: &batchV1.PodFailurePolicyOnExitCodesRequirement{
+					Operator: batchV1.PodFailurePolicyOnExitCodesOpNotIn,
+					Values:   values,
+				},
+			},
+		},
+	}
+	return b
+}
+
 func (b *JobBuilder) WithPodTemplate(pod *coreV1.Pod) *JobBuilder {
 	// We take the Spec and Labels from the Pod created by your PodBuilder
 	b.job.Spec.Template = coreV1.PodTemplateSpec{
