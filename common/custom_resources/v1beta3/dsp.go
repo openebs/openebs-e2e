@@ -152,7 +152,7 @@ func (p v1beta3DSP) GetPoolErrorMessage() string {
 
 func (p v1beta3DSP) GetPoolAlertStatus() string {
 	if p.v1beta3 != nil {
-		return p.v1beta3.Status.Diag.Errors.Status
+		return p.v1beta3.Status.ErrorInfo.Alerts.Status
 	}
 	return ""
 }
