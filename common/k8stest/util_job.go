@@ -170,3 +170,56 @@ func CreateJob(job *batchV1.Job) error {
 	}
 	return nil
 }
+
+// UpdateJob updates the specified Job in the Kubernetes cluster with the provided Job object.
+// It retrieves the existing Job, modifies it with the new specifications, and then updates it.
+func UpdateJob(job *batchV1.Job) error {
+	_, err := gTestEnv.KubeInt.BatchV1().Jobs(job.Namespace).Update(context.TODO(), job, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update Job %s in namespace %s: %v", job.Name, job.Namespace, err)
+	}
+	return nil
+}
+
+// SetJobReplicasAndCompletions updates the specified Job with the given number of replicas and completions.
+// It retrieves the Job, modifies its spec, and then updates it in the cluster.
+func SetJobReplicasAndCompletions(name, namespace string, replicas, completions int32) error {
+	job, err := GetJob(name, namespace)
+	if err != nil {
+		return fmt.Errorf("failed to get Job %s in namespace %s: %v", name, namespace, err)
+	}
+	job.Spec.Parallelism = &replicas
+	job.Spec.Completions = &completions
+	return UpdateJob(job)
+}
+
+// WaitForJobReplicas waits for the specified Job to have the expected number of active replicas.
+// It first checks the Job status for the active replicas, and if it doesn't match, it lists the
+// pods with the Job's prefix to verify the count.
+func WaitForJobReplicas(name, namespace string, expectedReplicas int32, timeoutSeconds int) (bool, error) {
+	for i := 0; i < timeoutSeconds; i++ {
+		job, err := GetJob(name, namespace)
+		if err != nil {
+			return false, fmt.Errorf("failed to get Job %s in namespace %s: %v", name, namespace, err)
+		}
+		if job.Status.Active == expectedReplicas {
+			logf.Log.Info("Job has expected number of active replicas", "name", name, "namespace", namespace, "activeReplicas", job.Status.Active)
+			return true, nil
+		}
+		time.Sleep(sleepInterval * time.Second)
+	}
+	// wait for number of pods to be updated in job status after scaling,
+	for i := 0; i < timeoutSeconds; i++ {
+		// list pods with prefix of job name
+		pods, err := ListPodsByPrefix(namespace, name)
+		if err != nil {
+			return false, fmt.Errorf("failed to list Pods for Job %s in namespace %s: %v", name, namespace, err)
+		}
+		if len(pods) == int(expectedReplicas) {
+			logf.Log.Info("Job has expected number of active pods", "name", name, "namespace", namespace, "activePods", len(pods))
+			return true, nil
+		}
+		time.Sleep(sleepInterval * time.Second)
+	}
+	return false, fmt.Errorf("timeout waiting for Job %s in namespace %s to have %d active replicas", name, namespace, expectedReplicas)
+}
