@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/openebs/openebs-e2e/common"
@@ -1680,8 +1679,20 @@ func IsHugePagesPersistent(serverAddr string) (bool, error) {
 	return out == HugePageCount, err
 }
 
+type dmResponse struct {
+	Output    string `json:"output"`
+	ErrorCode int    `json:"errorcode"`
+}
+
 func GetDeviceSizeInSectors(nodeAddr, device string) (uint64, error) {
 	url := "http://" + getAgentAddress(nodeAddr) + "/dm/getDeviceSectors"
+
+	addr := getAgentAddress(nodeAddr)
+
+	logf.Log.Info("GetDeviceSizeInSectors: resolved agent address",
+		"node", nodeAddr,
+		"addr", addr,
+	)
 
 	resp, err := sendRequestGetResponse(
 		"POST",
@@ -1693,19 +1704,31 @@ func GetDeviceSizeInSectors(nodeAddr, device string) (uint64, error) {
 		return 0, err
 	}
 
-	sectors, err := strconv.ParseUint(strings.TrimSpace(resp), 10, 64)
+	var out dmResponse
+	if err := json.Unmarshal([]byte(resp), &out); err != nil {
+		return 0, fmt.Errorf("failed to parse JSON response %q: %w", resp, err)
+	}
+
+	if out.ErrorCode != 0 {
+		return 0, fmt.Errorf("device sector command failed with errorcode %d", out.ErrorCode)
+	}
+
+	sectors, err := strconv.ParseUint(out.Output, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("failed to parse sectors %q: %w", resp, err)
+		return 0, fmt.Errorf("failed to parse sectors %q: %w", out.Output, err)
 	}
 
 	return sectors, nil
 }
 
 func SetupTimeoutDevice(node, disk string) (string, error) {
+	logf.Log.Info("Start SetupTimeoutDevice", "node", node, "disk", disk)
+
 	sectors, err := GetDeviceSizeInSectors(node, disk)
 	if err != nil {
 		return "", err
 	}
+	logf.Log.Info("Got device sectors", "sectors", sectors)
 
 	url := "http://" + getAgentAddress(node) + "/dm/createPassThrough"
 
@@ -1714,14 +1737,20 @@ func SetupTimeoutDevice(node, disk string) (string, error) {
 		Sectors: sectors,
 	}
 
-	logf.Log.Info("Executing SetupTimeoutDevice", "addr", node, "data", data)
+	logf.Log.Info("Sending request to agent", "url", url, "data", data)
 
 	result, err := sendRequestGetResponse("POST", url, data, true)
+
+	logf.Log.Info("Received response from agent", "result", result, "err", err)
+
 	if err != nil {
 		return result, fmt.Errorf("request failed: %v", err)
 	}
 
 	out, code, err := UnwrapResult(result)
+
+	logf.Log.Info("Unwrapped result", "out", out, "code", code, "err", err)
+
 	if err != nil {
 		return out, fmt.Errorf("unwrap failed: %v", err)
 	}
@@ -1730,9 +1759,20 @@ func SetupTimeoutDevice(node, disk string) (string, error) {
 		return out, fmt.Errorf("setup timeout failed: errCode=%d output=%s", code, out)
 	}
 
-	logf.Log.Info("SetupTimeoutDevice succeeded", "output", out)
+	type dmCreateResp struct {
+		Device string `json:"device"`
+	}
 
-	return out, nil
+	var resp dmCreateResp
+	if err := json.Unmarshal([]byte(out), &resp); err != nil {
+		return "", fmt.Errorf("failed to parse response %q: %v", out, err)
+	}
+
+	timeoutDevice := "/dev/mapper/" + resp.Device
+
+	logf.Log.Info("Setup complete", "timeoutDevice", timeoutDevice)
+
+	return timeoutDevice, nil
 }
 
 func InjectIOTimeout(nodeAddr, disk string) (string, error) {

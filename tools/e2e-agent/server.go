@@ -100,6 +100,7 @@ const (
 	InternalServerErrorCode      = 500
 	UnprocessableEntityErrorCode = 422
 	rpcGssdServiceName           = "rpc-gssd"
+	dmsetupTimeout               = 30 * time.Second
 )
 
 type Command string
@@ -1620,6 +1621,10 @@ func resolveBlockDevice(dev string) (string, error) {
 	return resolved, nil
 }
 
+type DmCreateResponse struct {
+	Device string `json:"device"`
+}
+
 func createPassThroughDevice(w http.ResponseWriter, r *http.Request) {
 	var req DmDevice
 
@@ -1641,8 +1646,7 @@ func createPassThroughDevice(w http.ResponseWriter, r *http.Request) {
 
 	klog.Infof("Creating passthrough device: %s", name)
 
-	cmd := exec.Command("dmsetup", "create", name, "--table", table)
-
+	cmd := exec.Command("dmsetup", "--noudevsync", "create", name, "--table", table)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		klog.Error("dmsetup create failed:", string(out))
@@ -1651,7 +1655,19 @@ func createPassThroughDevice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	klog.Infof("Created passthrough device: %s", name)
-	WrapResult("created "+name, ErrNone, w)
+
+	resp := DmCreateResponse{
+		Device: name,
+	}
+
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		klog.Error("json marshal failed:", err)
+		WrapResult(err.Error(), ErrJsonDecode, w)
+		return
+	}
+
+	WrapResult(string(respBytes), ErrNone, w)
 }
 
 func suspendDevice(w http.ResponseWriter, r *http.Request) {
@@ -1663,22 +1679,13 @@ func suspendDevice(w http.ResponseWriter, r *http.Request) {
 		WrapResult(err.Error(), ErrJsonDecode, w)
 		return
 	}
-
-	backing, err := resolveBlockDevice(req.Device)
-	if err != nil {
-		klog.Error("resolve failed:", err)
-		WrapResult(err.Error(), ErrExecFailed, w)
-		return
-	}
-
-	name := filepath.Base(backing) + "-timeout"
+	name := filepath.Base(req.Device)
 
 	klog.Infof("Suspending device: %s", name)
 
 	cmd := exec.Command(
 		"chroot", "/host",
 		"dmsetup", "suspend",
-		"--noflush", "--nolockfs",
 		name,
 	)
 
@@ -1693,6 +1700,40 @@ func suspendDevice(w http.ResponseWriter, r *http.Request) {
 	WrapResult("suspended "+name, ErrNone, w)
 }
 
+func isDeviceActive(name string) bool {
+	out, err := exec.Command(
+		"chroot", "/host",
+		"dmsetup", "info",
+		"-c",
+		"--noheadings",
+		"-o", "name,attr",
+		name,
+	).CombinedOutput()
+
+	if err != nil {
+		return false
+	}
+
+	line := strings.TrimSpace(string(out))
+	if line == "" {
+		return false
+	}
+
+	// Extract attr (works for both "name:attr" and "name attr")
+	attr := ""
+	if i := strings.Index(line, ":"); i != -1 {
+		attr = line[i+1:]
+	} else {
+		parts := strings.Fields(line)
+		if len(parts) > 1 {
+			attr = parts[1]
+		}
+	}
+
+	// active if no 's'
+	return attr != "" && !strings.Contains(attr, "s")
+}
+
 func resumeDevice(w http.ResponseWriter, r *http.Request) {
 	var req DmDevice
 
@@ -1702,31 +1743,56 @@ func resumeDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	backing, err := resolveBlockDevice(req.Device)
-	if err != nil {
-		klog.Error("resolve failed:", err)
-		WrapResult(err.Error(), ErrExecFailed, w)
-		return
-	}
+	name := filepath.Base(req.Device)
+	klog.Infof("Resuming device (noflush): %s", name)
 
-	name := filepath.Base(backing) + "-timeout"
+	// Timeout to prevent hanging forever
+	ctx, cancel := context.WithTimeout(context.Background(), dmsetupTimeout)
+	defer cancel()
 
-	klog.Infof("Resuming device: %s", name)
+	start := time.Now()
 
-	cmd := exec.Command(
+	cmd := exec.CommandContext(
+		ctx,
 		"chroot", "/host",
 		"dmsetup", "resume",
+		"--noflush",
 		name,
 	)
 
 	out, err := cmd.CombinedOutput()
+	duration := time.Since(start)
+
+	// Handle timeout and verify actual device state
+	if ctx.Err() == context.DeadlineExceeded {
+
+		if isDeviceActive(name) {
+			klog.Infof("Device %s is active ", name)
+			WrapResult("resumed "+name+"", ErrNone, w)
+			return
+		}
+
+		klog.Errorf("dmsetup resume timed out and device still suspended: %s", string(out))
+		WrapResult("dmsetup resume timeout", ErrExecFailed, w)
+		return
+	}
+
+	// Handle execution error → still verify state
 	if err != nil {
-		klog.Error("dmsetup resume failed:", string(out))
+		klog.Warningf("dmsetup resume returned error for %s: %s, verifying state...", name, string(out))
+
+		if isDeviceActive(name) {
+			klog.Infof("Device %s is active despite error", name)
+			WrapResult("resumed "+name+"", ErrNone, w)
+			return
+		}
+
+		klog.Errorf("dmsetup resume failed for %s: %s", name, string(out))
 		WrapResult(string(out), ErrExecFailed, w)
 		return
 	}
 
-	klog.Infof("Resumed device: %s", name)
+	klog.Infof("Resumed device: %s (took %v)", name, duration)
 	WrapResult("resumed "+name, ErrNone, w)
 }
 
@@ -1739,23 +1805,25 @@ func removeDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	backing, err := resolveBlockDevice(req.Device)
-	if err != nil {
-		klog.Error("resolve failed:", err)
-		WrapResult(err.Error(), ErrExecFailed, w)
+	name := filepath.Base(req.Device)
+	klog.Infof("Removing passthrough device: %s", name)
+
+	// Use timeout to avoid blocking
+	ctx, cancel := context.WithTimeout(context.Background(), dmsetupTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "dmsetup", "remove", "--deferred", name)
+	err := cmd.Run()
+
+	if ctx.Err() == context.DeadlineExceeded {
+		klog.Warningf("dmsetup remove timed out for %s", name)
+		WrapResult("remove triggered "+name+" (timeout)", ErrNone, w)
 		return
 	}
 
-	name := filepath.Base(backing) + "-timeout"
-
-	klog.Infof("Removing passthrough device: %s", name)
-
-	cmd := exec.Command("dmsetup", "remove", name)
-
-	out, err := cmd.CombinedOutput()
 	if err != nil {
-		klog.Error("dmsetup remove failed:", string(out))
-		WrapResult(string(out), ErrExecFailed, w)
+		klog.Warningf("dmsetup remove error for %s: %v", name, err)
+		WrapResult("remove attempted "+name, ErrNone, w)
 		return
 	}
 
