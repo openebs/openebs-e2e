@@ -568,40 +568,71 @@ func CreateEncryptedPoolsWithMaxExpansionOnAllNodes(allNodes []string, encryptio
 	return createdPools, nil
 }
 
+func CreatePoolsWithSpecificSchemaOnNodesWithDevices(nodeDeviceMap map[string]string, schema DeviceSchema, maxExpansionStr string, clusterSizeArg string) (createdPools []string, err error) {
+
+	createdPools = make([]string, 0)
+
+	for nodeName, device := range nodeDeviceMap {
+		if device == "" {
+			logf.Log.Info("Skipping node without device", "node", nodeName)
+			continue
+		}
+
+		schemaStr := schema.String()
+
+		var schemaDevice string
+		if schemaStr == "" {
+			schemaDevice = device
+		} else {
+			schemaDevice = fmt.Sprintf("%s://%s", schemaStr, device)
+		}
+
+		poolName := fmt.Sprintf("pool-expansion-test-%s", nodeName)
+
+		logf.Log.Info("Creating pool with schema, MaxExpansion and ClusterSize",
+			"poolName", poolName,
+			"clusterSize", clusterSizeArg,
+			"schema", schemaStr,
+			"device", device,
+		)
+
+		if err = CreatePoolWithMaxAndCluster(poolName, nodeName, schemaDevice, maxExpansionStr, clusterSizeArg); err != nil {
+			return
+		}
+
+		createdPools = append(createdPools, poolName)
+	}
+
+	if len(createdPools) == 0 {
+		err = fmt.Errorf("no pools could be created on any node")
+	}
+
+	return createdPools, err
+}
+
 // CreatePoolsWithSpecificSchemaOnAllNodes creates a pool on each provided node using
 // the given schema prefix for the device path (e.g., "uring://"), MaxExpansion and ClusterSize.
 // It returns the created pool names.
 func CreatePoolsWithSpecificSchemaOnAllNodes(allNodes []string, schema DeviceSchema, maxExpansionStr string, clusterSizeArg string) (createdPools []string, err error) {
-	createdPools = make([]string, 0)
+
+	nodeDeviceMap := make(map[string]string)
 
 	for _, nodeName := range allNodes {
-		// Get the first available disk on this node
 		devices, deviceErr := k8stest.GetConfiguredNodePoolDevices(nodeName)
 		if deviceErr != nil || len(devices) == 0 {
 			logf.Log.Info("Skipping node without configured pool device", "node", nodeName, "err", deviceErr)
 			continue
 		}
-		// Prefix the device path with the requested schema (e.g., uring://<device>)
-		schemaStr := schema.String()
-		var schemaDevice string
-		if schemaStr == "" {
-			schemaDevice = devices[0]
-		} else {
-			schemaDevice = fmt.Sprintf("%s://%s", schemaStr, devices[0])
-		}
 
-		poolName := fmt.Sprintf("pool-expansion-test-%s", nodeName)
-		logf.Log.Info("Creating pool with schema, MaxExpansion and ClusterSize", "poolName", poolName, "clusterSize", clusterSizeArg, "schema", schemaStr)
-		if err = CreatePoolWithMaxAndCluster(poolName, nodeName, schemaDevice, maxExpansionStr, clusterSizeArg); err != nil {
-			return
-		}
-		createdPools = append(createdPools, poolName)
+		nodeDeviceMap[nodeName] = devices[0]
 	}
-	if len(createdPools) == 0 {
-		err = fmt.Errorf("no pools could be created on any node")
-		return
-	}
-	return createdPools, nil
+
+	return CreatePoolsWithSpecificSchemaOnNodesWithDevices(
+		nodeDeviceMap,
+		schema,
+		maxExpansionStr,
+		clusterSizeArg,
+	)
 }
 
 // VerifyPoolDiskSchema verifies that all pools have the expected disk schema (e.g., "uring" or "aio").
