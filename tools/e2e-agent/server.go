@@ -587,15 +587,17 @@ func createFaultyDevice(w http.ResponseWriter, r *http.Request) {
 	cmd.Stdin = nil
 
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		klog.Error("dmsetup create failed:", string(out))
 		WrapResult(string(out), ErrExecFailed, w)
 		return
 	}
 
-	klog.Infof("Created faulty device: %s", dmName)
-	WrapResult("created "+dmName, ErrNone, w)
+	devicePath := "/dev/mapper/" + dmName
+
+	klog.Infof("Created faulty device: %s (%s)", dmName, devicePath)
+
+	WrapResult(devicePath, ErrNone, w)
 }
 
 func deleteFaultyDevice(w http.ResponseWriter, r *http.Request) {
