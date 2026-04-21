@@ -15,10 +15,8 @@ const waitPoll = 1 * time.Second
 // InjectIOError injects IO error on the given pool device present on the given node.
 func InjectIOError(nodeAddr string, poolDevice string) (string, error) {
 	table := fmt.Sprintf(
-		"0 50000 linear %s 0\n"+
-			"50000 5000000 error\n"+
-			"5050000 8143000 linear %s 5050000",
-		poolDevice,
+		"0 100000 error\n"+
+			"100000 8143000 linear %s 100000",
 		poolDevice,
 	)
 
