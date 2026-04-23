@@ -139,9 +139,9 @@ func PoolStateCheck(
 			return err
 		}
 
-		if poolCR.GetPoolStatus() != expectedState {
+		if poolCR.GetPoolStatusWithFallback() != expectedState {
 			return fmt.Errorf("expected state %s, got %s",
-				expectedState, poolCR.GetPoolStatus())
+				expectedState, poolCR.GetPoolStatusWithFallback())
 		}
 
 		if poolCR.GetPoolAlertStatus() != expectedAlertStatus {
