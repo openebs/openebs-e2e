@@ -3,6 +3,7 @@ package offline_pool_delete
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/controlplane"
@@ -16,14 +17,17 @@ import (
 // FixME : error messages related to offline pool delete
 
 var (
-	PoolOnlineState                         = "purge not allowed"
-	DeleteWithoutPurgeFlag                  = "purge flag is required to delete pool, pool is not in online state"
-	DeleteOfflinePoolWithoutCordon          = "cannot delete pool that is offline without cordoning it first"
+	// Purge is only permitted for pools in Offline/Unknown state.
+	// Keep this as a substring match used by tests asserting plugin output.
+	PoolOnlineState                         = "Only pools with Offline or Unknown state can be purged"
+	DeleteWithoutPurgeFlag                  = "NodeNotOnline"           // Pool is not having resources in use, but is not in Online state
+	DeleteWithoutPurgeFlagWithResources     = "InUse: Pool Resource id" // Pool has resources in use, and is not in Online state
+	DeleteOfflinePoolWithoutCordon          = "Pool must be cordoned first. Use: cordon pool <id> --replicas --snapshots"
 	DeleteOfflinePoolWithReplica            = "pool has replicas, cannot delete without confirm flag"
-	DeleteOfflinePoolWithSnapshots          = "pool has snapshots, cannot delete without confirm snapshot loss flag"
-	DeleteOfflinePoolWithOnlyReplicaCordon  = "pool must be cordoned with snapshot and replica flag to delete pool"
-	DeleteOfflinePoolWithOnlySnapshotCordon = "pool must be cordoned with snapshot and replica flag to delete pool"
-	DeleteOfflinePoolWithData               = "pool has data, cannot delete without confirm data loss flag" // last healthy replica is scheduled on this pool
+	DeleteOfflinePoolWithSnapshots          = "Volumes would lose their last healthy replica. Use --accept-volume-loss or --accept-data-loss to proceed"
+	DeleteOfflinePoolWithOnlyReplicaCordon  = "Pool cordon must block both replicas and snapshots. Use: cordon pool <id> --replicas --snapshots"
+	DeleteOfflinePoolWithOnlySnapshotCordon = "Pool cordon must block both replicas and snapshots. Use: cordon pool <id> --replicas --snapshots"
+	DeleteOfflinePoolWithData               = "Volumes would lose their last healthy replica. Use --accept-volume-loss or --accept-data-loss to proceed" // last healthy replica is scheduled on this pool
 )
 
 // DeleteOfflinePool deletes the offline pool via control plane plugin
@@ -122,4 +126,24 @@ func CreatePoolsWithDeleteOptsOnAllNodes(allNodes []string, poolNamePrefix strin
 		return
 	}
 	return createdPools, nil
+}
+
+// WaitForDiskPoolCrState polls the DiskPool CR status.cr_state until it matches expected
+// or the timeout elapses.
+func WaitForDiskPoolCrState(poolName string, expected string, timeout, pollInterval time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	var last string
+	for {
+		st, err := custom_resources.GetDiskPoolCrStatus(poolName)
+		if err == nil {
+			last = st
+			if st == expected {
+				return nil
+			}
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for DiskPool CR %s cr_state=%q (last=%q)", poolName, expected, last)
+		}
+		time.Sleep(pollInterval)
+	}
 }

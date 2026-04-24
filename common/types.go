@@ -95,7 +95,7 @@ const (
 	AcceptVolumeLoss OfflinePoolDelete = iota
 	// AcceptSnapshotLoss requires confirmation to delete the pool if snapshot loss may occur
 	AcceptSnapshotLoss OfflinePoolDelete = iota
-	// CleanupCr deletes the DiskPool CR after pool deletion
+	// CleanupCr deletes the DiskPool CR (DiskPool/DSP) after pool deletion
 	CleanupCr OfflinePoolDelete = iota
 	// IgnoreNotFound makes pool delete succeed even if the pool is already deleted
 	IgnoreNotFound OfflinePoolDelete = iota
@@ -131,7 +131,7 @@ func (c OfflinePoolDelete) String() string {
 	case AcceptSnapshotLoss:
 		return "accept-snapshot-loss"
 	case CleanupCr:
-		return "cleanup-cr"
+		return "cleanup-dsp"
 	case IgnoreNotFound:
 		return "ignore-not-found"
 	default:
