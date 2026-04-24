@@ -1,8 +1,11 @@
 package k8stest
 
 import (
+	"fmt"
+
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/controlplane"
+	cpv1 "github.com/openebs/openebs-e2e/common/controlplane/v1"
 )
 
 // GetMSV Get pointer to a mayastor volume custom resource
@@ -20,6 +23,21 @@ func GetMsvNodes(uuid string) (string, []string) {
 
 func DeleteMsv(volName string) error {
 	return controlplane.DeleteMsv(volName)
+}
+
+// DeleteMsvBestEffort deletes an MSV using the best available mechanism.
+// - For CP implementations that support direct delete (e.g. REST), use controlplane.DeleteMsv.
+// - Otherwise fall back to invoking the kubectl plugin: `kubectl-mayastor delete volume <uuid> --yes`.
+func DeleteMsvBestEffort(uuid string) error {
+	if uuid == "" {
+		return fmt.Errorf("DeleteMsvBestEffort: uuid is empty")
+	}
+	if controlplane.CanDeleteMsv() {
+		return controlplane.DeleteMsv(uuid)
+	}
+	cmd := cpv1.GetMayastorPluginCmd("-n", common.NSMayastor(), "delete", "volume", uuid, "--yes")
+	out, err := cmd.CombinedOutput()
+	return cpv1.CheckPluginError(out, err)
 }
 
 func ListMsvs() ([]common.MayastorVolume, error) {
