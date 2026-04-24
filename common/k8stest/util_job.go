@@ -150,6 +150,27 @@ func (b *JobBuilder) WithIgnorePodFailurePolicy(values []int32) *JobBuilder {
 	return b
 }
 
+func (b *JobBuilder) WithNodeAffinity(labelKey, labelValue string) *JobBuilder {
+	b.job.Spec.Template.Spec.Affinity = &coreV1.Affinity{
+		NodeAffinity: &coreV1.NodeAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: &coreV1.NodeSelector{
+				NodeSelectorTerms: []coreV1.NodeSelectorTerm{
+					{
+						MatchExpressions: []coreV1.NodeSelectorRequirement{
+							{
+								Key:      labelKey,
+								Operator: coreV1.NodeSelectorOpIn,
+								Values:   []string{labelValue},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return b
+}
+
 func (b *JobBuilder) WithPodTemplate(pod *coreV1.Pod) *JobBuilder {
 	// We take the Spec and Labels from the Pod created by your PodBuilder
 	b.job.Spec.Template = coreV1.PodTemplateSpec{
