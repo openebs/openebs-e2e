@@ -150,6 +150,7 @@ func handleRequests() {
 	router.HandleFunc("/acceptConnectionsFromNodes", acceptConnectionsFromNodes).Methods("POST")
 	router.HandleFunc("/createFaultyDevice", createFaultyDevice).Methods("POST")
 	router.HandleFunc("/deleteFaultyDevice", deleteFaultyDevice).Methods("POST")
+	router.HandleFunc("/reloadDevice", reloadDevice).Methods("POST")
 	router.HandleFunc("/devicecontrol", controlDevice).Methods("POST")
 	router.HandleFunc("/killioengine", killIoEngine).Methods("POST")
 	router.HandleFunc("/killCsiController", killCsiController).Methods("POST")
@@ -1862,4 +1863,92 @@ func getDeviceSizeInSectors(w http.ResponseWriter, r *http.Request) {
 
 	klog.Infof("Device %s size(sectors): %s", backing, size)
 	WrapResult(size, ErrNone, w)
+}
+
+func dmSuspend(dmName string) error {
+	cmd := exec.Command("chroot", "/host", "dmsetup", "--noudevsync", "suspend", dmName)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("suspend failed: %s", string(out))
+	}
+	return nil
+}
+
+func dmResume(dmName string) error {
+	cmd := exec.Command("chroot", "/host", "dmsetup", "--noudevsync", "resume", dmName)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("resume failed: %s", string(out))
+	}
+	return nil
+}
+
+func dmReload(dmName, table string) error {
+	cmd := exec.Command("chroot", "/host", "dmsetup", "--noudevsync", "reload", dmName, "--table", table)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("reload failed: %s", string(out))
+	}
+	return nil
+}
+
+func reloadDevice(w http.ResponseWriter, r *http.Request) {
+	var device Device
+
+	// Decode request
+	if err := json.NewDecoder(r.Body).Decode(&device); err != nil {
+		klog.Error("decode failed:", err)
+		WrapResult(err.Error(), ErrJsonDecode, w)
+		return
+	}
+
+	dmName := filepath.Base(device.Device)
+	table := strings.TrimSpace(device.Table)
+
+	klog.Infof("Reloading device: %s with table: %s", dmName, table)
+
+	cmd := exec.Command("chroot", "/host", "dmsetup", "info", dmName)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		klog.Error("dmsetup info failed:", string(out))
+		WrapResult(string(out), ErrExecFailed, w)
+		return
+	}
+
+	if err := dmSuspend(dmName); err != nil {
+		klog.Error(err, "suspend failed", "device", dmName)
+		WrapResult(err.Error(), ErrExecFailed, w)
+		return
+	}
+
+	if err := dmReload(dmName, table); err != nil {
+		klog.Error(err, "reload failed", "device", dmName)
+
+		if resumeErr := dmResume(dmName); resumeErr != nil {
+			klog.Error(resumeErr, "resume failed after reload failure", "device", dmName)
+		}
+
+		WrapResult(err.Error(), ErrExecFailed, w)
+		return
+	}
+
+	if err := dmResume(dmName); err != nil {
+		klog.Error(err, "resume failed", "device", dmName)
+		WrapResult(err.Error(), ErrExecFailed, w)
+		return
+	}
+
+	klog.Infof("Reloaded device successfully: %s", dmName)
+
+	resp := DmCreateResponse{
+		Device: device.Device,
+	}
+
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		klog.Error("json marshal failed:", err)
+		WrapResult(err.Error(), ErrJsonDecode, w)
+		return
+	}
+
+	WrapResult(string(respBytes), ErrNone, w)
 }

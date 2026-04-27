@@ -272,6 +272,42 @@ func CreateFaultyDevice(serverAddr, device, table string) (string, error) {
 	return out, nil
 }
 
+// ReloadDevice reloads an existing DM device with a new table (used for runtime fault injection)
+func ReloadDevice(serverAddr, device, table string) (string, error) {
+	url := "http://" + getAgentAddress(serverAddr) + "/reloadDevice"
+
+	data := Device{
+		Device: device,
+		Table:  table,
+	}
+
+	logf.Log.Info("Executing reloadDevice", "addr", serverAddr, "data", data)
+
+	// Send request and get wrapped response
+	result, err := sendRequestGetResponse("POST", url, data, true)
+	if err != nil {
+		return result, fmt.Errorf("failed to send request: %v", err)
+	}
+
+	// Unwrap response
+	out, errCode, err := UnwrapResult(result)
+	if err != nil {
+		return out, fmt.Errorf("unwrap failed: %v", err)
+	}
+
+	// Check agent error code
+	if errCode != ErrNone {
+		return out, fmt.Errorf(
+			"reloadDevice failed: errCode=%d output=%s",
+			errCode, out,
+		)
+	}
+
+	logf.Log.Info("reloadDevice succeeded", "output", out)
+
+	return out, nil
+}
+
 // DeleteFaultyDevice deletes a device which returns an error on write IOs
 func DeleteFaultyDevice(serverAddr, device string) (string, error) {
 	url := "http://" + getAgentAddress(serverAddr) + "/deleteFaultyDevice"

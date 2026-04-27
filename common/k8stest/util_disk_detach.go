@@ -11,6 +11,7 @@ import (
 )
 
 const waitPoll = 1 * time.Second
+const sectors = 20971520
 
 // InjectIOError injects IO error on the given pool device present on the given node.
 func InjectIOError(nodeAddr string, poolDevice string) (string, error) {
@@ -25,6 +26,24 @@ func InjectIOError(nodeAddr string, poolDevice string) (string, error) {
 		return out, fmt.Errorf(
 			"failed to inject IO error on %s: %w (output=%s)",
 			poolDevice,
+			err,
+			out,
+		)
+	}
+
+	return out, nil
+}
+
+// InjectIOErrorReload injects IO error on an existing DM device using reload.
+func InjectIOErrorReload(nodeAddr string, dmDevice string) (string, error) {
+
+	table := "0 100000 error"
+
+	out, err := e2eagent.ReloadDevice(nodeAddr, dmDevice, table)
+	if err != nil {
+		return out, fmt.Errorf(
+			"failed to inject IO error via reload on %s: %w (output=%s)",
+			dmDevice,
 			err,
 			out,
 		)
@@ -179,4 +198,9 @@ func WaitUntilElapsed(start time.Time, target time.Duration) {
 		}
 		time.Sleep(waitPoll)
 	}
+}
+
+func RecoverIOErrorReload(nodeAddr, dmDevice, backingDevice string) (string, error) {
+	table := fmt.Sprintf("0 %d linear %s 0", sectors, backingDevice)
+	return e2eagent.ReloadDevice(nodeAddr, dmDevice, table)
 }
