@@ -73,9 +73,10 @@ type DiskPoolError struct {
 }
 
 type DiskPoolErrorInfo struct {
-	IoStallTransitionCount uint64         `json:"io_stall_transition_count,omitempty"`
-	IoStalled              bool           `json:"io_stalled,omitempty"`
+	IoStallTransitionCount uint64         `json:"ioStallTransitionCount,omitempty"`
+	IoStalled              bool           `json:"ioStalled,omitempty"`
 	Alerts                 DiskPoolAlerts `json:"alerts,omitempty"`
+	IoErrorCount           uint64         `json:"ioErrorCount,omitempty"`
 }
 
 type DiskPool struct {

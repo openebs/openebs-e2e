@@ -98,7 +98,7 @@ func (p v1beta3DSP) GetPoolReadyReason() string {
 
 func (p v1beta3DSP) GetPoolErrorCount() uint64 {
 	if p.v1beta3 != nil {
-		return p.v1beta3.Status.Diag.Errors.IOErrors
+		return p.v1beta3.Status.ErrorInfo.IoErrorCount
 	}
 	return 0
 }
