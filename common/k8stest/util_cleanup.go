@@ -3,6 +3,7 @@ package k8stest
 // Utility functions for cleaning up a cluster
 import (
 	"context"
+	"fmt"
 	"os/exec"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/openebs/openebs-e2e/common/mayastorclient"
 	"golang.org/x/exp/slices"
 
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -229,7 +231,6 @@ func DeleteAllMsvs() (int, error) {
 	return 0, err
 }
 
-/*
 // deletePoolFinalizer, delete finalizers on a pool -if any.
 // handle resource conflict errors by reloading the CR and retrying removal of finalizers.
 // also handle concurrent removal of the pool gracefully
@@ -292,7 +293,6 @@ func DeleteAllPoolFinalizers() (bool, error) {
 
 	return deletedFinalizer, errs.GetError()
 }
-*/
 
 func DeleteAllPools() bool {
 	var err error

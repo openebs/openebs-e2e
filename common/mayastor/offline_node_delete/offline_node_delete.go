@@ -13,10 +13,10 @@ import (
 // FixME : error messages related to offline Node delete
 
 var (
-	NodeOnlineState                = "node is not offline"
-	DeleteNodeWithoutCordon        = "cannot delete node that is not cordoned"
+	NodeOnlineState                = "Node is online. Only offline nodes can be deleted."
+	DeleteNodeWithoutCordon        = "Node must be cordoned first. Use: cordon node <id> <label>"
 	DeleteNodeWithResources        = "node has resources, cannot delete without confirm flag"
-	DeleteNodeWithoutPurgeFlag     = "purge flag is required to delete Node, Node is not in online state"
+	DeleteNodeWithoutPurgeFlag     = "Node has resources. Use --purge to force-remove the node and all its resources."
 	DeleteOfflineNodeWithSnapshots = "node has snapshots, cannot delete without confirm snapshot loss flag"
 	DeleteOfflineNodeWithData      = "node has data, cannot delete without confirm data loss flag" // last healthy replica is scheduled on this node
 )

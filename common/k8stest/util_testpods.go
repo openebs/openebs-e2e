@@ -20,6 +20,7 @@ import (
 	"github.com/openebs/openebs-e2e/common/mayastorclient"
 
 	coreV1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -185,6 +186,24 @@ func CreatePod(podDef *coreV1.Pod, nameSpace string) (*coreV1.Pod, error) {
 func DeletePod(podName string, nameSpace string) error {
 	logf.Log.Info("Deleting", "pod", podName)
 	return gTestEnv.KubeInt.CoreV1().Pods(nameSpace).Delete(context.TODO(), podName, metaV1.DeleteOptions{})
+}
+
+// ForceDeletePod deletes a Pod with gracePeriodSeconds=0.
+// This is a best-effort helper for teardown paths.
+func ForceDeletePod(podName string, namespace string) error {
+	var err error
+	logf.Log.Info("ForceDeletePod", "pod", podName, "namespace", namespace)
+	cmd := exec.Command("kubectl", "-n", namespace, "delete", "pod", podName, "--grace-period", "0", "--force")
+	_, err = cmd.CombinedOutput()
+	if err != nil {
+		// Fallback to API delete (still grace=0) in case kubectl is unavailable/misconfigured.
+		err = gTestEnv.KubeInt.CoreV1().Pods(namespace).Delete(context.TODO(), podName, metaV1.DeleteOptions{GracePeriodSeconds: &ZeroInt64})
+	}
+	if k8serrors.IsNotFound(err) {
+		err = nil
+	}
+	logf.Log.Info("ForceDeletePod done", "pod", podName, "namespace", namespace, "error", err)
+	return err
 }
 
 func DeletePodsByLabel(label string, nameSpace string) error {
