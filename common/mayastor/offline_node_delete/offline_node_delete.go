@@ -17,8 +17,9 @@ var (
 	DeleteNodeWithoutCordon        = "Node must be cordoned first. Use: cordon node <id> <label>"
 	DeleteNodeWithResources        = "node has resources, cannot delete without confirm flag"
 	DeleteNodeWithoutPurgeFlag     = "Node has resources. Use --purge to force-remove the node and all its resources."
+	DeleteNodeWithoutConfirmFlag   = "The input device is not a TTY"
 	DeleteOfflineNodeWithSnapshots = "node has snapshots, cannot delete without confirm snapshot loss flag"
-	DeleteOfflineNodeWithData      = "node has data, cannot delete without confirm data loss flag" // last healthy replica is scheduled on this node
+	DeleteOfflineNodeWithData      = "Volumes would lose their last healthy replica. Use --accept-volume-loss or --accept-data-loss to proceed" // last healthy replica is scheduled on this node
 )
 
 // DeleteOfflineNode deletes the offline Node via control plane plugin
