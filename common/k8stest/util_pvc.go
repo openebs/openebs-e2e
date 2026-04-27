@@ -609,6 +609,40 @@ func RemovePVFinalizer(pvName string) error {
 	return err
 }
 
+// RemovePVCFinalizer removes finalizers of a given PVC.
+func RemovePVCFinalizer(pvcName string, namespace string) error {
+	var patch, prevData, newData []byte
+	var pvc *coreV1.PersistentVolumeClaim
+	var err error
+
+	logf.Log.Info("RemovePVCFinalizer", "pvc", pvcName, "namespace", namespace)
+	pvc, err = gTestEnv.KubeInt.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), pvcName, metaV1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	pvcClone := pvc.DeepCopy()
+	prevData, err = json.Marshal(pvcClone)
+	if err != nil {
+		return err
+	}
+
+	pvcClone.Finalizers = nil
+	newData, err = json.Marshal(pvcClone)
+	if err != nil {
+		return err
+	}
+
+	patch, err = strategicpatch.CreateTwoWayMergePatch(prevData, newData, pvcClone)
+	if err != nil {
+		return err
+	}
+
+	_, err = gTestEnv.KubeInt.CoreV1().PersistentVolumeClaims(namespace).Patch(context.TODO(), pvcName, types.StrategicMergePatchType, patch, metaV1.PatchOptions{})
+	logf.Log.Info("RemovePVCFinalizer done", "pvc", pvcName, "namespace", namespace)
+	return err
+}
+
 // KillPV destroy PV with extreme prejudice
 func KillPV(pvName string) error {
 	var err error
@@ -624,6 +658,23 @@ func KillPV(pvName string) error {
 
 	logf.Log.Info("KillPV done", "pv", pvName, "error", err)
 
+	return err
+}
+
+// KillPVC destroy PVC with extreme prejudice.
+func KillPVC(pvcName string, namespace string) error {
+	var err error
+
+	logf.Log.Info("KillPVC", "pvc", pvcName, "namespace", namespace)
+	if err = gTestEnv.KubeInt.CoreV1().PersistentVolumeClaims(namespace).Delete(context.TODO(), pvcName, metaV1.DeleteOptions{GracePeriodSeconds: &ZeroInt64}); err == nil {
+		err = RemovePVCFinalizer(pvcName, namespace)
+	}
+
+	if k8serrors.IsNotFound(err) {
+		err = nil
+	}
+
+	logf.Log.Info("KillPVC done", "pvc", pvcName, "namespace", namespace, "error", err)
 	return err
 }
 
