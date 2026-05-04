@@ -342,12 +342,12 @@ func DeleteStatefulset(name string, namespace string) error {
 	return err
 }
 
-// Add a node selector to the statefuleset spec and apply
+// Add a node selector to the statefulset spec and apply
 func ApplyNodeSelectorToStatefulset(stsName string, namespace string, label string, value string) error {
 	stsApi := gTestEnv.KubeInt.AppsV1().StatefulSets
 	sts, err := stsApi(namespace).Get(context.TODO(), stsName, metaV1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get statefuleset %s : ns: %s : Error: %v", stsName, namespace, err)
+		return fmt.Errorf("failed to get statefulset %s : ns: %s : Error: %v", stsName, namespace, err)
 	}
 	if sts.Spec.Template.Spec.NodeSelector == nil {
 		sts.Spec.Template.Spec.NodeSelector = make(map[string]string)
@@ -355,7 +355,38 @@ func ApplyNodeSelectorToStatefulset(stsName string, namespace string, label stri
 	sts.Spec.Template.Spec.NodeSelector[label] = value
 	_, err = stsApi(namespace).Update(context.TODO(), sts, metaV1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to apply node selector to statefuleset %s : ns: %s : Error: %v", stsName, namespace, err)
+		return fmt.Errorf("failed to apply node selector to statefulset %s : ns: %s : Error: %v", stsName, namespace, err)
+	}
+	return nil
+}
+
+// Add a node affinity rule to the statefulset spec and apply
+func ApplyNodeAffinityToStatefulset(stsName string, namespace string, label string, value string) error {
+	sts, err := GetSts(stsName, namespace)
+	if err != nil {
+		return fmt.Errorf("failed to get statefulset %s : ns: %s : Error: %v", stsName, namespace, err)
+	}
+
+	sts.Spec.Template.Spec.Affinity = &v1.Affinity{
+		NodeAffinity: &v1.NodeAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+				NodeSelectorTerms: []v1.NodeSelectorTerm{
+					{
+						MatchExpressions: []v1.NodeSelectorRequirement{
+							{
+								Key:      label,
+								Operator: v1.NodeSelectorOpIn,
+								Values:   []string{value},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	_, err = UpdateSts(sts, namespace)
+	if err != nil {
+		return fmt.Errorf("failed to apply node affinity to statefulset %s : ns: %s : Error: %v", sts.Name, namespace, err)
 	}
 	return nil
 }
@@ -463,6 +494,15 @@ func GetSts(statefulSetName string, namespace string) (*appsv1.StatefulSet, erro
 		return nil, fmt.Errorf("failed to get statefulset %s in namespace %s: %v", statefulSetName, namespace, err)
 	}
 	return sts, nil
+}
+
+func UpdateSts(sts *appsv1.StatefulSet, namespace string) (*appsv1.StatefulSet, error) {
+	stsApi := gTestEnv.KubeInt.AppsV1().StatefulSets
+	updatedSts, err := stsApi(namespace).Update(context.TODO(), sts, metaV1.UpdateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to apply node affinity to statefulset %s : ns: %s : Error: %v", sts.Name, namespace, err)
+	}
+	return updatedSts, nil
 }
 
 func ListSts(namespace string) ([]appsv1.StatefulSet, error) {
