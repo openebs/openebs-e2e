@@ -40,20 +40,20 @@ var (
 
 const (
 	DiskPoolCRCheckTimeout                    = 120 * time.Second
-	DiskPoolCRCheckGracePeriod                = 5 * time.Second
+	DiskPoolCRCheckGracePeriod                = 10 * time.Second
 	DiskPoolCRCheckInterval                   = 2 * time.Second
 	NodeReadyTimeout                          = 5 * time.Minute
 	NodeReadyInterval                         = 10 * time.Second
 	NodeRebootWait                            = 30 * time.Second
 	IoEngineTimeout                           = 120
-	ThresholdPath                             = "mayastor.io_engine.pool.ioAlerts.errorThreshold"
+	ThresholdPath                             = "io_engine.pool.ioAlerts.errorThreshold"
 	VolumeStateTimeout                        = 120
 	VolumeStateInterval                       = "5s"
 	RebuildTimeout                            = 240
-	StallDeadlineHelmValue                    = "mayastor.io_engine.pool.ioAlerts.stallDeadline"
-	StallTransitionThreshold                  = "mayastor.io_engine.pool.ioAlerts.stallTransitionThreshold"
-	StallTransitionWindow                     = "mayastor.io_engine.pool.ioAlerts.stallTransitionWindow"
-	Cache_Polling_Period                      = "mayastor.base.cache_poll_period"
+	StallDeadlineHelmValue                    = "io_engine.pool.ioAlerts.stallDeadline"
+	StallTransitionThreshold                  = "io_engine.pool.ioAlerts.stallTransitionThreshold"
+	StallTransitionWindow                     = "io_engine.pool.ioAlerts.stallTransitionWindow"
+	Cache_Polling_Period                      = "base.cache_poll_period"
 	Cache_Polling_Period_Value                = "3s"
 	StallDeadline                             = "10s"
 	StallTransitionThresholdValue             = "5"
