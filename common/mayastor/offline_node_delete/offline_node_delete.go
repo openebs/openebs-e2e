@@ -15,6 +15,7 @@ import (
 var (
 	NodeOnlineState                = "Node is online. Only offline nodes can be deleted."
 	DeleteNodeWithoutCordon        = "Node must be cordoned first. Use: cordon node <id> <label>"
+	DeleteNodeWithIOLabel          = "io-engine DaemonSet(s) [mayastor-io-engine] still consider this node a scheduling target — every nodeSelector label is present on the Kubernetes Node"
 	DeleteNodeWithResources        = "node has resources, cannot delete without confirm flag"
 	DeleteNodeWithoutPurgeFlag     = "Node has resources. Use --purge to force-remove the node and all its resources."
 	DeleteNodeWithoutConfirmFlag   = "The input device is not a TTY"
