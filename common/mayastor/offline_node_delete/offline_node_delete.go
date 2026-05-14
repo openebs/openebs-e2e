@@ -13,14 +13,14 @@ import (
 // FixME : error messages related to offline Node delete
 
 var (
-	NodeOnlineState                = "Node is online. Only offline nodes can be deleted."
+	NodeOnlineState                = "io-engine DaemonSet(s) [mayastor-io-engine] still consider this node a scheduling target — every nodeSelector label is present on the Kubernetes Node"
 	DeleteNodeWithoutCordon        = "Node must be cordoned first. Use: cordon node <id> <label>"
 	DeleteNodeWithIOLabel          = "io-engine DaemonSet(s) [mayastor-io-engine] still consider this node a scheduling target — every nodeSelector label is present on the Kubernetes Node"
 	DeleteNodeWithResources        = "node has resources, cannot delete without confirm flag"
 	DeleteNodeWithoutPurgeFlag     = "Node has resources. Use --purge to force-remove the node and all its resources."
 	DeleteNodeWithoutConfirmFlag   = "The input device is not a TTY"
 	DeleteOfflineNodeWithSnapshots = "node has snapshots, cannot delete without confirm snapshot loss flag"
-	DeleteOfflineNodeWithData      = "Volumes would lose their last healthy replica. Use --accept-volume-loss or --accept-data-loss to proceed" // last healthy replica is scheduled on this node
+	DeleteOfflineNodeWithData      = "Volumes would lose their last healthy replica. Use --accept-volume-loss to proceed, or --accept-data-loss to also accept snapshot loss in a single flag" // last healthy replica is scheduled on this node
 )
 
 // DeleteOfflineNode deletes the offline Node via control plane plugin
