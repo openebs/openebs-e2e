@@ -54,7 +54,7 @@ const (
 	StallTransitionThreshold                  = "io_engine.pool.ioAlerts.stallTransitionThreshold"
 	StallTransitionWindow                     = "io_engine.pool.ioAlerts.stallTransitionWindow"
 	Cache_Polling_Period                      = "base.cache_poll_period"
-	Cache_Polling_Period_Value                = "3s"
+	Cache_Polling_Period_Value                = "10s"
 	StallDeadline                             = "10s"
 	StallTransitionThresholdValue             = "5"
 	StallTransitionWindowValue                = "300s"
