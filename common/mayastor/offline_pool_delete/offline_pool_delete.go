@@ -27,7 +27,7 @@ var (
 	DeleteOfflinePoolWithSnapshots          = "Volumes would lose their last healthy replica. Use --accept-volume-loss or --accept-data-loss to proceed"
 	DeleteOfflinePoolWithOnlyReplicaCordon  = "Pool cordon must block both replicas and snapshots. Use: cordon pool <id> --replicas --snapshots"
 	DeleteOfflinePoolWithOnlySnapshotCordon = "Pool cordon must block both replicas and snapshots. Use: cordon pool <id> --replicas --snapshots"
-	DeleteOfflinePoolWithData               = "Volumes would lose their last healthy replica. Use --accept-volume-loss or --accept-data-loss to proceed" // last healthy replica is scheduled on this pool
+	DeleteOfflinePoolWithData               = "Volumes would lose their last healthy replica. Use --accept-volume-loss to proceed, or --accept-data-loss to also accept snapshot loss in a single flag" // last healthy replica is scheduled on this pool
 )
 
 // DeleteOfflinePool deletes the offline pool via control plane plugin
