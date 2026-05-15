@@ -316,3 +316,17 @@ func GetUserHelmValueByPath(release, namespace, path string) (interface{}, error
 
 	return current, nil
 }
+
+func PrefixHelmValues(prefix string, values map[string]interface{}) map[string]interface{} {
+	if prefix == "" {
+		return values
+	}
+
+	prefixed := make(map[string]interface{}, len(values))
+
+	for k, v := range values {
+		prefixed[fmt.Sprintf("%s.%s", prefix, k)] = v
+	}
+
+	return prefixed
+}
