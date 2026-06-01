@@ -104,7 +104,10 @@ const (
 	LargePollIntervalSecs            = 30   // in seconds
 	DefRebuildTimeoutSecs            = 600  // in seconds
 	SleepTime                        = 3    // in seconds
-	ToLocalpvProvisionerImage        = "4.5.0"
+	ToLocalpvProvisionerImage        = "4.5.1"
+	GhcrRegistryName                 = "ghcr.io"
+	OpenEbsRegistryNameSpace         = "openebs/dev"
+	MayastorRegistryNameSpace        = "openebs/mayastor/dev"
 )
 
 // Annotations for delete options for offline pools
