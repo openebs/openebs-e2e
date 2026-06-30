@@ -51,6 +51,7 @@ product:
       - "mayastor-nats"
       - "mayastor-obs-callhome"
       - "mayastor-operator-diskpool"
+      - "mayastor-eventing-aggregator"
     logDumpCsiAttacherName: "csi-attacher"
     logDumpCsiDriverRegistrarName: "csi-driver-registrar"
     logDumpCsiProvisionerName: "csi-provisioner"
