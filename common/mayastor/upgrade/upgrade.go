@@ -104,16 +104,17 @@ func AreContainerImagesUpgraded(podList *coreV1.PodList, toUpgradeImageTag, dock
 				if len(imageTag) != 2 {
 					return false, fmt.Errorf("image didn't split successfully in name and tag parts")
 				}
+				logf.Log.Info("Pod name is", "pod name: ", pod.Name)
 				logf.Log.Info("Container images are", "container name: ", container.Name, " container image: ", container.Image)
 				lastField := imageTag[len(imageTag)-1]
 				if container.Name != localPVContainerName {
 					logf.Log.Info("Container Information", "container name: ", container.Name, " imageTag: ", lastField, "OpenebsToMayaVersionMap: ", mayastorVersion)
 					// Check if the OpenebsToMayaVersionMap is empty if plugin is openebs plugin
 					// Else check if the image tag or mayastor version matches with the toUpgradeImageTag
-					if filepath.Base(binPath) == openebsPlugin || filepath.Base(binPath) != mayastorPlugin && mayastorVersion == "" {
+					if (filepath.Base(binPath) == openebsPlugin || filepath.Base(binPath) != mayastorPlugin) && mayastorVersion == "" {
 						logf.Log.Info("OpenebsToMayaVersionMap is not present for", "toUpgradeImageTag: ", toUpgradeImageTag)
 						return false, nil
-					} else if !strings.Contains(lastField, toUpgradeImageTag) && !strings.Contains(lastField, mayastorVersion) {
+					} else if !strings.Contains(lastField, toUpgradeImageTag) && (mayastorVersion == "" || !strings.Contains(lastField, mayastorVersion)) {
 						return false, nil
 					}
 				} else if !strings.Contains(lastField, common.ToLocalpvProvisionerImage) {
