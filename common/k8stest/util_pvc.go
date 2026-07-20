@@ -802,7 +802,7 @@ func (b *PvcBuilder) WithAccessModes(mode coreV1.PersistentVolumeAccessMode) *Pv
 		b.errs = append(b.errs, errors.New("failed to build pvc: missing pvc accessModes"))
 		return b
 	}
-	b.pvc.object.Spec.AccessModes = append(b.pvc.object.Spec.AccessModes, mode)
+	b.pvc.object.Spec.AccessModes = []coreV1.PersistentVolumeAccessMode{mode}
 	return b
 }
 
