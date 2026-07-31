@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openebs/openebs-e2e/common/custom_resources"
 	"github.com/openebs/openebs-e2e/common/k8stest"
 	"k8s.io/apimachinery/pkg/api/resource"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -19,6 +20,43 @@ var (
 	PvcShrinkErrorSubStringLatest = " Forbidden: field can not be less than status.capacity"
 	SnapshotVolumeResizeError     = "Volume can't be resized while it has snapshots, or it's a snapshot restore"
 )
+
+const mib = 1024 * 1024
+
+// v2LabelOverheadMib is the fixed per-replica overhead the control plane adds for V2-labelled volumes; V1 has none.
+const v2LabelOverheadMib = 8
+
+// expectedV2ReplicaCapacityBytes returns the exact replica size the control plane targets for a V2-labelled volume.
+func expectedV2ReplicaCapacityBytes(poolName string, volSizeMb int) (uint64, error) {
+	pool, err := custom_resources.GetMsPool(poolName)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get pool %s, error: %v", poolName, err)
+	}
+	clusterSizeBytes, err := k8stest.SizeToBytes(pool.GetClusterSize())
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse cluster size %q for pool %s, error: %v", pool.GetClusterSize(), poolName, err)
+	}
+	required := uint64(volSizeMb)*mib + v2LabelOverheadMib*mib
+	if rem := required % clusterSizeBytes; rem != 0 {
+		required += clusterSizeBytes - rem
+	}
+	return required, nil
+}
+
+// defaultPoolClusterSizeMib is the cluster size used when a pool doesn't override it.
+const defaultPoolClusterSizeMib = 4
+
+// poolLabelOverheadMib is a safety margin for the pool's own GPT/label reservation.
+const poolLabelOverheadMib = 8
+
+// MinPoolSizeMibForVolume returns a safe minimum pool/partition size (MiB) to host a volSizeMb volume's replica.
+func MinPoolSizeMibForVolume(volSizeMb int) int {
+	requiredReplicaMib := volSizeMb + v2LabelOverheadMib
+	if rem := requiredReplicaMib % defaultPoolClusterSizeMib; rem != 0 {
+		requiredReplicaMib += defaultPoolClusterSizeMib - rem
+	}
+	return requiredReplicaMib + poolLabelOverheadMib
+}
 
 // VerifyVolumeResize verify:
 // 1. pvc resize
@@ -95,7 +133,14 @@ func WaitForReplicaResize(volName string, volSizeMb int) (bool, error) {
 		}
 		isAllReplicaResized = true
 		for _, replica := range replicas {
-			if int64(k8stest.GetSizePerUnits(uint64(replica.Usage.Capacity), "MiB")) != int64(volSizeMb) {
+			actualBytes := uint64(replica.Usage.Capacity)
+			// accept either the legacy (V1) or V2-label exact size
+			legacyBytes := uint64(volSizeMb) * mib
+			v2Bytes, expErr := expectedV2ReplicaCapacityBytes(replica.Pool, volSizeMb)
+			if expErr != nil {
+				return false, expErr
+			}
+			if actualBytes != legacyBytes && actualBytes != v2Bytes {
 				isAllReplicaResized = false
 				break
 			}
