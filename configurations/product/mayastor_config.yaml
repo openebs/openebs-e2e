@@ -32,6 +32,7 @@ product:
     helmReleaseName: "mayastor"
     ioEnginePodLabelValue: "io-engine"
     ioEnginePodName: "mayastor-io-engine"
+    eventingAggregatorDeployment: "mayastor-eventing-aggregator"
     jaegersCrdName: "jaegers.jaegertracing.io"
     kubectlPluginName: "kubectl-mayastor"
     kubectlPluginPort: 30011

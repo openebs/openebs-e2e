@@ -272,17 +272,3 @@ if [ "$podlogs" -ne 0 ]; then
     getSystemCmdOutputs "$destdir"
 fi
 
-function getEvents {
-    dest="$1"
-    event_collector_dir="${SCRIPT_DIR}/../src/tools/e2e_event_collector/"
-    if [ -d "${event_collector_dir}" ]; then
-    	outfile_json=$(realpath "$dest/events.json")
-    	outfile_yaml=$(realpath "$dest/events.yaml")
-        pushd ${event_collector_dir} > /dev/null \
-		&& go run e2e_event_collector.go -o json -f "${outfile_json}" \
-		&& go run e2e_event_collector.go -o yaml -f "${outfile_yaml}"; \
-		popd > /dev/null
-    fi
-}
-
-getEvents "$destdir"

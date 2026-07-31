@@ -64,6 +64,7 @@ type ProductSpec struct {
 	OpenEBSHelmReleaseName           string   `yaml:"openEBSHelmReleaseName"`
 	IOEnginePodLabelValue            string   `yaml:"ioEnginePodLabelValue" env-default:"io-engine"`
 	IOEnginePodName                  string   `yaml:"ioEnginePodName"`
+	EventingAggregatorDeployment     string   `yaml:"eventingAggregatorDeployment"`
 	JaegersCrdName                   string   `yaml:"jaegersCrdName" env-default:"jaegers.jaegertracing.io"`
 	KubectlPluginName                string   `yaml:"kubectlPluginName" env-default:"kubectl-mayastor" env:"e2e_kc_plugin"`
 	KubectlOpenebsPluginName         string   `yaml:"kubectlOpenebsPluginName" env-default:"kubectl-openebs"`
