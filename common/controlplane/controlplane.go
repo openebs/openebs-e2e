@@ -131,6 +131,10 @@ type ControlPlaneInterface interface {
 
 	// Node deletion abstraction
 	DeleteOfflineNodeViaPlugin(nodeName string, constraints ...common.OfflinePoolDelete) error
+
+	// Events
+	GetEvents(flags ...string) ([]common.EventRecord, error)
+	CountEvents(flags ...string) int
 }
 
 var ifc ControlPlaneInterface
@@ -527,4 +531,12 @@ func DeleteOfflinePoolViaPlugin(poolName string, flags ...common.OfflinePoolDele
 
 func DeleteOfflineNodeViaPlugin(nodeName string, flags ...common.OfflinePoolDelete) error {
 	return getControlPlane().DeleteOfflineNodeViaPlugin(nodeName, flags...)
+}
+
+func GetEvents(flags ...string) ([]common.EventRecord, error) {
+	return getControlPlane().GetEvents(flags...)
+}
+
+func CountEvents(flags ...string) int {
+	return getControlPlane().CountEvents(flags...)
 }

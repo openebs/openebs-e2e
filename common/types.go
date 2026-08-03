@@ -643,3 +643,196 @@ type ZfsSpec struct {
 type ZfsStatus struct {
 	State string `json:"state"`
 }
+
+// ── Event enum types (PascalCase — values in JSON output) ──
+
+type EventCategory string
+
+const (
+	EventCategoryPool             EventCategory = "Pool"
+	EventCategoryVolume           EventCategory = "Volume"
+	EventCategoryNexus            EventCategory = "Nexus"
+	EventCategoryReplica          EventCategory = "Replica"
+	EventCategoryNode             EventCategory = "Node"
+	EventCategoryHighAvailability EventCategory = "HighAvailability"
+	EventCategoryNvmePath         EventCategory = "NvmePath"
+	EventCategoryHostInitiator    EventCategory = "HostInitiator"
+	EventCategoryIoEngine         EventCategory = "IoEngineCategory"
+	EventCategorySnapshot         EventCategory = "Snapshot"
+	EventCategoryClone            EventCategory = "Clone"
+)
+
+type EventAction string
+
+const (
+	EventActionCreate               EventAction = "Create"
+	EventActionDelete               EventAction = "Delete"
+	EventActionStateChange          EventAction = "StateChange"
+	EventActionRebuildBegin         EventAction = "RebuildBegin"
+	EventActionRebuildEnd           EventAction = "RebuildEnd"
+	EventActionSwitchOver           EventAction = "SwitchOver"
+	EventActionAddChild             EventAction = "AddChild"
+	EventActionRemoveChild          EventAction = "RemoveChild"
+	EventActionOnlineChild          EventAction = "OnlineChild"
+	EventActionNvmePathSuspect      EventAction = "NvmePathSuspect"
+	EventActionNvmePathFail         EventAction = "NvmePathFail"
+	EventActionNvmePathFix          EventAction = "NvmePathFix"
+	EventActionNvmeConnect          EventAction = "NvmeConnect"
+	EventActionNvmeDisconnect       EventAction = "NvmeDisconnect"
+	EventActionNvmeKeepAliveTimeout EventAction = "NvmeKeepAliveTimeout"
+	EventActionReactorFreeze        EventAction = "ReactorFreeze"
+	EventActionReactorUnfreeze      EventAction = "ReactorUnfreeze"
+	EventActionShutdown             EventAction = "Shutdown"
+	EventActionStart                EventAction = "Start"
+	EventActionStop                 EventAction = "Stop"
+	EventActionSubsystemPause       EventAction = "SubsystemPause"
+	EventActionSubsystemResume      EventAction = "SubsystemResume"
+	EventActionInit                 EventAction = "Init"
+	EventActionReconfiguring        EventAction = "Reconfiguring"
+	EventActionNvmePathDeleting     EventAction = "NvmePathDeleting"
+)
+
+type EventComponent string
+
+const (
+	EventComponentCoreAgent      EventComponent = "CoreAgent"
+	EventComponentIoEngine       EventComponent = "IoEngine"
+	EventComponentHaClusterAgent EventComponent = "HaClusterAgent"
+	EventComponentHaNodeAgent    EventComponent = "HaNodeAgent"
+)
+
+type RebuildStatus string
+
+const (
+	RebuildStatusStarted   RebuildStatus = "Started"
+	RebuildStatusCompleted RebuildStatus = "Completed"
+	RebuildStatusStopped   RebuildStatus = "Stopped"
+	RebuildStatusFailed    RebuildStatus = "Failed"
+)
+
+type SwitchOverStatus string
+
+const (
+	SwitchOverStarted   SwitchOverStatus = "SwitchOverStarted"
+	SwitchOverCompleted SwitchOverStatus = "SwitchOverCompleted"
+	SwitchOverFailed    SwitchOverStatus = "SwitchOverFailed"
+)
+
+type EventVersion string
+
+const (
+	EventVersionV1 EventVersion = "V1"
+)
+
+// ── Event struct types (mirrors kubectl mayastor get events -o json) ──
+
+type EventRecord struct {
+	Category EventCategory `json:"category"`
+	Action   EventAction   `json:"action"`
+	Target   string        `json:"target,omitempty"`
+	Metadata EventMeta     `json:"metadata"`
+}
+
+type EventMeta struct {
+	Id             string       `json:"id"`
+	Source         EventSource  `json:"source"`
+	EventTimestamp string       `json:"timestamp"`
+	Version        EventVersion `json:"version"`
+}
+
+type EventSource struct {
+	Component    EventComponent `json:"component"`
+	Node         string         `json:"node,omitempty"`
+	EventDetails *EventDetails  `json:"eventDetails,omitempty"`
+}
+
+type EventDetails struct {
+	RebuildDetails        *RebuildDetails        `json:"rebuildDetails,omitempty"`
+	SwitchOverDetails     *SwitchOverDetails     `json:"switchOverDetails,omitempty"`
+	NexusChildDetails     *NexusChildDetails     `json:"nexusChildDetails,omitempty"`
+	NvmePathDetails       *NvmePathDetails       `json:"nvmePathDetails,omitempty"`
+	HostInitiatorDetails  *HostInitiatorDetails  `json:"hostInitiatorDetails,omitempty"`
+	StateChangeDetails    *StateChangeDetails    `json:"stateChangeDetails,omitempty"`
+	ReplicaDetails        *ReplicaDetails        `json:"replicaDetails,omitempty"`
+	SnapshotDetails       *SnapshotDetails       `json:"snapshotDetails,omitempty"`
+	CloneDetails          *CloneDetails          `json:"cloneDetails,omitempty"`
+	SubsystemPauseDetails *SubsystemPauseDetails `json:"subsystemPauseDetails,omitempty"`
+	ActionDurationDetails *ActionDurationDetails  `json:"actionDurationDetails,omitempty"`
+	ReactorDetails        *ReactorDetails        `json:"reactorDetails,omitempty"`
+	ErrorDetails          *ErrorDetails          `json:"errorDetails,omitempty"`
+}
+
+type RebuildDetails struct {
+	RebuildStatus      RebuildStatus `json:"rebuildStatus"`
+	SourceReplica      string        `json:"sourceReplica"`
+	DestinationReplica string        `json:"destinationReplica"`
+	Error              string        `json:"error,omitempty"`
+}
+
+type SwitchOverDetails struct {
+	SwitchOverStatus SwitchOverStatus `json:"switchOverStatus"`
+	StartTime        string           `json:"startTime"`
+	ExistingNqn      string           `json:"existingNqn"`
+	NewPath          string           `json:"newPath,omitempty"`
+	RetryCount       uint64           `json:"retryCount,omitempty"`
+}
+
+type NexusChildDetails struct {
+	Uri string `json:"uri"`
+}
+
+type NvmePathDetails struct {
+	Nqn  string `json:"nqn"`
+	Path string `json:"path"`
+}
+
+type HostInitiatorDetails struct {
+	HostNqn      string `json:"hostNqn"`
+	SubsystemNqn string `json:"subsystemNqn"`
+	Target       string `json:"target"`
+	Uuid         string `json:"uuid"`
+}
+
+type StateChangeDetails struct {
+	Previous string `json:"previous"`
+	Next     string `json:"next"`
+}
+
+type ReplicaDetails struct {
+	PoolName    string `json:"poolName"`
+	PoolUuid    string `json:"poolUuid"`
+	ReplicaName string `json:"replicaName"`
+}
+
+type SnapshotDetails struct {
+	ReplicaId  string `json:"replicaId"`
+	CreateTime string `json:"createTime"`
+	VolumeId   string `json:"volumeId"`
+}
+
+type CloneDetails struct {
+	SourceUuid string `json:"sourceUuid"`
+	CreateTime string `json:"createTime"`
+}
+
+type SubsystemPauseDetails struct {
+	NexusPauseState string `json:"nexusPauseState"`
+}
+
+type ActionDurationDetails struct {
+	TimeTaken TimeDuration `json:"timeTaken"`
+}
+
+type TimeDuration struct {
+	Seconds uint64 `json:"seconds"`
+	Nanos   uint64 `json:"nanos"`
+}
+
+type ReactorDetails struct {
+	Lcore uint64 `json:"lcore"`
+	State string `json:"state"`
+}
+
+type ErrorDetails struct {
+	Error string `json:"error"`
+}
