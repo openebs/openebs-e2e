@@ -1015,7 +1015,7 @@ func freeLoopDevice() (string, error) {
 }
 
 func setupLoopDevice(loDevice string, offset string, devicePath string) (string, error) {
-	params := fmt.Sprintf("losetup -o 5M %s %s", loDevice, devicePath)
+	params := fmt.Sprintf("losetup -o 13M %s %s", loDevice, devicePath)
 	return bashLocal(params)
 }
 
