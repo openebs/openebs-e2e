@@ -1015,7 +1015,7 @@ func freeLoopDevice() (string, error) {
 }
 
 func setupLoopDevice(loDevice string, offset string, devicePath string) (string, error) {
-	params := fmt.Sprintf("losetup -o 13M %s %s", loDevice, devicePath)
+	params := fmt.Sprintf("losetup -o %s %s %s", offset, loDevice, devicePath)
 	return bashLocal(params)
 }
 
@@ -1054,7 +1054,7 @@ func FsCheckDevice(w http.ResponseWriter, r *http.Request) {
 		klog.Error("failed to get free loop device ", loDevice, "Error: ", err)
 		return
 	}
-	_, err = setupLoopDevice(loDevice, "5M", device.DevicePath)
+	_, err = setupLoopDevice(loDevice, "0", device.DevicePath)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
 		_, _ = fmt.Fprint(w, err.Error())

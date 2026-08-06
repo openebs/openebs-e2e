@@ -68,7 +68,7 @@ spec:
           securityContext:
             privileged: true
             allowPrivilegeEscalation: true
-          image: openebs/e2e-agent:fix-fsc1
+          image: openebs/e2e-agent:fix-fsc2
           imagePullPolicy: Always
           volumeMounts:
             - name: host-root
