@@ -14,6 +14,10 @@ func (cp CPv1RestApi) GetEventsWithStderr(flags ...string) ([]common.EventRecord
 	panic(fmt.Errorf("not implemented REST api"))
 }
 
+func (cp CPv1RestApi) GetRawEventsOutput(format string, flags ...string) ([]byte, error) {
+	panic(fmt.Errorf("not implemented REST api"))
+}
+
 func (cp CPv1RestApi) CountEvents(flags ...string) int {
 	panic(fmt.Errorf("not implemented REST api"))
 }
