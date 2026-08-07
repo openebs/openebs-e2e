@@ -1014,8 +1014,61 @@ func freeLoopDevice() (string, error) {
 	return bashLocal(params)
 }
 
+// setupLoopDevice attaches devicePath to loDevice at the given byte offset.
+//
+// `-P` asks the kernel to scan the attached device for a partition table, so
+// that the GPT the io-engine writes at the start of a Mayastor replica is
+// parsed and each partition is exposed as <loDevice>pN. Callers should pass
+// offset "0" and use resolveFsDevice to locate the filesystem, rather than
+// computing an offset themselves.
 func setupLoopDevice(loDevice string, offset string, devicePath string) (string, error) {
-	params := fmt.Sprintf("losetup -o %s %s %s", offset, loDevice, devicePath)
+	params := fmt.Sprintf("losetup -P -o %s %s %s", offset, loDevice, devicePath)
+	return bashLocal(params)
+}
+
+// loopDeviceLayout returns a human-readable dump of the partition table and
+// filesystem signatures the kernel found on loDevice. Used for diagnostics so
+// that a failure identifies itself instead of surfacing as "Bad magic number".
+func loopDeviceLayout(loDevice string) string {
+	params := fmt.Sprintf("partx --show %[1]s 2>&1; blkid -p %[1]s %[1]sp* 2>&1", loDevice)
+	out, err := bashLocal(params)
+	if err != nil {
+		return fmt.Sprintf("layout unavailable (%v): %s", err, out)
+	}
+	return out
+}
+
+// resolveFsDevice returns the path of the block device that actually holds a
+// filesystem of type fsType.
+//
+// Mayastor replicas and replica snapshots are not raw filesystem images. The
+// io-engine writes a "nexus label" at the start of the replica: a protective
+// MBR, a primary GPT header and entry array, a metadata region, and only then
+// the user data extent that the volume - and therefore mkfs - sees as LBA 0.
+// The byte offset of that data extent is a product implementation detail and
+// it has changed before (openebs/mayastor#2036), so identify the data extent
+// by filesystem signature instead of by arithmetic.
+//
+// loDevice must have been attached with `losetup -P`, so the kernel has
+// already parsed the GPT and exposed each partition as <loDevice>pN. If no
+// signature matches, fall back to the largest partition so the caller still
+// gets a real fsck verdict; the layout is logged by the caller either way.
+func resolveFsDevice(loDevice string, fsType string) (string, error) {
+	params := fmt.Sprintf(
+		`udevadm settle --timeout=10 >/dev/null 2>&1 || sleep 1; `+
+			`for d in %[1]sp* %[1]s; do `+
+			`[ -b $d ] || continue; `+
+			`if [ x$(blkid -p -o value -s TYPE $d 2>/dev/null) = x%[2]s ]; then echo $d; exit 0; fi; `+
+			`done; `+
+			`best=; bestsz=0; `+
+			`for d in %[1]sp*; do `+
+			`[ -b $d ] || continue; `+
+			`sz=$(blockdev --getsize64 $d 2>/dev/null || echo 0); `+
+			`if [ $sz -gt $bestsz ]; then bestsz=$sz; best=$d; fi; `+
+			`done; `+
+			`if [ x$best != x ]; then echo $best; exit 0; fi; `+
+			`exit 1`,
+		loDevice, fsType)
 	return bashLocal(params)
 }
 
@@ -1054,6 +1107,10 @@ func FsCheckDevice(w http.ResponseWriter, r *http.Request) {
 		klog.Error("failed to get free loop device ", loDevice, "Error: ", err)
 		return
 	}
+	// Attach at offset 0 and let partition discovery locate the data extent.
+	// Do not pass a nonzero offset here: the location of the filesystem inside
+	// a Mayastor replica is a product detail that has changed (see
+	// resolveFsDevice).
 	_, err = setupLoopDevice(loDevice, "0", device.DevicePath)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
@@ -1062,15 +1119,42 @@ func FsCheckDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log the discovered layout unconditionally. When this check fails in CI the
+	// layout is what tells you whether the filesystem moved, the snapshot is
+	// empty, or the wrong device was connected - a bare "Bad magic number" does
+	// not distinguish those.
+	layout := loopDeviceLayout(loDevice)
+	klog.Info("loop device layout for ", device.DevicePath, " (", loDevice, "):\n", layout)
+
+	fsDevice, err := resolveFsDevice(loDevice, device.FsType)
+	if err != nil {
+		_, detachErr := detachLoopDevice(loDevice)
+		if detachErr != nil {
+			klog.Error("failed to detach loop device ", loDevice, " Error: ", detachErr)
+		}
+		w.WriteHeader(InternalServerErrorCode)
+		_, _ = fmt.Fprintf(w, "no %s filesystem found on %s (%s); layout: %s",
+			device.FsType, device.DevicePath, loDevice, layout)
+		klog.Error("no ", device.FsType, " filesystem found on ", device.DevicePath,
+			" via ", loDevice, " layout: ", layout)
+		return
+	}
+	klog.Info("resolved filesystem device ", fsDevice, " for ", device.DevicePath,
+		" fsType ", device.FsType)
+
 	//nolint:staticcheck // QF1003: if-chain kept for simplicity with few filesystem types
 	if device.FsType == "ext4" {
-		params = fmt.Sprintf("echo $(fsck -n -f %s; echo $?)", loDevice)
+		params = fmt.Sprintf("echo $(fsck -n -f %s; echo $?)", fsDevice)
 	} else if device.FsType == "xfs" {
-		params = fmt.Sprintf("echo $(xfs_repair -n %s; echo $?)", loDevice)
+		params = fmt.Sprintf("echo $(xfs_repair -n %s; echo $?)", fsDevice)
 	} else if device.FsType == "btrfs" {
-		params = fmt.Sprintf("echo $(btrfs check --readonly %s; echo $?)", loDevice)
+		params = fmt.Sprintf("echo $(btrfs check --readonly %s; echo $?)", fsDevice)
 	} else {
 		klog.Error("not a supported filesystem for fscheck", device.FsType, "Error: ", device.FsType)
+		_, detachErr := detachLoopDevice(loDevice)
+		if detachErr != nil {
+			klog.Error("failed to detach loop device ", loDevice, " Error: ", detachErr)
+		}
 		return
 	}
 
@@ -1079,6 +1163,10 @@ func FsCheckDevice(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(InternalServerErrorCode)
 		_, _ = fmt.Fprint(w, err.Error())
 		klog.Error("failed to execute command ", params, "Error: ", err)
+		_, detachErr := detachLoopDevice(loDevice)
+		if detachErr != nil {
+			klog.Error("failed to detach loop device ", loDevice, " Error: ", detachErr)
+		}
 		return
 	}
 	klog.Info(outputString)
