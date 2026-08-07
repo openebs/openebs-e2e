@@ -93,6 +93,11 @@ func WithLimit(limit int) FilterOption {
 	return func() []string { return []string{FlagLimit, strconv.Itoa(limit)} }
 }
 
+// WithLokiEndpoint adds --loki-endpoint flag to force a specific Loki URL (hard error if unreachable).
+func WithLokiEndpoint(endpoint string) FilterOption {
+	return func() []string { return []string{FlagLokiEndpoint, endpoint} }
+}
+
 // BuildFlags collects all FilterOption functions into a flat slice of CLI flag pairs.
 func BuildFlags(opts ...FilterOption) []string {
 	var flags []string
@@ -107,6 +112,11 @@ func BuildFlags(opts ...FilterOption) []string {
 // GetEvents queries the plugin for events matching the given filters and returns them newest-first.
 func GetEvents(opts ...FilterOption) ([]common.EventRecord, error) {
 	return controlplane.GetEvents(BuildFlags(opts...)...)
+}
+
+// GetEventsWithStderr queries the plugin and returns events plus the raw stderr output (warnings).
+func GetEventsWithStderr(opts ...FilterOption) ([]common.EventRecord, string, error) {
+	return controlplane.GetEventsWithStderr(BuildFlags(opts...)...)
 }
 
 // EventsCount returns the number of events matching the given filters.

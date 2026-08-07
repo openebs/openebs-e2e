@@ -134,6 +134,7 @@ type ControlPlaneInterface interface {
 
 	// Events
 	GetEvents(flags ...string) ([]common.EventRecord, error)
+	GetEventsWithStderr(flags ...string) ([]common.EventRecord, string, error)
 	CountEvents(flags ...string) int
 }
 
@@ -535,6 +536,10 @@ func DeleteOfflineNodeViaPlugin(nodeName string, flags ...common.OfflinePoolDele
 
 func GetEvents(flags ...string) ([]common.EventRecord, error) {
 	return getControlPlane().GetEvents(flags...)
+}
+
+func GetEventsWithStderr(flags ...string) ([]common.EventRecord, string, error) {
+	return getControlPlane().GetEventsWithStderr(flags...)
 }
 
 func CountEvents(flags ...string) int {
