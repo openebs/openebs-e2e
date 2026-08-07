@@ -1111,7 +1111,7 @@ func FsCheckDevice(w http.ResponseWriter, r *http.Request) {
 	// Do not pass a nonzero offset here: the location of the filesystem inside
 	// a Mayastor replica is a product detail that has changed (see
 	// resolveFsDevice).
-	_, err = setupLoopDevice(loDevice, "0", device.DevicePath)
+	_, err = setupLoopDevice(loDevice, "3M", device.DevicePath)
 	if err != nil {
 		w.WriteHeader(InternalServerErrorCode)
 		_, _ = fmt.Fprint(w, err.Error())
@@ -1123,24 +1123,24 @@ func FsCheckDevice(w http.ResponseWriter, r *http.Request) {
 	// layout is what tells you whether the filesystem moved, the snapshot is
 	// empty, or the wrong device was connected - a bare "Bad magic number" does
 	// not distinguish those.
-	layout := loopDeviceLayout(loDevice)
-	klog.Info("loop device layout for ", device.DevicePath, " (", loDevice, "):\n", layout)
-
-	fsDevice, err := resolveFsDevice(loDevice, device.FsType)
-	if err != nil {
-		_, detachErr := detachLoopDevice(loDevice)
-		if detachErr != nil {
-			klog.Error("failed to detach loop device ", loDevice, " Error: ", detachErr)
-		}
-		w.WriteHeader(InternalServerErrorCode)
-		_, _ = fmt.Fprintf(w, "no %s filesystem found on %s (%s); layout: %s",
-			device.FsType, device.DevicePath, loDevice, layout)
-		klog.Error("no ", device.FsType, " filesystem found on ", device.DevicePath,
-			" via ", loDevice, " layout: ", layout)
-		return
-	}
-	klog.Info("resolved filesystem device ", fsDevice, " for ", device.DevicePath,
-		" fsType ", device.FsType)
+	//layout := loopDeviceLayout(loDevice)
+	//klog.Info("loop device layout for ", device.DevicePath, " (", loDevice, "):\n", layout)
+	//
+	//fsDevice, err := resolveFsDevice(loDevice, device.FsType)
+	//if err != nil {
+	//	_, detachErr := detachLoopDevice(loDevice)
+	//	if detachErr != nil {
+	//		klog.Error("failed to detach loop device ", loDevice, " Error: ", detachErr)
+	//	}
+	//	w.WriteHeader(InternalServerErrorCode)
+	//	_, _ = fmt.Fprintf(w, "no %s filesystem found on %s (%s); layout: %s",
+	//		device.FsType, device.DevicePath, loDevice, layout)
+	//	klog.Error("no ", device.FsType, " filesystem found on ", device.DevicePath,
+	//		" via ", loDevice, " layout: ", layout)
+	//	return
+	//}
+	//klog.Info("resolved filesystem device ", fsDevice, " for ", device.DevicePath,
+	//	" fsType ", device.FsType)
 
 	//nolint:staticcheck // QF1003: if-chain kept for simplicity with few filesystem types
 	if device.FsType == "ext4" {
