@@ -68,7 +68,7 @@ spec:
           securityContext:
             privileged: true
             allowPrivilegeEscalation: true
-          image: ci-registry.mayastor-ci.mayadata.io/openebs/e2e-agent:fix-fsc3
+          image: ci-registry.mayastor-ci.mayadata.io/openebs/e2e-agent:fix-fsc4
           imagePullPolicy: Always
           volumeMounts:
             - name: host-root
