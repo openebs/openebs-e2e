@@ -64,6 +64,20 @@ func (cp CPv1) GetEventsWithStderr(flags ...string) ([]common.EventRecord, strin
 	return records, stderrStr, nil
 }
 
+func (cp CPv1) GetRawEventsOutput(format string, flags ...string) ([]byte, error) {
+	args := append([]string{"get", "events", "-n", common.NSMayastor(), "-o", format}, flags...)
+	cmd := GetMayastorPluginCmd(args...)
+	output, err := cmd.CombinedOutput()
+	err = CheckPluginError(output, err)
+	if err != nil {
+		return nil, err
+	}
+	if format == "json" {
+		output = extractJSON(output)
+	}
+	return output, nil
+}
+
 func (cp CPv1) CountEvents(flags ...string) int {
 	records, err := cp.GetEvents(flags...)
 	if err != nil {

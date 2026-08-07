@@ -135,6 +135,7 @@ type ControlPlaneInterface interface {
 	// Events
 	GetEvents(flags ...string) ([]common.EventRecord, error)
 	GetEventsWithStderr(flags ...string) ([]common.EventRecord, string, error)
+	GetRawEventsOutput(format string, flags ...string) ([]byte, error)
 	CountEvents(flags ...string) int
 }
 
@@ -540,6 +541,10 @@ func GetEvents(flags ...string) ([]common.EventRecord, error) {
 
 func GetEventsWithStderr(flags ...string) ([]common.EventRecord, string, error) {
 	return getControlPlane().GetEventsWithStderr(flags...)
+}
+
+func GetRawEventsOutput(format string, flags ...string) ([]byte, error) {
+	return getControlPlane().GetRawEventsOutput(format, flags...)
 }
 
 func CountEvents(flags ...string) int {

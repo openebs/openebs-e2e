@@ -6,6 +6,7 @@ package events
 // Plugin execution functions live in controlplane/v1.
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/openebs/openebs-e2e/common/controlplane"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"gopkg.in/yaml.v3"
 )
 
 // ── Default timeouts ──
@@ -117,6 +119,11 @@ func GetEvents(opts ...FilterOption) ([]common.EventRecord, error) {
 // GetEventsWithStderr queries the plugin and returns events plus the raw stderr output (warnings).
 func GetEventsWithStderr(opts ...FilterOption) ([]common.EventRecord, string, error) {
 	return controlplane.GetEventsWithStderr(BuildFlags(opts...)...)
+}
+
+// GetRawEventsOutput runs the plugin with the specified output format and returns raw bytes.
+func GetRawEventsOutput(format string, opts ...FilterOption) ([]byte, error) {
+	return controlplane.GetRawEventsOutput(format, BuildFlags(opts...)...)
 }
 
 // EventsCount returns the number of events matching the given filters.
@@ -431,6 +438,91 @@ func VerifyNvmePathEventMetadata(record *common.EventRecord, uuid string) error 
 		)
 	}
 
+	return nil
+}
+
+// ── Output format parsing helpers ──
+
+// ParseJSONEventsOutput unmarshals raw JSON plugin output into EventRecord slice and validates payload fields.
+func ParseJSONEventsOutput(rawOutput []byte) ([]common.EventRecord, error) {
+	if len(rawOutput) == 0 {
+		return nil, fmt.Errorf("empty JSON output")
+	}
+	var records []common.EventRecord
+	if err := json.Unmarshal(rawOutput, &records); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON output: %w", err)
+	}
+	if len(records) == 0 {
+		return nil, fmt.Errorf("JSON output contains no events")
+	}
+	return records, nil
+}
+
+// ParseYAMLEventsOutput unmarshals raw YAML plugin output into a generic list and validates structure.
+func ParseYAMLEventsOutput(rawOutput []byte) ([]map[string]interface{}, error) {
+	if len(rawOutput) == 0 {
+		return nil, fmt.Errorf("empty YAML output")
+	}
+	var yamlData []map[string]interface{}
+	if err := yaml.Unmarshal(rawOutput, &yamlData); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal YAML output: %w", err)
+	}
+	if len(yamlData) == 0 {
+		return nil, fmt.Errorf("YAML output contains no events")
+	}
+	return yamlData, nil
+}
+
+// VerifyEventRecordPayload checks that core EventMessage fields are populated on a record.
+func VerifyEventRecordPayload(record common.EventRecord) error {
+	if string(record.Category) == "" {
+		return fmt.Errorf("event category is empty")
+	}
+	if string(record.Action) == "" {
+		return fmt.Errorf("event action is empty")
+	}
+	if record.Metadata.Id == "" {
+		return fmt.Errorf("event metadata id is empty")
+	}
+	if string(record.Metadata.Source.Component) == "" {
+		return fmt.Errorf("event source component is empty")
+	}
+	if record.Metadata.EventTimestamp == "" {
+		return fmt.Errorf("event timestamp is empty")
+	}
+	if string(record.Metadata.Version) == "" {
+		return fmt.Errorf("event version is empty")
+	}
+	return nil
+}
+
+// VerifyYAMLEventPayload checks that core EventMessage fields are present in a parsed YAML event map.
+func VerifyYAMLEventPayload(event map[string]interface{}) error {
+	if event["category"] == nil {
+		return fmt.Errorf("event category is missing in YAML")
+	}
+	if event["action"] == nil {
+		return fmt.Errorf("event action is missing in YAML")
+	}
+	if event["metadata"] == nil {
+		return fmt.Errorf("event metadata is missing in YAML")
+	}
+	metadata, ok := event["metadata"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("event metadata is not a map")
+	}
+	if metadata["id"] == nil {
+		return fmt.Errorf("event metadata id is missing in YAML")
+	}
+	if metadata["source"] == nil {
+		return fmt.Errorf("event metadata source is missing in YAML")
+	}
+	if metadata["timestamp"] == nil {
+		return fmt.Errorf("event timestamp is missing in YAML")
+	}
+	if metadata["version"] == nil {
+		return fmt.Errorf("event version is missing in YAML")
+	}
 	return nil
 }
 
