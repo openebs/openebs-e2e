@@ -1010,7 +1010,8 @@ func freeLoopDevice() (string, error) {
 }
 
 func setupLoopDevice(loDevice string, offset string, devicePath string) (string, error) {
-	params := fmt.Sprintf("losetup -o 5M %s %s", loDevice, devicePath)
+	// offset is modified from 5M to 4M due to metadat layout modification
+	params := fmt.Sprintf("losetup -o 4M %s %s", loDevice, devicePath)
 	return bashLocal(params)
 }
 
