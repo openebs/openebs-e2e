@@ -1029,14 +1029,14 @@ func setupLoopDevice(loDevice string, offset string, devicePath string) (string,
 // loopDeviceLayout returns a human-readable dump of the partition table and
 // filesystem signatures the kernel found on loDevice. Used for diagnostics so
 // that a failure identifies itself instead of surfacing as "Bad magic number".
-func loopDeviceLayout(loDevice string) string {
-	params := fmt.Sprintf("partx --show %[1]s 2>&1; blkid -p %[1]s %[1]sp* 2>&1", loDevice)
-	out, err := bashLocal(params)
-	if err != nil {
-		return fmt.Sprintf("layout unavailable (%v): %s", err, out)
-	}
-	return out
-}
+//func loopDeviceLayout(loDevice string) string {
+//	params := fmt.Sprintf("partx --show %[1]s 2>&1; blkid -p %[1]s %[1]sp* 2>&1", loDevice)
+//	out, err := bashLocal(params)
+//	if err != nil {
+//		return fmt.Sprintf("layout unavailable (%v): %s", err, out)
+//	}
+//	return out
+//}
 
 // resolveFsDevice returns the path of the block device that actually holds a
 // filesystem of type fsType.
@@ -1053,24 +1053,24 @@ func loopDeviceLayout(loDevice string) string {
 // already parsed the GPT and exposed each partition as <loDevice>pN. If no
 // signature matches, fall back to the largest partition so the caller still
 // gets a real fsck verdict; the layout is logged by the caller either way.
-func resolveFsDevice(loDevice string, fsType string) (string, error) {
-	params := fmt.Sprintf(
-		`udevadm settle --timeout=10 >/dev/null 2>&1 || sleep 1; `+
-			`for d in %[1]sp* %[1]s; do `+
-			`[ -b $d ] || continue; `+
-			`if [ x$(blkid -p -o value -s TYPE $d 2>/dev/null) = x%[2]s ]; then echo $d; exit 0; fi; `+
-			`done; `+
-			`best=; bestsz=0; `+
-			`for d in %[1]sp*; do `+
-			`[ -b $d ] || continue; `+
-			`sz=$(blockdev --getsize64 $d 2>/dev/null || echo 0); `+
-			`if [ $sz -gt $bestsz ]; then bestsz=$sz; best=$d; fi; `+
-			`done; `+
-			`if [ x$best != x ]; then echo $best; exit 0; fi; `+
-			`exit 1`,
-		loDevice, fsType)
-	return bashLocal(params)
-}
+//func resolveFsDevice(loDevice string, fsType string) (string, error) {
+//	params := fmt.Sprintf(
+//		`udevadm settle --timeout=10 >/dev/null 2>&1 || sleep 1; `+
+//			`for d in %[1]sp* %[1]s; do `+
+//			`[ -b $d ] || continue; `+
+//			`if [ x$(blkid -p -o value -s TYPE $d 2>/dev/null) = x%[2]s ]; then echo $d; exit 0; fi; `+
+//			`done; `+
+//			`best=; bestsz=0; `+
+//			`for d in %[1]sp*; do `+
+//			`[ -b $d ] || continue; `+
+//			`sz=$(blockdev --getsize64 $d 2>/dev/null || echo 0); `+
+//			`if [ $sz -gt $bestsz ]; then bestsz=$sz; best=$d; fi; `+
+//			`done; `+
+//			`if [ x$best != x ]; then echo $best; exit 0; fi; `+
+//			`exit 1`,
+//		loDevice, fsType)
+//	return bashLocal(params)
+//}
 
 func detachLoopDevice(loDevice string) (string, error) {
 	params := fmt.Sprintf("losetup -d %s", loDevice)
