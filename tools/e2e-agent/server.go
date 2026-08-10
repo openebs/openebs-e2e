@@ -1144,11 +1144,11 @@ func FsCheckDevice(w http.ResponseWriter, r *http.Request) {
 
 	//nolint:staticcheck // QF1003: if-chain kept for simplicity with few filesystem types
 	if device.FsType == "ext4" {
-		params = fmt.Sprintf("echo $(fsck -n -f %s; echo $?)", fsDevice)
+		params = fmt.Sprintf("echo $(fsck -n -f %s; echo $?)", loDevice)
 	} else if device.FsType == "xfs" {
-		params = fmt.Sprintf("echo $(xfs_repair -n %s; echo $?)", fsDevice)
+		params = fmt.Sprintf("echo $(xfs_repair -n %s; echo $?)", loDevice)
 	} else if device.FsType == "btrfs" {
-		params = fmt.Sprintf("echo $(btrfs check --readonly %s; echo $?)", fsDevice)
+		params = fmt.Sprintf("echo $(btrfs check --readonly %s; echo $?)", loDevice)
 	} else {
 		klog.Error("not a supported filesystem for fscheck", device.FsType, "Error: ", device.FsType)
 		_, detachErr := detachLoopDevice(loDevice)
