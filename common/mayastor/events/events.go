@@ -100,6 +100,11 @@ func WithLokiEndpoint(endpoint string) FilterOption {
 	return func() []string { return []string{FlagLokiEndpoint, endpoint} }
 }
 
+// WithFromFile adds --from-file flag to read events from a local file instead of querying Loki/aggregator.
+func WithFromFile(filePath string) FilterOption {
+	return func() []string { return []string{FlagFromFile, filePath} }
+}
+
 // BuildFlags collects all FilterOption functions into a flat slice of CLI flag pairs.
 func BuildFlags(opts ...FilterOption) []string {
 	var flags []string
@@ -543,6 +548,7 @@ const (
 	FlagSince         = "--since"
 	FlagLimit         = "--limit"
 	FlagLokiEndpoint  = "--loki-endpoint"
+	FlagFromFile      = "--from-file"
 	FlagOutputFormat  = "-o"
 )
 
