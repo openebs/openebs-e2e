@@ -105,6 +105,11 @@ func WithFromFile(filePath string) FilterOption {
 	return func() []string { return []string{FlagFromFile, filePath} }
 }
 
+// WithNatsEndpoint adds --nats-endpoint flag with auto-discovery (no value) to read events directly from NATS JetStream.
+func WithNatsEndpoint() FilterOption {
+	return func() []string { return []string{FlagNatsEndpoint} }
+}
+
 // BuildFlags collects all FilterOption functions into a flat slice of CLI flag pairs.
 func BuildFlags(opts ...FilterOption) []string {
 	var flags []string
@@ -548,6 +553,7 @@ const (
 	FlagSince         = "--since"
 	FlagLimit         = "--limit"
 	FlagLokiEndpoint  = "--loki-endpoint"
+	FlagNatsEndpoint  = "--nats-endpoint"
 	FlagFromFile      = "--from-file"
 	FlagOutputFormat  = "-o"
 )
