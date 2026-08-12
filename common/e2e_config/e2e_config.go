@@ -51,7 +51,6 @@ type ProductSpec struct {
 	CsiNodeContainerName             string   `yaml:"csiNodeContainerName" env-default:"csi-node"`
 	CsiProvisioner                   string   `yaml:"csiProvisioner" env-default:"io.openebs.csi-mayastor"`
 	DaemonsetName                    string   `yaml:"daemonsetName" env-default:"mayastor"`
-	DataPlaneNats                    string   `yaml:"dataPlaneNats" env-default:"nats"`
 	DockerOrganisation               string   `yaml:"dockerOrganisation" env-default:"openebs"`
 	DockerSecretName                 string   `yaml:"dockerSecretName" env-default:""`
 	EngineLabel                      string   `yaml:"engineLabel" env-default:"openebs.io/engine"`
@@ -104,7 +103,6 @@ type ProductSpec struct {
 	MongoImageRepository              string            `yaml:"mongoImageRepository" env-default:"mongo"`
 	MongoServiceTemplate              string            `yaml:"mongoServiceTemplate" env-default:"{{ .ReleaseName }}-svc"`
 	MongoImage                        string            `yaml:"mongoImageTag" env-default:"mongo:7.0"`
-	NatsPort                          string            `yaml:"natsPort" env-default:"4222"`
 	NvmeControllerModel               string            `yaml:"nvmeControllerModel" env-default:"Mayastor NVMe controller"`
 	PartialRebuildCpTimeout           string            `yaml:"partialRebuildCpTimeout" env-default:"600s"`
 	PgBenchImage                      string            `yaml:"pgBenchImage" env-default:"postgres:16"`

@@ -606,122 +606,6 @@ func BlkDiscard(serverAddr string, device string, options string) (string, error
 	return "", err
 }
 
-type EventSubscriptionRequest struct {
-	EventServerAddr string `json:"eventServerAddr"`
-	Subject         string `json:"subject"`
-}
-
-type EventPublishRequest struct {
-	EventServerAddr string `json:"eventServerAddr"`
-	Subject         string `json:"subject"`
-	Data            string `json:"data"`
-}
-
-type EventRequest struct {
-	Subject string `json:"subject"`
-}
-
-func EventList(agentAddr string, subject string) (string, error) {
-	data := EventRequest{
-		Subject: subject,
-	}
-	logf.Log.Info("Executing EventList on node", "addr", agentAddr, "data", data)
-	url := "http://" + getAgentAddress(agentAddr) + "/event/list"
-	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
-	if err != nil {
-		return encodedresult, fmt.Errorf("failed to send command to e2e-agent, error: %s", err.Error())
-	}
-	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
-	if err != nil {
-		return encodedresult, fmt.Errorf("failed to unwrap result, error: %s", err.Error())
-	}
-	if e2eagenterrcode != ErrNone {
-		return out, fmt.Errorf("failed to list events, errcode %d", e2eagenterrcode)
-	}
-	return out, err
-}
-
-func EventSubscribe(agentAddr string, eventServerAddr string, subject string) (string, error) {
-	data := EventSubscriptionRequest{
-		EventServerAddr: eventServerAddr,
-		Subject:         subject,
-	}
-	logf.Log.Info("Executing EventSubscribe on node", "addr", agentAddr, "data", data)
-	url := "http://" + getAgentAddress(agentAddr) + "/event/subscribe"
-	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
-	if err != nil {
-		return encodedresult, err
-	}
-	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
-	if err != nil {
-		return encodedresult, err
-	}
-	if e2eagenterrcode != ErrNone {
-		return out, fmt.Errorf("failed to subscribe, errcode %d", e2eagenterrcode)
-	}
-	return out, err
-}
-
-func EventPublish(agentAddr string, eventServerAddr string, subject string, message string) (string, error) {
-	data := EventPublishRequest{
-		EventServerAddr: eventServerAddr,
-		Subject:         subject,
-		Data:            message,
-	}
-	logf.Log.Info("Executing EventPublish on node", "addr", agentAddr, "data", data)
-	url := "http://" + getAgentAddress(agentAddr) + "/event/publish"
-	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
-	if err != nil {
-		return encodedresult, err
-	}
-	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
-	if err != nil {
-		return encodedresult, err
-	}
-	if e2eagenterrcode != ErrNone {
-		return out, fmt.Errorf("failed to publish, errcode %d", e2eagenterrcode)
-	}
-	return out, err
-}
-
-func EventUnsubscribe(agentAddr string, subject string) (string, error) {
-	data := EventRequest{
-		Subject: subject,
-	}
-	logf.Log.Info("Executing EventUnsubscribe on node", "addr", agentAddr, "data", data)
-	url := "http://" + getAgentAddress(agentAddr) + "/event/unsubscribe"
-	encodedresult, err := sendRequestGetResponse("POST", url, data, false)
-	if err != nil {
-		return encodedresult, err
-	}
-	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
-	if err != nil {
-		return encodedresult, err
-	}
-	if e2eagenterrcode != ErrNone {
-		return out, fmt.Errorf("failed to unsubscribe, errcode %d", e2eagenterrcode)
-	}
-	return out, err
-}
-
-func EventUnsubscribeAll(agentAddr string) (string, error) {
-	logf.Log.Info("Executing EventUnsubscribeAll on node", "addr", agentAddr)
-	url := "http://" + getAgentAddress(agentAddr) + "/event/unsubscribeall"
-	encodedresult, err := sendRequestGetResponse("POST", url, nil, false)
-	if err != nil {
-		return encodedresult, err
-	}
-
-	out, e2eagenterrcode, err := UnwrapResult(encodedresult)
-	if err != nil {
-		return encodedresult, err
-	}
-	if e2eagenterrcode != ErrNone {
-		return out, fmt.Errorf("failed to unsubscribe all, errcode %d", e2eagenterrcode)
-	}
-	return out, err
-}
-
 type Stats struct {
 	ServiceAddr string `json:"serviceAddr"`
 }
@@ -769,16 +653,8 @@ const (
 	ErrReadFail   E2eAgentErrcode = 4
 	ErrExecFailed E2eAgentErrcode = 5
 
-	// event errors
-	ErrConnectFail          E2eAgentErrcode = 101
-	ErrConnectedOther       E2eAgentErrcode = 102
-	ErrNotConnected         E2eAgentErrcode = 103
-	ErrSubscriptionNotFound E2eAgentErrcode = 104
-	ErrSubscribedAlready    E2eAgentErrcode = 105
-	ErrSubscribeFail        E2eAgentErrcode = 106
-	ErrStreamAddFail        E2eAgentErrcode = 107
-	ErrStreamCreateFail     E2eAgentErrcode = 108
-	ErrPublishFail          E2eAgentErrcode = 109
+	// stats errors
+	ErrConnectFail E2eAgentErrcode = 101
 )
 
 type E2eAgentError struct {

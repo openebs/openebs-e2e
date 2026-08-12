@@ -828,67 +828,6 @@ func RestartMayastorPods(timeoutSecs int) error {
 	return fmt.Errorf("restart failed incomplete error=%v", err)
 }
 
-/*
-func collectNatsPodNames() ([]string, error) {
-	var podNames []string
-	podApi := gTestEnv.KubeInt.CoreV1().Pods
-	pods, err := podApi(common.NSMayastor()).List(context.TODO(), metaV1.ListOptions{})
-	if err != nil {
-		return podNames, err
-	}
-	for _, pod := range pods.Items {
-		if strings.HasPrefix(pod.Name, e2e_config.GetConfig().Product.DataPlaneNats) {
-			podNames = append(podNames, pod.Name)
-		}
-	}
-	return podNames, nil
-}
-
-// RestartNatsPods restart the nats pods
-func RestartNatsPods(timeoutSecs int) error {
-	var err error
-	podApi := gTestEnv.KubeInt.CoreV1().Pods
-
-	podNames, err := collectNatsPodNames()
-	if err != nil {
-		return err
-	}
-
-	for _, podName := range podNames {
-		delErr := podApi(common.NSMayastor()).Delete(context.TODO(), podName, metaV1.DeleteOptions{})
-		if delErr != nil {
-			logf.Log.Info("Failed to delete", "pod", podName, "error", delErr)
-			err = delErr
-		} else {
-			logf.Log.Info("Deleted", "pod", podName)
-		}
-	}
-
-	if err != nil {
-		return err
-	}
-	const sleepTime = 5
-	// Wait (with timeout) for all pods to have restarted
-	// For this to work we rely on the fact that for daemonsets and deployments,
-	// when a pod is deleted, k8s spins up a new pod with a different name.
-	// So the check is comparison between
-	//      1) the list of nats pods deleted
-	//      2) a freshly generated list of nats pods
-	// - the size of the fresh list >= size of the deleted list
-	// - the names of the pods deleted do not occur in the fresh list
-	for ix := 1; ix < (timeoutSecs+sleepTime-1)/sleepTime; ix++ {
-		newPodNames, err := collectNatsPodNames()
-		if err == nil {
-			if len(podNames) <= len(newPodNames) {
-				return nil
-			}
-			time.Sleep(sleepTime * time.Second)
-		}
-	}
-	return fmt.Errorf("restart failed in some nebulous way! ")
-}
-*/
-
 func restartMayastor(restartTOSecs int, readyTOSecs int, poolsTOSecs int) error {
 	var err error
 	ready := false

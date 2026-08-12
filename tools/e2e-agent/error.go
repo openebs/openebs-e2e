@@ -20,17 +20,8 @@ const (
 	ErrExecFailed   E2eAgentErrcode = 5
 	ErrFileNotExist E2eAgentErrcode = 6
 
-	// event errors
-	ErrConnectFail          E2eAgentErrcode = 101
-	ErrConnectedOther       E2eAgentErrcode = 102
-	ErrNotConnected         E2eAgentErrcode = 103
-	ErrSubscriptionNotFound E2eAgentErrcode = 104
-	ErrSubscribedAlready    E2eAgentErrcode = 105
-	ErrSubscribeFail        E2eAgentErrcode = 106
-	ErrStreamAddFail        E2eAgentErrcode = 107
-	ErrStreamCreateFail     E2eAgentErrcode = 108
-	ErrPublishFail          E2eAgentErrcode = 109
-	ErrUnSubscribeFail      E2eAgentErrcode = 110
+	// stats errors
+	ErrConnectFail E2eAgentErrcode = 101
 )
 
 type E2eAgentError struct {
@@ -45,9 +36,9 @@ func WrapResult(output string, errorcode E2eAgentErrcode, w http.ResponseWriter)
 	}
 	jsn, err := json.Marshal(e2eagenterr)
 	if err != nil {
-		klog.Error("EventList: failed to marshal error, Error: ", err)
+		klog.Error("WrapResult: failed to marshal error, Error: ", err)
 		//nolint:errcheck // secondary write failure is not actionable here
-		fmt.Fprint(w, "EventList: failed to marshal error")
+		fmt.Fprint(w, "WrapResult: failed to marshal error")
 		w.WriteHeader(InternalServerErrorCode)
 		return
 	}
