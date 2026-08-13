@@ -193,8 +193,8 @@ EOF
     # Should already be installed by prereq script
     ZFS=$(realpath $(which zfs))
     cat <<EOF >>$TMP_KIND_ZFS
-    #/bin/sh
-    chroot /host $ZFS "\$@"
+#!/bin/sh
+chroot /host $ZFS "\$@"
 EOF
     chmod +x $TMP_KIND_ZFS
     cat <<EOF >> "$TMP_KIND_CONFIG"
@@ -211,8 +211,8 @@ EOF
     # Should already be installed by prereq script
     ZPOOL=$(realpath $(which zpool))
     cat <<EOF >>$TMP_KIND_ZPOOL
-    #/bin/sh
-    chroot /host $ZPOOL "\$@"
+#!/bin/sh
+chroot /host $ZPOOL "\$@"
 EOF
     chmod +x $TMP_KIND_ZPOOL
     cat <<EOF >> "$TMP_KIND_CONFIG"
@@ -224,13 +224,13 @@ EOF
       propagation: HostToContainer
 EOF
   fi
-  
+
   if [ "$SETUP_LVM" = "true" ]; then
     # Should already be installed by prereq script
     LVM=$(realpath $(which lvm))
     cat <<EOF >>$TMP_KIND_LVM
-    #/bin/sh
-    chroot /host $LVM "\$@"
+#!/bin/sh
+chroot /host $LVM "\$@"
 EOF
     chmod +x $TMP_KIND_LVM
     cat <<EOF >> "$TMP_KIND_CONFIG"
