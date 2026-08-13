@@ -175,7 +175,7 @@ product:
     openEBSHelmChartName: "openebs/openebs"
     openEBSHelmRepoUrl: "https://openebs.github.io/openebs"
     openEBSProductNamespace: "openebs"
-    openEBSHelmChartVersion: "4.5.0-develop"
+    openEBSHelmChartVersion: "4.6.0-develop"
     lvmEngineControllerDeploymentName: "openebs-lvm-localpv-controller"
     lvmEngineLeaseName: "snapshot-controller-leader"
     lvmEnginePluginContainerName: "openebs-lvm-plugin"
