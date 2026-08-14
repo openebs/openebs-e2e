@@ -4,9 +4,11 @@ import (
 	// container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	// volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 	"time"
@@ -29,8 +31,9 @@ const (
 	// to store the hostname on the node resource.
 	K8sNodeLabelKeyHostname = "kubernetes.io/hostname"
 	// timeout and sleep time in seconds
-	timeout       = 300 // timeout in seconds
-	timeSleepSecs = 10  // sleep time in seconds
+	timeout            = 300 // timeout in seconds
+	timeSleepSecs      = 10  // sleep time in seconds
+	podDeletionTimeout = 90
 )
 
 type Pod struct {
@@ -404,19 +407,27 @@ func VerifyPodStatusWithAppLabel(podLabel string, namespace string) (bool, error
 
 // RestartPodByPrefix restart the pod by prefix name
 func RestartPodByPrefix(prefix string) error {
-	podApi := gTestEnv.KubeInt.CoreV1().Pods
-	pods, err := podApi(common.NSMayastor()).List(context.TODO(), metaV1.ListOptions{})
+	pods, err := ListPodsByPrefix(common.NSMayastor(), prefix)
 	if err != nil {
 		return err
 	}
-	for _, pod := range pods.Items {
+	for _, pod := range pods {
 		if strings.HasPrefix(pod.Name, prefix) && pod.Status.Phase == corev1.PodRunning {
-			delErr := podApi(common.NSMayastor()).Delete(context.TODO(), pod.Name, metaV1.DeleteOptions{})
+			podName := pod.Name
+			delErr := DeletePod(podName, common.NSMayastor())
 			if delErr != nil {
-				logf.Log.Info("Failed to delete", "pod", pod.Name, "error", delErr)
+				logf.Log.Info("Failed to delete", "pod", podName, "error", delErr)
 				return delErr
 			}
-			logf.Log.Info("Restarted the ", "pod ", pod.Name)
+			logf.Log.Info("Deleted pod, waiting for removal", "pod", podName)
+			deleted, waitErr := WaitForPodDeletion(podName, common.NSMayastor(), time.Duration(podDeletionTimeout)*time.Second)
+			if waitErr != nil {
+				return fmt.Errorf("error waiting for pod %s deletion: %v", podName, waitErr)
+			}
+			if !deleted {
+				return fmt.Errorf("pod %s was not removed within timeout", podName)
+			}
+			logf.Log.Info("Pod removed successfully", "pod", podName)
 		}
 	}
 	return nil
@@ -1031,4 +1042,172 @@ func WaitForPodsByPrefixToBeDeleted(namespace string, podPrefix string, timeoutS
 		}
 	}
 	return fmt.Errorf("timeout waiting for pods with prefix %s in namespace %s to be deleted", podPrefix, namespace)
+}
+
+// WaitForAlloyTailing waits for the Alloy pod co-located with the eventing-aggregator
+// to discover and start tailing the aggregator pod's log path. After a pod restart
+// Alloy may remain stuck on the old pod's path; this function detects that and
+// deletes the stuck Alloy pod so the DaemonSet recreates it with a fresh discovery state.
+func WaitForAlloyTailing(tailingTimeoutSecs int, deleteRecoveryTimeoutSecs int) error {
+	ns := common.NSMayastor()
+	cfg := e2e_config.GetConfig()
+	alloyName := cfg.Product.ControlPlaneAlloy
+	alloyPodLabelKeyName := cfg.Product.AlloyK8sLabelName
+	alloyPodLabelKeyValue := cfg.Product.AlloyK8sLabelValue
+	aggPodLabelKeyName := cfg.Product.AggregatorK8sLabelName
+	aggPodLabelKeyValue := cfg.Product.AggregatorK8sLabelValue
+
+	// find the aggregator pod and its node
+	aggPod, aggNode, err := GetPodAndNodeWithLabel(ns, aggPodLabelKeyName, aggPodLabelKeyValue)
+	if err != nil {
+		return fmt.Errorf("failed to find aggregator pod: %v", err)
+	}
+	logf.Log.Info("Found aggregator pod", "pod", aggPod, "node", aggNode)
+
+	// find the alloy pod on the same node
+	alloyPod, err := GetPodOnNodeWithLabel(ns, alloyPodLabelKeyName, alloyPodLabelKeyValue, aggNode)
+	if err != nil {
+		return fmt.Errorf("failed to find alloy pod on node %s: %v", aggNode, err)
+	}
+	logf.Log.Info("Found co-located Alloy pod", "pod", alloyPod, "node", aggNode)
+
+	// wait for alloy to start tailing the current aggregator pod
+	tailing, err := waitForAlloyLogMatch(ns, alloyPod, aggPod, tailingTimeoutSecs)
+	if err != nil {
+		return fmt.Errorf("error checking alloy logs: %v", err)
+	}
+	if tailing {
+		logf.Log.Info("Alloy is tailing the aggregator pod", "alloy", alloyPod, "aggregator", aggPod)
+		return nil
+	}
+
+	// alloy is stuck — delete it so the DaemonSet recreates it
+	logf.Log.Info("Alloy is not tailing the current aggregator pod, deleting stuck Alloy pod",
+		"alloy", alloyPod, "aggregator", aggPod)
+
+	err = DeletePod(alloyPod, ns)
+	if err != nil {
+		return fmt.Errorf("failed to delete stuck alloy pod %s: %v", alloyPod, err)
+	}
+
+	// wait for the old pod to be fully removed before checking DaemonSet readiness
+	deleted, err := WaitForPodDeletion(alloyPod, ns, time.Duration(deleteRecoveryTimeoutSecs)*time.Second)
+	if err != nil || !deleted {
+		return fmt.Errorf("timeout waiting for old alloy pod %s to be deleted: %v", alloyPod, err)
+	}
+	logf.Log.Info("Old Alloy pod deleted", "pod", alloyPod)
+
+	// wait for the alloy daemonset to be ready
+	const dsSleepTime = 5
+	dsReady := false
+	for ix := 0; ix < (deleteRecoveryTimeoutSecs+dsSleepTime-1)/dsSleepTime; ix++ {
+		time.Sleep(dsSleepTime * time.Second)
+		if DaemonSetReady(alloyName, ns) {
+			dsReady = true
+			break
+		}
+	}
+	if !dsReady {
+		return fmt.Errorf("timeout waiting for alloy daemonset %s to be ready after pod deletion", alloyName)
+	}
+
+	// find the new alloy pod on the same node
+	newAlloyPod, err := GetPodOnNodeWithLabel(ns, alloyPodLabelKeyName, alloyPodLabelKeyValue, aggNode)
+	if err != nil {
+		return fmt.Errorf("failed to find new alloy pod on node %s: %v", aggNode, err)
+	}
+	logf.Log.Info("New Alloy pod created", "pod", newAlloyPod, "node", aggNode)
+
+	// verify new alloy is tailing the aggregator
+	tailing, err = waitForAlloyLogMatch(ns, newAlloyPod, aggPod, tailingTimeoutSecs)
+	if err != nil {
+		return fmt.Errorf("error checking new alloy logs: %v", err)
+	}
+	if !tailing {
+		return fmt.Errorf("new alloy pod %s is still not tailing aggregator %s after recovery", newAlloyPod, aggPod)
+	}
+	logf.Log.Info("New Alloy pod is tailing the aggregator pod", "alloy", newAlloyPod, "aggregator", aggPod)
+	return nil
+}
+
+// GetPodAndNodeWithLabel returns the name and node of the first running pod matching the label.
+func GetPodAndNodeWithLabel(ns string, labelKey string, labelValue string) (string, string, error) {
+	label := map[string]string{
+		labelKey: labelValue,
+	}
+	pods, err := ListPodsWithLabel(ns, label)
+	if err != nil {
+		return "", "", err
+	}
+	for _, pod := range pods.Items {
+		if pod.Status.Phase == corev1.PodRunning {
+			return pod.Name, pod.Spec.NodeName, nil
+		}
+	}
+	return "", "", fmt.Errorf("no running pod found with label %s=%s in namespace %s", labelKey, labelValue, ns)
+}
+
+// GetPodOnNodeWithLabel returns the name of the first running pod matching the label on the specified node.
+func GetPodOnNodeWithLabel(ns string, labelKey string, labelValue string, nodeName string) (string, error) {
+	pods, err := ListPodsWithLabel(ns, map[string]string{labelKey: labelValue})
+	if err != nil {
+		return "", err
+	}
+	for _, pod := range pods.Items {
+		if pod.Spec.NodeName == nodeName && pod.Status.Phase == corev1.PodRunning {
+			return pod.Name, nil
+		}
+	}
+	return "", fmt.Errorf("no running pod found with label %s=%s on node %s", labelKey, labelValue, nodeName)
+}
+
+// waitForAlloyLogMatch polls the alloy pod's logs looking for the aggregator pod name,
+// which confirms alloy has discovered and is tailing the aggregator's log path.
+func waitForAlloyLogMatch(ns string, alloyPod string, aggPod string, timeoutSecs int) (bool, error) {
+	const sleepTime = 10
+	for ix := 0; ix < (timeoutSecs+sleepTime-1)/sleepTime; ix++ {
+		if ix > 0 {
+			time.Sleep(sleepTime * time.Second)
+		}
+		found, err := alloyLogContains(ns, alloyPod, aggPod)
+		if err != nil {
+			logf.Log.Info("Failed to read alloy logs, will retry", "error", err)
+			continue
+		}
+		if found {
+			return true, nil
+		}
+		logf.Log.Info("Alloy not yet tailing aggregator, waiting",
+			"alloy", alloyPod, "aggregator", aggPod,
+			"elapsed", fmt.Sprintf("%ds/%ds", (ix+1)*sleepTime, timeoutSecs))
+	}
+	return false, nil
+}
+
+// alloyLogContains reads the alloy container's recent logs and checks
+// whether the aggregator pod name appears in any log line.
+func alloyLogContains(ns string, alloyPod string, aggPod string) (bool, error) {
+	tailLines := int64(200)
+	opts := &corev1.PodLogOptions{
+		Container: "alloy",
+		TailLines: &tailLines,
+	}
+	req := gTestEnv.KubeInt.CoreV1().Pods(ns).GetLogs(alloyPod, opts)
+	stream, err := req.Stream(context.TODO())
+	if err != nil {
+		return false, err
+	}
+	//nolint:errcheck // best-effort close on read-only log stream
+	defer stream.Close()
+
+	scanner := bufio.NewScanner(stream)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), aggPod) {
+			return true, nil
+		}
+	}
+	if err := scanner.Err(); err != nil && err != io.EOF {
+		return false, err
+	}
+	return false, nil
 }

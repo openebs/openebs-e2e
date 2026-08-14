@@ -164,6 +164,10 @@ type ProductSpec struct {
 	OciRegistryUrl                    string            `yaml:"ociRegistryUrl" env-default:""`
 	OpenebsToMayaVersionMap           map[string]string `yaml:"openebsToMayaVersionMap"`
 	IgnoreLocalPvPodCheck             bool              `yaml:"ignoreLocalPvPodCheck"`
+	AlloyK8sLabelName                 string            `yaml:"alloyK8sLabelName"`
+	AlloyK8sLabelValue                string            `yaml:"alloyK8sLabelValue"`
+	AggregatorK8sLabelName            string            `yaml:"aggregatorK8sLabelName"`
+	AggregatorK8sLabelValue           string            `yaml:"aggregatorK8sLabelValue"`
 }
 
 // E2EConfig is an application configuration structure
