@@ -193,3 +193,7 @@ product:
     lokiIngesterMaxChunkAgeTime: "150s"
     ociRegistryUrl: "oci://ghcr.io/openebs/helm/openebs"
     ignoreLocalPvPodCheck: false
+    alloyK8sLabelName: "app.kubernetes.io/name"
+    alloyK8sLabelValue: "alloy"
+    aggregatorK8sLabelName: "app"
+    aggregatorK8sLabelValue: "eventing-aggregator"
