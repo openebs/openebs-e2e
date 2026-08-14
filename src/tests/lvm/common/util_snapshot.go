@@ -9,8 +9,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// LvmVolumeSnapshotVerify verify snapshot and content to be ready
-// it also verify that snapshot and content restore size should be zero
+// LvmVolumeSnapshotVerify verifies the snapshot and content are ready.
+// Thick LVM snapshots have a zero restore size, represented as nil since external-snapshotter v8.
 func LvmVolumeSnapshotVerify(snapshotName, snapshotContentName, namespace string, skipSnapError bool) (bool, error) {
 
 	logf.Log.Info("Verify lvm snapshot content ready status")
@@ -31,14 +31,23 @@ func LvmVolumeSnapshotVerify(snapshotName, snapshotContentName, namespace string
 	}
 
 	logf.Log.Info("Verify snapshot restore size is zero")
-	restoreSize, err := k8stest.GetSnapshotRestoreSize(snapshotName, namespace)
+	snapshotObj, err := k8stest.GetSnapshot(snapshotName, namespace)
 	if err != nil {
 		return false, err
 	}
+	if snapshotObj == nil {
+		return false, fmt.Errorf("snapshot %s not found", snapshotName)
+	}
+	if snapshotObj.Status == nil {
+		return false, fmt.Errorf("snapshot %s status not found", snapshotName)
+	}
+	if snapshotObj.Status.RestoreSize == nil {
+		return true, nil
+	}
 
-	restoreSizeInt, conversionStatus := restoreSize.AsInt64()
+	restoreSizeInt, conversionStatus := snapshotObj.Status.RestoreSize.AsInt64()
 	if !conversionStatus {
-		return false, fmt.Errorf("failed to convert snapshot restore size into int:, restore size: %v", restoreSize)
+		return false, fmt.Errorf("failed to convert snapshot restore size into int, restore size: %v", snapshotObj.Status.RestoreSize)
 	} else if restoreSizeInt != 0 {
 		return false, fmt.Errorf("snapshot restore size is not 0")
 	}
