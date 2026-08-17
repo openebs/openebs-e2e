@@ -33,7 +33,7 @@ const (
 	// timeout and sleep time in seconds
 	timeout            = 300 // timeout in seconds
 	timeSleepSecs      = 10  // sleep time in seconds
-	podDeletionTimeout = 90
+	podDeletionTimeout = 180
 )
 
 type Pod struct {
