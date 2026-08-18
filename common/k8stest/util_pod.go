@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -414,23 +415,44 @@ func RestartPodByPrefix(prefix string) error {
 	for _, pod := range pods {
 		if strings.HasPrefix(pod.Name, prefix) && pod.Status.Phase == corev1.PodRunning {
 			podName := pod.Name
+			oldUID := pod.UID
 			delErr := DeletePod(podName, common.NSMayastor())
 			if delErr != nil {
 				logf.Log.Info("Failed to delete", "pod", podName, "error", delErr)
 				return delErr
 			}
-			logf.Log.Info("Deleted pod, waiting for removal", "pod", podName)
-			deleted, waitErr := WaitForPodDeletion(podName, common.NSMayastor(), time.Duration(podDeletionTimeout)*time.Second)
+			logf.Log.Info("Deleted pod, waiting for old instance to be replaced", "pod", podName, "oldUID", oldUID)
+			waitErr := waitForPodRestart(podName, common.NSMayastor(), oldUID, time.Duration(podDeletionTimeout)*time.Second)
 			if waitErr != nil {
-				return fmt.Errorf("error waiting for pod %s deletion: %v", podName, waitErr)
+				return waitErr
 			}
-			if !deleted {
-				return fmt.Errorf("pod %s was not removed within timeout", podName)
-			}
-			logf.Log.Info("Pod removed successfully", "pod", podName)
+			logf.Log.Info("Pod restarted successfully", "pod", podName)
 		}
 	}
 	return nil
+}
+
+// waitForPodRestart waits until the pod with the given name either disappears
+// (Deployment) or gets a new UID (StatefulSet).
+func waitForPodRestart(podName, namespace string, oldUID types.UID, timeout time.Duration) error {
+	startTime := time.Now()
+	for {
+		exists, err := CheckPodExists(podName, namespace)
+		if err != nil {
+			return fmt.Errorf("error checking pod %s: %v", podName, err)
+		}
+		if !exists {
+			return nil
+		}
+		pod, getErr := GetPod(podName, namespace)
+		if getErr == nil && pod.UID != oldUID {
+			return nil
+		}
+		if time.Since(startTime) >= timeout {
+			return fmt.Errorf("timeout waiting for pod %s to restart (old UID %s still present)", podName, oldUID)
+		}
+		time.Sleep(2 * time.Second)
+	}
 }
 
 // CheckPodIsRunningByPrefix check pod is running by prefix name
