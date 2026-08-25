@@ -163,7 +163,7 @@ func buildUpgradeArgs(meta upgradeMetadata, opts upgradeOptions) []string {
 			cmdArgs = append(cmdArgs,
 				"--registry", detectedReg,
 				"--repo-namespace", regNS,
-				"--set", fmt.Sprintf("%s.registry=%s,%s.repo=%s", setPrefix, detectedReg, setPrefix, regNS),
+				"--set", fmt.Sprintf("%s.registry=%s,%s.repo=%s", setPrefix, detectedReg, setPrefix, common.MayastorRegistryNameSpace),
 			)
 		}
 		// empty string → DockerHub: plugin uses it by default, no --registry flag needed
