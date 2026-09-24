@@ -166,6 +166,7 @@ type ProductSpec struct {
 	IgnoreLocalPvPodCheck             bool              `yaml:"ignoreLocalPvPodCheck"`
 	AlloyK8sLabelName                 string            `yaml:"alloyK8sLabelName"`
 	AlloyK8sLabelValue                string            `yaml:"alloyK8sLabelValue"`
+	EnableAlloyWal                    bool              `yaml:"enableAlloyWal"`
 	AggregatorK8sLabelName            string            `yaml:"aggregatorK8sLabelName"`
 	AggregatorK8sLabelValue           string            `yaml:"aggregatorK8sLabelValue"`
 }
