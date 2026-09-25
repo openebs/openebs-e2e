@@ -228,10 +228,11 @@ type E2EConfig struct {
 	// Operational parameters
 	Cores int `yaml:"cores,omitempty"`
 	// Registry from where mayastor images are retrieved
-	DockerCache                  string `yaml:"dockercache" env:"e2e_docker_cache" env-default:""`
-	ImageTag                     string `yaml:"imageTag" env:"e2e_image_tag"`
-	ImagePullPolicy              string `yaml:"imagePullPolicy" env-default:"IfNotPresent" env:"e2e_image_pull_policy"`
-	InstallLoki                  bool   `yaml:"installLoki" env-default:"true" env:"install_loki"`
+	DockerCache     string `yaml:"dockercache" env:"e2e_docker_cache" env-default:""`
+	ImageTag        string `yaml:"imageTag" env:"e2e_image_tag"`
+	ImagePullPolicy string `yaml:"imagePullPolicy" env-default:"IfNotPresent" env:"e2e_image_pull_policy"`
+	// default false: loki's minio storage backend images were pulled from quay.io (401); re-enable once re-vendored upstream
+	InstallLoki                  bool   `yaml:"installLoki" env-default:"false" env:"install_loki"`
 	InstallNonHaModeEtcd         bool   `yaml:"installNonHaModeEtcd" env-default:"false" env:"e2e_single_replica_master_node_etcd"`
 	LokiStatefulsetOnControlNode bool   `yaml:"lokiOnControlNode" env-default:"true" env:"loki_on_control_node"`
 	E2eFioImage                  string `yaml:"e2eFioImage" env-default:"openebs/e2e-fio:v3.38-e2e-1" env:"e2e_fio_image"`
