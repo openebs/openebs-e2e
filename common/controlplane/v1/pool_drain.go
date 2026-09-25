@@ -2,7 +2,6 @@ package v1
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -11,11 +10,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// TODO: `drain pool` / `get drain pool` don't exist in the plugin yet.
-// Calling these against a live cluster fails with "unrecognized subcommand".
-
 // DrainPool requests a drain on a pool. unsafeRebuildOtherwiseEvict force-evicts an
 // unplaceable replica after that grace period; pass nil to disable forced eviction.
+// Re-issuing the drain on a pool is only accepted while it's Queued or PartiallyDrained.
 func (cp CPv1) DrainPool(poolID string, unsafeRebuildOtherwiseEvict *time.Duration, opts ...common.PoolDrainOption) error {
 	optStrings := make([]string, 0, len(opts))
 	for _, opt := range opts {
@@ -29,18 +26,14 @@ func (cp CPv1) DrainPool(poolID string, unsafeRebuildOtherwiseEvict *time.Durati
 
 	for _, opt := range opts {
 		switch opt {
-		case common.DrainIgnoreSnapshots:
-			args = append(args, "--ignore-snapshots")
-		case common.DrainAcceptSnapshotLoss:
-			args = append(args, "--accept-snapshot-loss")
+		case common.DrainSnapshotPolicyAcceptLoss:
+			args = append(args, "--snapshot-policy", "accept-loss")
 		case common.DrainUnsafeEvict:
 			args = append(args, "--unsafe-evict")
-		case common.DrainDryRun:
-			args = append(args, "--dry-run")
 		}
 	}
 	if unsafeRebuildOtherwiseEvict != nil {
-		args = append(args, "--unsafe-rebuild-otherwise-evict", unsafeRebuildOtherwiseEvict.String())
+		args = append(args, "--unsafe-rebuild-otherwise-evict", fmt.Sprintf("%.0f", unsafeRebuildOtherwiseEvict.Seconds()))
 	}
 
 	args = append(args, poolID)
@@ -84,7 +77,7 @@ func (cp CPv1) AbortPoolDrain(poolID string) error {
 	return nil
 }
 
-// PoolDrainUsage is a pool usage snapshot.
+// PoolDrainUsage mirrors the REST PoolDrainUsage schema: a pool usage snapshot.
 type PoolDrainUsage struct {
 	ReplicaCount  uint64  `json:"replicaCount"`
 	SnapshotCount uint64  `json:"snapshotCount"`
@@ -92,73 +85,71 @@ type PoolDrainUsage struct {
 	Committed     *uint64 `json:"committed,omitempty"`
 }
 
-// PoolDrainStatistics is the baseline usage captured entering Draining, versus live usage.
-type PoolDrainStatistics struct {
+// PoolDrainRecord mirrors the REST PoolDrainRecord schema, surfaced at
+// `get pool <id>`'s .meta.drain - there is no separate `get drain pool` command.
+// Persists after the drain reaches a terminal phase, as the pool's last-drain
+// record; cleared only when the drain is cancelled. Current usage isn't part of
+// this record - it's the pool's own live .meta.replicaCount/.meta.snapshotCount
+// and .state.used/.state.committed, diffed against Initial by the caller.
+type PoolDrainRecord struct {
+	Phase  string  `json:"phase"`
+	Reason *string `json:"reason,omitempty"`
+	// Initial is absent while the drain is still Queued.
 	Initial *PoolDrainUsage `json:"initial,omitempty"`
-	Current *PoolDrainUsage `json:"current,omitempty"`
+	// MovingReplicas are the replica ids this drain is currently moving off the pool.
+	MovingReplicas []string `json:"movingReplicas"`
 }
 
-// PoolDrainPolicy is the snapshot/eviction policy a drain was requested with.
-type PoolDrainPolicy struct {
-	SnapshotPolicy              string  `json:"snapshotPolicy"`
-	UnsafeRebuildOtherwiseEvict *uint64 `json:"unsafeRebuildOtherwiseEvict,omitempty"`
-	UnsafeEvict                 bool    `json:"unsafeEvict"`
-}
+// Pool drain phase constants (PoolDrainPhase in the REST schema).
+const (
+	PoolDrainPhaseUnknown          = "Unknown"
+	PoolDrainPhaseQueued           = "Queued"
+	PoolDrainPhaseDraining         = "Draining"
+	PoolDrainPhaseAwaitingCleanup  = "AwaitingCleanup"
+	PoolDrainPhasePartiallyDrained = "PartiallyDrained"
+	PoolDrainPhaseDrained          = "Drained"
+	PoolDrainPhaseCancelled        = "Cancelled"
+)
 
-// PoolDrainSpec is the requested drain: when it was requested, its policy, and the
-// user's own cordon if the pool was cordoned before the drain began.
-type PoolDrainSpec struct {
-	RequestTimestamp time.Time          `json:"requestTimestamp"`
-	Policy           PoolDrainPolicy    `json:"policy"`
-	UserCordon       *PoolCordonedState `json:"userCordon,omitempty"`
-}
+// Pool drain phase-reason constants (PoolDrainPhaseReason in the REST schema).
+const (
+	PoolDrainPhaseReasonUnknown              = "Unknown"
+	PoolDrainPhaseReasonWaitingForSlot       = "WaitingForSlot"
+	PoolDrainPhaseReasonOfflinePool          = "OfflinePool"
+	PoolDrainPhaseReasonSingleReplicaEvction = "SingleReplicaEviction"
+	PoolDrainPhaseReasonImportCordoned       = "ImportCordoned"
+	PoolDrainPhaseReasonSnapshotsRetained    = "SnapshotsRetained"
+)
 
-// PoolSpareReplica is the over-replicated spare of an in-flight move.
-type PoolSpareReplica struct {
-	ReplicaID *string `json:"replicaId,omitempty"`
-}
-
-// PoolReplicaMove is a single in-flight replica move off a draining pool.
-type PoolReplicaMove struct {
-	Volume             string            `json:"volume"`
-	PlacementStartedAt *time.Time        `json:"placementStartedAt,omitempty"`
-	MovingReplica      *string           `json:"movingReplica,omitempty"`
-	SpareReplica       *PoolSpareReplica `json:"spareReplica,omitempty"`
-	// Unwind is one of Cancelled, Respare; empty in steady state.
-	Unwind string `json:"unwind,omitempty"`
-}
-
-// PoolDrainDetail is the full picture of one pool's drain, surfaced by
-// `kubectl mayastor get drain pool <pool-id>`.
-// TODO: verify field names/casing once the command exists for real.
-type PoolDrainDetail struct {
-	Spec         PoolDrainSpec       `json:"spec"`
-	Phase        string              `json:"phase"`
-	PhaseReason  string              `json:"phaseReason,omitempty"`
-	Statistics   PoolDrainStatistics `json:"statistics"`
-	ReplicaMoves []PoolReplicaMove   `json:"replicaMoves"`
-}
-
-// GetPoolDrainProgress fetches drain progress for a pool.
-// TODO: verify the field names above once the command exists for real.
-func (cp CPv1) GetPoolDrainProgress(poolID string) (*PoolDrainDetail, error) {
-	args := []string{"-n", common.NSMayastor(), "-ojson", "get", "drain", "pool", poolID}
-
-	logf.Log.Info("Executing command", "command", "kubectl mayastor", "args", args)
-
-	cmd := GetMayastorPluginCmd(args...)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-
-	err := cmd.Run()
+// GetPoolDrainProgress fetches a pool's drain record via `get pool <id>` -
+// `get drain pool` does not exist, drain progress rides on the regular pool GET.
+func (cp CPv1) GetPoolDrainProgress(poolID string) (*PoolDrainRecord, error) {
+	pool, err := GetMayastorCpPool(poolID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get drain progress for pool %s, error %v, output: %s", poolID, err, out.String())
+		return nil, fmt.Errorf("failed to get pool %s to read its drain progress, error %v", poolID, err)
 	}
+	if pool.Meta == nil || pool.Meta.Drain == nil {
+		return nil, fmt.Errorf("pool %s has no drain record - has a drain ever been requested on it?", poolID)
+	}
+	return pool.Meta.Drain, nil
+}
 
-	var detail PoolDrainDetail
-	if err := json.Unmarshal(out.Bytes(), &detail); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal drain progress for pool %s, output %s, error %v", poolID, out.String(), err)
+// GetPoolLiveUsage fetches a pool's current (live) replica/snapshot/usage tallies,
+// to diff against a PoolDrainRecord's Initial - the record itself only ever
+// carries the initial snapshot, never a persisted "current".
+func (cp CPv1) GetPoolLiveUsage(poolID string) (*PoolDrainUsage, error) {
+	pool, err := GetMayastorCpPool(poolID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pool %s to read its live usage, error %v", poolID, err)
 	}
-	return &detail, nil
+	if pool.Meta == nil {
+		return nil, fmt.Errorf("pool %s has no meta in its GET response", poolID)
+	}
+	committed := pool.State.Committed
+	return &PoolDrainUsage{
+		ReplicaCount:  pool.Meta.ReplicaCount,
+		SnapshotCount: pool.Meta.SnapshotCount,
+		Used:          pool.State.Used,
+		Committed:     &committed,
+	}, nil
 }

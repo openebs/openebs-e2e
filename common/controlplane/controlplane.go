@@ -102,10 +102,10 @@ type ControlPlaneInterface interface {
 	GetDrainNodeLabels(nodeName string) ([]string, []string, error)
 
 	// pool drain
-	// TODO: no plugin subcommand exists yet - see common/controlplane/v1/pool_drain.go
 	DrainPool(poolID string, unsafeRebuildOtherwiseEvict *time.Duration, opts ...common.PoolDrainOption) error
 	AbortPoolDrain(poolID string) error
-	GetPoolDrainProgress(poolID string) (*v1.PoolDrainDetail, error)
+	GetPoolDrainProgress(poolID string) (*v1.PoolDrainRecord, error)
+	GetPoolLiveUsage(poolID string) (*v1.PoolDrainUsage, error)
 
 	//upgrade
 	Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) (string, error)
@@ -461,8 +461,12 @@ func AbortPoolDrain(poolID string) error {
 	return getControlPlane().AbortPoolDrain(poolID)
 }
 
-func GetPoolDrainProgress(poolID string) (*v1.PoolDrainDetail, error) {
+func GetPoolDrainProgress(poolID string) (*v1.PoolDrainRecord, error) {
 	return getControlPlane().GetPoolDrainProgress(poolID)
+}
+
+func GetPoolLiveUsage(poolID string) (*v1.PoolDrainUsage, error) {
+	return getControlPlane().GetPoolLiveUsage(poolID)
 }
 
 func GetDrainNodeLabels(nodeName string) ([]string, []string, error) {

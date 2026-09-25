@@ -139,40 +139,31 @@ func (c OfflinePoolDelete) String() string {
 	}
 }
 
-// PoolDrainOption represents the boolean flags for the online pool drain operation.
+// PoolDrainOption represents the flags for the online pool drain operation.
 // --unsafe-rebuild-otherwise-evict isn't here since it takes a duration value rather
-// than being a plain boolean flag.
-//
-// TODO: the pool drain plugin command doesn't exist yet - verify these flag names
-// against the real subcommand once it ships.
+// than being a plain option. The real CLI takes a single --snapshot-policy
+// <ignore|accept-loss> flag (default ignore), not two separate booleans.
 type PoolDrainOption int
 
 const (
-	// DrainIgnoreSnapshots evacuates replicas only, leaving the pool's snapshots in
-	// place; the pool settles at PartiallyDrained since allocation can't reach zero.
-	DrainIgnoreSnapshots PoolDrainOption = iota
-	// DrainAcceptSnapshotLoss destroys the snapshots left on the pool once every
+	// DrainSnapshotPolicyAcceptLoss destroys the snapshots left on the pool once every
 	// replica has been evacuated, so allocation reaches zero and the pool is Drained.
-	DrainAcceptSnapshotLoss PoolDrainOption = iota
+	// Omitting this option leaves snapshots in place (the default), settling at
+	// PartiallyDrained since allocation can't reach zero.
+	DrainSnapshotPolicyAcceptLoss PoolDrainOption = iota
 	// DrainUnsafeEvict skips the safe over-replicate flow and evicts replicas
 	// directly, degrading the volume rather than waiting on a spare to rebuild.
+	// Hidden flag, meant for testing only.
 	DrainUnsafeEvict PoolDrainOption = iota
-	// DrainDryRun runs the read-only pre-flight analysis without cordoning the pool
-	// or mutating any state.
-	DrainDryRun PoolDrainOption = iota
 )
 
 // String returns the CLI flag name corresponding to the drain option.
 func (opt PoolDrainOption) String() string {
 	switch opt {
-	case DrainIgnoreSnapshots:
-		return "ignore-snapshots"
-	case DrainAcceptSnapshotLoss:
-		return "accept-snapshot-loss"
+	case DrainSnapshotPolicyAcceptLoss:
+		return "snapshot-policy=accept-loss"
 	case DrainUnsafeEvict:
 		return "unsafe-evict"
-	case DrainDryRun:
-		return "dry-run"
 	default:
 		return ""
 	}

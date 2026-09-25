@@ -7,9 +7,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// Phase name constants for a pool drain.
-// TODO: `drain pool` / `get drain pool` don't exist in the plugin yet, so every
-// function here fails with "unrecognized subcommand" against a live cluster.
+// Phase name constants for a pool drain (PoolDrainPhase in the REST schema).
 const (
 	PhaseQueued           = "Queued"
 	PhaseDraining         = "Draining"
@@ -19,13 +17,14 @@ const (
 	PhaseCancelled        = "Cancelled"
 )
 
-// Phase-reason constants: why a pool's drain sits in its current phase.
+// Phase-reason constants: why a pool's drain sits in its current phase
+// (PoolDrainPhaseReason in the REST schema).
 const (
-	PhaseReasonWaitingForSlot              = "WaitingForSlot"
-	PhaseReasonOfflinePool                 = "OfflinePool"
-	PhaseReasonSingleReplicaUnsafeEviction = "SingleReplicaUnsafeEviction"
-	PhaseReasonImportCordoned              = "ImportCordoned"
-	PhaseReasonSnapshotsRetained           = "SnapshotsRetained"
+	PhaseReasonWaitingForSlot       = "WaitingForSlot"
+	PhaseReasonOfflinePool          = "OfflinePool"
+	PhaseReasonSingleReplicaEvction = "SingleReplicaEviction"
+	PhaseReasonImportCordoned       = "ImportCordoned"
+	PhaseReasonSnapshotsRetained    = "SnapshotsRetained"
 )
 
 // FixMe : error messages below are drafted from the design docs/BDD, not yet
@@ -54,17 +53,19 @@ func VerifyPoolDrainPhase(poolID string, expectedPhase string) (bool, error) {
 
 // VerifyPoolDrainPhaseReason verifies a pool's drain phase reason, e.g.
 // distinguishing why a pool landed at PartiallyDrained (SnapshotsRetained vs
-// SingleReplicaUnsafeEviction vs ImportCordoned).
+// SingleReplicaEviction vs ImportCordoned).
 func VerifyPoolDrainPhaseReason(poolID string, expectedReason string) (bool, error) {
 	progress, err := controlplane.GetPoolDrainProgress(poolID)
 	if err != nil {
 		return false, err
 	}
-	return progress.PhaseReason == expectedReason, nil
+	return progress.Reason != nil && *progress.Reason == expectedReason, nil
 }
 
 // VerifyPoolDrained verifies a pool has fully drained: phase Drained with zero
-// replicas and zero allocation remaining.
+// live replicas and zero used allocation remaining. The drain record itself never
+// carries a "current" usage snapshot - only Initial - so current usage is read
+// live off the pool.
 func VerifyPoolDrained(poolID string) (bool, error) {
 	progress, err := controlplane.GetPoolDrainProgress(poolID)
 	if err != nil {
@@ -74,15 +75,15 @@ func VerifyPoolDrained(poolID string) (bool, error) {
 		logf.Log.Info("Pool not yet Drained", "pool", poolID, "phase", progress.Phase)
 		return false, nil
 	}
-	current := progress.Statistics.Current
-	if current == nil {
-		return false, nil
+	current, err := controlplane.GetPoolLiveUsage(poolID)
+	if err != nil {
+		return false, err
 	}
 	return current.ReplicaCount == 0 && current.Used == 0, nil
 }
 
 // VerifyPoolPartiallyDrained verifies a pool reached PartiallyDrained. Call
-// VerifyPoolDrainPhaseReason to distinguish SnapshotsRetained, SingleReplicaUnsafeEviction, or ImportCordoned.
+// VerifyPoolDrainPhaseReason to distinguish SnapshotsRetained, SingleReplicaEviction, or ImportCordoned.
 func VerifyPoolPartiallyDrained(poolID string) (bool, error) {
 	progress, err := controlplane.GetPoolDrainProgress(poolID)
 	if err != nil {
@@ -95,19 +96,56 @@ func VerifyPoolPartiallyDrained(poolID string) (bool, error) {
 	return true, nil
 }
 
-// GetMovingReplicas returns the ids of replicas currently being moved off a draining pool.
+// GetMovingReplicas returns the ids of replicas currently being moved off a
+// draining pool. The drain record only ever carries bare replica ids over REST -
+// the richer per-move detail (spare_replica/unwind) lives on the control plane's
+// internal DrainConfig, not exposed here.
 func GetMovingReplicas(poolID string) ([]string, error) {
 	progress, err := controlplane.GetPoolDrainProgress(poolID)
 	if err != nil {
 		return nil, err
 	}
-	var ids []string
-	for _, move := range progress.ReplicaMoves {
-		if move.MovingReplica != nil {
-			ids = append(ids, *move.MovingReplica)
-		}
+	return progress.MovingReplicas, nil
+}
+
+// VerifyPoolInitialAndCurrentReplicaCountZero verifies a drain record's Initial
+// replica count is 0, and the pool's current (live) replica count is also 0.
+func VerifyPoolInitialAndCurrentReplicaCountZero(poolID string) (bool, error) {
+	progress, err := controlplane.GetPoolDrainProgress(poolID)
+	if err != nil {
+		return false, err
 	}
-	return ids, nil
+	if progress.Initial == nil {
+		return false, nil
+	}
+	current, err := controlplane.GetPoolLiveUsage(poolID)
+	if err != nil {
+		return false, err
+	}
+	return progress.Initial.ReplicaCount == 0 && current.ReplicaCount == 0, nil
+}
+
+// VerifyPoolCordonedExceptImport verifies a pool is cordoned for replicas,
+// snapshots and restores, while import stays uncordoned - the drain self-cordon
+// the BDD describes as "cordoned for all operations except import".
+func VerifyPoolCordonedExceptImport(poolID string) (bool, error) {
+	status, err := controlplane.GetPoolCordonStatus(poolID)
+	if err != nil {
+		return false, err
+	}
+	if !status.IsCordoned {
+		return false, nil
+	}
+	hasConstraint := func(name string) bool {
+		for _, c := range status.Constraints {
+			if c == name {
+				return true
+			}
+		}
+		return false
+	}
+	return hasConstraint("replicas") && hasConstraint("snapshots") && hasConstraint("restores") &&
+		!hasConstraint("import"), nil
 }
 
 // AbortAllPoolDrains is an AfterEach-style cleanup utility: aborts any drain still
