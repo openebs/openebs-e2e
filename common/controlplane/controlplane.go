@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
@@ -99,6 +100,12 @@ type ControlPlaneInterface interface {
 	//drain
 	DrainNode(nodeName string, drainLabel string, drainTimeOut int) error
 	GetDrainNodeLabels(nodeName string) ([]string, []string, error)
+
+	// pool drain
+	// TODO: no plugin subcommand exists yet - see common/controlplane/v1/pool_drain.go
+	DrainPool(poolID string, unsafeRebuildOtherwiseEvict *time.Duration, opts ...common.PoolDrainOption) error
+	AbortPoolDrain(poolID string) error
+	GetPoolDrainProgress(poolID string) (*v1.PoolDrainDetail, error)
 
 	//upgrade
 	Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) (string, error)
@@ -443,6 +450,19 @@ func GetPoolCordonStatus(poolID string) (*v1.PoolCordonStatus, error) {
 
 func DrainNode(nodeName string, drainLabel string, drainTimeOut int) error {
 	return getControlPlane().DrainNode(nodeName, drainLabel, drainTimeOut)
+}
+
+// pool drain
+func DrainPool(poolID string, unsafeRebuildOtherwiseEvict *time.Duration, opts ...common.PoolDrainOption) error {
+	return getControlPlane().DrainPool(poolID, unsafeRebuildOtherwiseEvict, opts...)
+}
+
+func AbortPoolDrain(poolID string) error {
+	return getControlPlane().AbortPoolDrain(poolID)
+}
+
+func GetPoolDrainProgress(poolID string) (*v1.PoolDrainDetail, error) {
+	return getControlPlane().GetPoolDrainProgress(poolID)
 }
 
 func GetDrainNodeLabels(nodeName string) ([]string, []string, error) {
