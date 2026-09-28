@@ -39,6 +39,7 @@ type mspSpec struct {
 // CordonDrainSpec represents the cordon drain specification structure
 type CordonDrainSpec struct {
 	Cordoned *PoolCordonedState `json:"cordoned,omitempty"`
+	Drain    *PoolDrainSpec     `json:"drain,omitempty"`
 }
 
 // PoolCordonedState represents the cordoned state with constraints for pools

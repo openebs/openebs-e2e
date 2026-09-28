@@ -121,6 +121,25 @@ const (
 	PoolDrainPhaseReasonSnapshotsRetained    = "SnapshotsRetained"
 )
 
+// Pool drain snapshot-policy constants (PoolDrainSnapshotPolicy in the REST schema).
+const (
+	PoolDrainSnapshotPolicyIgnore     = "Ignore"
+	PoolDrainSnapshotPolicyAcceptLoss = "AcceptLoss"
+)
+
+// PoolDrainPolicy mirrors the REST PoolDrainPolicy schema.
+type PoolDrainPolicy struct {
+	SnapshotPolicy              string  `json:"snapshotPolicy"`
+	UnsafeRebuildOtherwiseEvict *uint64 `json:"unsafeRebuildOtherwiseEvict,omitempty"`
+	UnsafeEvict                 bool    `json:"unsafeEvict"`
+}
+
+// PoolDrainSpec mirrors the REST PoolDrainSpec schema, at .spec.cordonDrain.drain.
+type PoolDrainSpec struct {
+	RequestTimestamp string          `json:"requestTimestamp"`
+	Policy           PoolDrainPolicy `json:"policy"`
+}
+
 // GetPoolDrainProgress fetches a pool's drain record via `get pool <id>` -
 // `get drain pool` does not exist, drain progress rides on the regular pool GET.
 func (cp CPv1) GetPoolDrainProgress(poolID string) (*PoolDrainRecord, error) {
@@ -132,6 +151,34 @@ func (cp CPv1) GetPoolDrainProgress(poolID string) (*PoolDrainRecord, error) {
 		return nil, fmt.Errorf("pool %s has no drain record - has a drain ever been requested on it?", poolID)
 	}
 	return pool.Meta.Drain, nil
+}
+
+// GetPoolDrainProgressOrNil fetches a pool's drain record like
+// GetPoolDrainProgress, but returns (nil, nil) instead of an error when no
+// drain record exists yet - for callers checking whether a record was cleared
+// (e.g. after abort/uncordon), where "no record" is an expected outcome, not a
+// failure.
+func (cp CPv1) GetPoolDrainProgressOrNil(poolID string) (*PoolDrainRecord, error) {
+	pool, err := GetMayastorCpPool(poolID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pool %s to read its drain progress, error %v", poolID, err)
+	}
+	if pool.Meta == nil {
+		return nil, nil
+	}
+	return pool.Meta.Drain, nil
+}
+
+// GetPoolDrainSpec fetches a pool's requested drain policy.
+func (cp CPv1) GetPoolDrainSpec(poolID string) (*PoolDrainSpec, error) {
+	pool, err := GetMayastorCpPool(poolID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pool %s to read its drain spec, error %v", poolID, err)
+	}
+	if pool.Spec.CordonDrain == nil || pool.Spec.CordonDrain.Drain == nil {
+		return nil, fmt.Errorf("pool %s has no drain spec - has a drain ever been requested on it?", poolID)
+	}
+	return pool.Spec.CordonDrain.Drain, nil
 }
 
 // GetPoolLiveUsage fetches a pool's current (live) replica/snapshot/usage tallies,

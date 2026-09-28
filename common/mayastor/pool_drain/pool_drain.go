@@ -3,7 +3,9 @@ package pool_drain
 import (
 	"fmt"
 
+	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/controlplane"
+	"github.com/openebs/openebs-e2e/common/k8stest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -25,6 +27,12 @@ const (
 	PhaseReasonSingleReplicaEvction = "SingleReplicaEviction"
 	PhaseReasonImportCordoned       = "ImportCordoned"
 	PhaseReasonSnapshotsRetained    = "SnapshotsRetained"
+)
+
+// Snapshot-policy constants (PoolDrainSnapshotPolicy in the REST schema).
+const (
+	SnapshotPolicyIgnore     = "Ignore"
+	SnapshotPolicyAcceptLoss = "AcceptLoss"
 )
 
 // FixMe : error messages below are drafted from the design docs/BDD, not yet
@@ -136,9 +144,55 @@ func VerifyPoolInitialAndCurrentReplicaCountZero(poolID string) (bool, error) {
 	return progress.Initial.ReplicaCount == 0 && current.ReplicaCount == 0, nil
 }
 
-// VerifyPoolCordonedExceptImport verifies a pool is cordoned for replicas,
-// snapshots and restores, while import stays uncordoned - the drain self-cordon
-// the BDD describes as "cordoned for all operations except import".
+// VerifyPoolSnapshotCount verifies the pool's current (live) snapshot count
+// matches the expected value.
+func VerifyPoolSnapshotCount(poolID string, expected uint64) (bool, error) {
+	current, err := controlplane.GetPoolLiveUsage(poolID)
+	if err != nil {
+		return false, err
+	}
+	return current.SnapshotCount == expected, nil
+}
+
+// VerifyPoolInitialAndCurrentSnapshotCountsMatch verifies a drain record's
+// Initial snapshot count equals the pool's current (live) snapshot count -
+// used by scenarios where snapshots are retained (--ignore-snapshots), so the
+// count shouldn't have moved since the drain started.
+func VerifyPoolInitialAndCurrentSnapshotCountsMatch(poolID string) (bool, error) {
+	progress, err := controlplane.GetPoolDrainProgress(poolID)
+	if err != nil {
+		return false, err
+	}
+	if progress.Initial == nil {
+		return false, nil
+	}
+	current, err := controlplane.GetPoolLiveUsage(poolID)
+	if err != nil {
+		return false, err
+	}
+	return progress.Initial.SnapshotCount == current.SnapshotCount, nil
+}
+
+// VerifyPoolDrainRecordCleared verifies a pool has no drain record - the state
+// after aborting/uncordoning a drain, or a pool that has never been drained.
+func VerifyPoolDrainRecordCleared(poolID string) (bool, error) {
+	progress, err := controlplane.GetPoolDrainProgressOrNil(poolID)
+	if err != nil {
+		return false, err
+	}
+	return progress == nil, nil
+}
+
+// VerifyPoolDrainSnapshotPolicy verifies a pool's requested snapshot policy.
+func VerifyPoolDrainSnapshotPolicy(poolID string, expected string) (bool, error) {
+	spec, err := controlplane.GetPoolDrainSpec(poolID)
+	if err != nil {
+		return false, err
+	}
+	return spec.Policy.SnapshotPolicy == expected, nil
+}
+
+// VerifyPoolCordonedExceptImport verifies a pool is cordoned for everything except import.
 func VerifyPoolCordonedExceptImport(poolID string) (bool, error) {
 	status, err := controlplane.GetPoolCordonStatus(poolID)
 	if err != nil {
@@ -183,4 +237,62 @@ func AbortAllPoolDrains() error {
 		}
 	}
 	return lastErr
+}
+
+// DeployVolumeAndGetTopology deploys a 3-replica volume and returns its app, uuid, and replica topology.
+func DeployVolumeAndGetTopology(decor string) (*k8stest.FioApp, string, common.ReplicaTopology, error) {
+	fio := &k8stest.FioApp{
+		Decor:        decor,
+		VolSizeMb:    200,
+		VolType:      common.VolFileSystem,
+		ReplicaCount: 3,
+		Loops:        100,
+	}
+	if err := fio.DeployApp(); err != nil {
+		return nil, "", nil, fmt.Errorf("failed to create volume and fio app, error: %v", err)
+	}
+
+	volUuid := fio.GetVolUuid()
+	if volUuid == "" {
+		return nil, "", nil, fmt.Errorf("volume UUID must not be empty")
+	}
+
+	topology, err := k8stest.GetMsvReplicaTopology(volUuid)
+	if err != nil {
+		return nil, "", nil, fmt.Errorf("failed to get replica topology for volume %s, error: %v", volUuid, err)
+	}
+	if len(topology) != 3 {
+		return nil, "", nil, fmt.Errorf("volume %s should have 3 replicas, got %d", volUuid, len(topology))
+	}
+
+	return fio, volUuid, topology, nil
+}
+
+// CommonPoolWithReplicasOfBothVolumes deploys two 3-replica volumes and returns their shared pool.
+func CommonPoolWithReplicasOfBothVolumes(decor1, decor2 string) (poolName string, replicaIds []string, apps []*k8stest.FioApp, err error) {
+	fio1, _, topology1, err := DeployVolumeAndGetTopology(decor1)
+	if err != nil {
+		return "", nil, nil, err
+	}
+	fio2, _, topology2, err := DeployVolumeAndGetTopology(decor2)
+	if err != nil {
+		return "", nil, []*k8stest.FioApp{fio1}, err
+	}
+	apps = []*k8stest.FioApp{fio1, fio2}
+
+	poolToReplica1 := make(map[string]string)
+	for replicaId, replica := range topology1 {
+		poolToReplica1[replica.Pool] = replicaId
+	}
+	poolToReplica2 := make(map[string]string)
+	for replicaId, replica := range topology2 {
+		poolToReplica2[replica.Pool] = replicaId
+	}
+
+	for pool, replica1 := range poolToReplica1 {
+		if replica2, ok := poolToReplica2[pool]; ok {
+			return pool, []string{replica1, replica2}, apps, nil
+		}
+	}
+	return "", nil, apps, fmt.Errorf("expected a pool hosting a replica of both 3-replica volumes")
 }

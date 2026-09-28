@@ -26,6 +26,16 @@ func (cp CPv1RestApi) GetPoolDrainProgress(poolID string) (*cpV1.PoolDrainRecord
 	panic(fmt.Errorf("not implemented REST api for getting pool drain progress"))
 }
 
+func (cp CPv1RestApi) GetPoolDrainProgressOrNil(poolID string) (*cpV1.PoolDrainRecord, error) {
+	// #TODO implement REST api for getting pool drain progress
+	panic(fmt.Errorf("not implemented REST api for getting pool drain progress"))
+}
+
+func (cp CPv1RestApi) GetPoolDrainSpec(poolID string) (*cpV1.PoolDrainSpec, error) {
+	// #TODO implement REST api for getting a pool's drain spec
+	panic(fmt.Errorf("not implemented REST api for getting a pool's drain spec"))
+}
+
 func (cp CPv1RestApi) GetPoolLiveUsage(poolID string) (*cpV1.PoolDrainUsage, error) {
 	// #TODO implement REST api for getting a pool's live usage
 	panic(fmt.Errorf("not implemented REST api for getting a pool's live usage"))

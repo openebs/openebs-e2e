@@ -105,6 +105,8 @@ type ControlPlaneInterface interface {
 	DrainPool(poolID string, unsafeRebuildOtherwiseEvict *time.Duration, opts ...common.PoolDrainOption) error
 	AbortPoolDrain(poolID string) error
 	GetPoolDrainProgress(poolID string) (*v1.PoolDrainRecord, error)
+	GetPoolDrainProgressOrNil(poolID string) (*v1.PoolDrainRecord, error)
+	GetPoolDrainSpec(poolID string) (*v1.PoolDrainSpec, error)
 	GetPoolLiveUsage(poolID string) (*v1.PoolDrainUsage, error)
 
 	//upgrade
@@ -463,6 +465,14 @@ func AbortPoolDrain(poolID string) error {
 
 func GetPoolDrainProgress(poolID string) (*v1.PoolDrainRecord, error) {
 	return getControlPlane().GetPoolDrainProgress(poolID)
+}
+
+func GetPoolDrainProgressOrNil(poolID string) (*v1.PoolDrainRecord, error) {
+	return getControlPlane().GetPoolDrainProgressOrNil(poolID)
+}
+
+func GetPoolDrainSpec(poolID string) (*v1.PoolDrainSpec, error) {
+	return getControlPlane().GetPoolDrainSpec(poolID)
 }
 
 func GetPoolLiveUsage(poolID string) (*v1.PoolDrainUsage, error) {
