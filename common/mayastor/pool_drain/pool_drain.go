@@ -51,6 +51,16 @@ func VerifyPoolDrainPhase(poolID string, expectedPhase string) (bool, error) {
 	return progress.Phase == expectedPhase, nil
 }
 
+// VerifyPoolDrainInitialSet verifies a drain record's Initial usage snapshot has
+// been populated (non-nil) - absent while the drain is still Queued.
+func VerifyPoolDrainInitialSet(poolID string) (bool, error) {
+	progress, err := controlplane.GetPoolDrainProgress(poolID)
+	if err != nil {
+		return false, err
+	}
+	return progress.Initial != nil, nil
+}
+
 // VerifyPoolDrainPhaseReason verifies a pool's drain phase reason, e.g.
 // distinguishing why a pool landed at PartiallyDrained (SnapshotsRetained vs
 // SingleReplicaEviction vs ImportCordoned).
@@ -63,9 +73,9 @@ func VerifyPoolDrainPhaseReason(poolID string, expectedReason string) (bool, err
 }
 
 // VerifyPoolDrained verifies a pool has fully drained: phase Drained with zero
-// live replicas and zero used allocation remaining. The drain record itself never
-// carries a "current" usage snapshot - only Initial - so current usage is read
-// live off the pool.
+// live replicas, zero used allocation, and zero committed allocation remaining.
+// The drain record itself never carries a "current" usage snapshot - only
+// Initial - so current usage is read live off the pool.
 func VerifyPoolDrained(poolID string) (bool, error) {
 	progress, err := controlplane.GetPoolDrainProgress(poolID)
 	if err != nil {
@@ -79,7 +89,8 @@ func VerifyPoolDrained(poolID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return current.ReplicaCount == 0 && current.Used == 0, nil
+	committedZero := current.Committed == nil || *current.Committed == 0
+	return current.ReplicaCount == 0 && current.Used == 0 && committedZero, nil
 }
 
 // VerifyPoolPartiallyDrained verifies a pool reached PartiallyDrained. Call
