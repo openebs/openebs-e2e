@@ -232,6 +232,23 @@ func handleRequests() {
 	router.HandleFunc("/enabledevlink", EnableDevLink).Methods("POST")
 	router.HandleFunc("/disabledevlink", DisableDevLink).Methods("POST")
 	router.HandleFunc("/listdevlink", ListDevLink).Methods("POST")
+	//iSCSI / NVMe host identity
+	router.HandleFunc("/getIscsiInitiatorName", GetIscsiInitiatorName).Methods("POST")
+	router.HandleFunc("/getNvmeHostNqn", GetNvmeHostNqn).Methods("POST")
+	router.HandleFunc("/iscsiadmDiscovery", IscsiadmDiscovery).Methods("POST")
+	router.HandleFunc("/iscsiadmLogin", IscsiadmLogin).Methods("POST")
+	router.HandleFunc("/iscsiadmLogout", IscsiadmLogout).Methods("POST")
+	router.HandleFunc("/iscsiadmRescan", IscsiadmRescan).Methods("POST")
+	router.HandleFunc("/iscsiSessions", IscsiSessions).Methods("POST")
+	//Fibre Channel
+	router.HandleFunc("/getFcWwpns", GetFcWwpns).Methods("POST")
+	router.HandleFunc("/listFcRemotePorts", ListFcRemotePorts).Methods("POST")
+	router.HandleFunc("/fcRescanHost", FcRescanHost).Methods("POST")
+	//multipath
+	router.HandleFunc("/getDeviceWwid", GetDeviceWwid).Methods("POST")
+	router.HandleFunc("/multipathList", MultipathList).Methods("POST")
+	router.HandleFunc("/multipathStatus", MultipathStatus).Methods("POST")
+	router.HandleFunc("/listDMDevices", ListDMDevices).Methods("POST")
 	log.Fatal(http.ListenAndServe(podIP+":"+restPort, router))
 }
 

@@ -12,9 +12,19 @@ import (
 )
 
 type MayastorCpPool struct {
-	Id    string   `json:"id"`
-	Spec  mspSpec  `json:"spec"`
-	State mspState `json:"state"`
+	Id    string    `json:"id"`
+	Spec  mspSpec   `json:"spec"`
+	State mspState  `json:"state"`
+	Meta  *PoolMeta `json:"meta,omitempty"`
+}
+
+// PoolMeta mirrors the REST PoolMeta schema: live tallies for the pool plus its
+// drain record (if a drain has ever been admitted on it), surfaced by `get pool <id>`.
+// There is no separate `get drain pool` command - drain progress is read this way.
+type PoolMeta struct {
+	ReplicaCount  uint64           `json:"replicaCount"`
+	SnapshotCount uint64           `json:"snapshotCount"`
+	Drain         *PoolDrainRecord `json:"drain,omitempty"`
 }
 
 type mspSpec struct {
@@ -29,6 +39,7 @@ type mspSpec struct {
 // CordonDrainSpec represents the cordon drain specification structure
 type CordonDrainSpec struct {
 	Cordoned *PoolCordonedState `json:"cordoned,omitempty"`
+	Drain    *PoolDrainSpec     `json:"drain,omitempty"`
 }
 
 // PoolCordonedState represents the cordoned state with constraints for pools

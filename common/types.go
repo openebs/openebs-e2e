@@ -139,6 +139,36 @@ func (c OfflinePoolDelete) String() string {
 	}
 }
 
+// PoolDrainOption represents the flags for the online pool drain operation.
+// --unsafe-rebuild-otherwise-evict isn't here since it takes a duration value rather
+// than being a plain option. The real CLI takes a single --snapshot-policy
+// <ignore|accept-loss> flag (default ignore), not two separate booleans.
+type PoolDrainOption int
+
+const (
+	// DrainSnapshotPolicyAcceptLoss destroys the snapshots left on the pool once every
+	// replica has been evacuated, so allocation reaches zero and the pool is Drained.
+	// Omitting this option leaves snapshots in place (the default), settling at
+	// PartiallyDrained since allocation can't reach zero.
+	DrainSnapshotPolicyAcceptLoss PoolDrainOption = iota
+	// DrainUnsafeEvict skips the safe over-replicate flow and evicts replicas
+	// directly, degrading the volume rather than waiting on a spare to rebuild.
+	// Hidden flag, meant for testing only.
+	DrainUnsafeEvict PoolDrainOption = iota
+)
+
+// String returns the CLI flag name corresponding to the drain option.
+func (opt PoolDrainOption) String() string {
+	switch opt {
+	case DrainSnapshotPolicyAcceptLoss:
+		return "snapshot-policy=accept-loss"
+	case DrainUnsafeEvict:
+		return "unsafe-evict"
+	default:
+		return ""
+	}
+}
+
 func (CloneFsId CloneFsIdAsVolumeIdType) String() string {
 	switch CloneFsId {
 	case CloneFsIdAsVolumeIdEnable:
@@ -757,7 +787,7 @@ type EventDetails struct {
 	SnapshotDetails       *SnapshotDetails       `json:"snapshotDetails,omitempty"`
 	CloneDetails          *CloneDetails          `json:"cloneDetails,omitempty"`
 	SubsystemPauseDetails *SubsystemPauseDetails `json:"subsystemPauseDetails,omitempty"`
-	ActionDurationDetails *ActionDurationDetails  `json:"actionDurationDetails,omitempty"`
+	ActionDurationDetails *ActionDurationDetails `json:"actionDurationDetails,omitempty"`
 	ReactorDetails        *ReactorDetails        `json:"reactorDetails,omitempty"`
 	ErrorDetails          *ErrorDetails          `json:"errorDetails,omitempty"`
 }

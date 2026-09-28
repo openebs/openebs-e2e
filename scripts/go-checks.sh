@@ -34,7 +34,7 @@ fi
 if golangci-lint > /dev/null 2>&1 ; then
     cd "$GOSRCDIRAPPS" || exit 1
     echo "## linting apps ##"
-    if ! golangci-lint run -v --allow-parallel-runners --timeout=120s ; then
+    if ! golangci-lint run -v --allow-parallel-runners --timeout=300s ; then
         exitv=1
     fi
     cd "$GOSRCDIRCOMMON" || exit 1

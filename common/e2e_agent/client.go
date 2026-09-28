@@ -128,6 +128,29 @@ type DmDevice struct {
 	Sectors uint64 `json:"sectors"`
 }
 
+// Iscsi carries the parameters for an iscsiadm discovery/login/logout call.
+type Iscsi struct {
+	Portal    string `json:"portal"`    // "address:port", e.g. "10.0.0.5:3260"
+	TargetIqn string `json:"targetIqn"` // required for login/logout
+}
+
+// FcHost names one SCSI host to rescan, e.g. "host3" (the basename under
+// /sys/class/scsi_host). Channel/Target/Lun make it a targeted scan
+// (resolve them first via ListFcRemotePorts); left empty each defaults to
+// "-", the SCSI wildcard.
+type FcHost struct {
+	ScsiHost string `json:"scsiHost"`
+	Channel  string `json:"channel"`
+	Target   string `json:"target"`
+	Lun      string `json:"lun"`
+}
+
+// BlockDeviceQuery names a block device by its kernel name, e.g. "sdb" or
+// "dm-3" -- not a full /dev path.
+type BlockDeviceQuery struct {
+	Device string `json:"device"`
+}
+
 func sendRequest(reqType, url string, data interface{}) error {
 	_, err := sendRequestGetResponse(reqType, url, data, true)
 	return err
@@ -1763,4 +1786,124 @@ func CleanupTimeoutDevice(nodeAddr, disk string) (string, error) {
 	logf.Log.Info("CleanupTimeoutDevice succeeded", "output", out)
 
 	return out, nil
+}
+
+// GetIscsiInitiatorName returns the node's iSCSI initiator IQN.
+func GetIscsiInitiatorName(serverAddr string) (string, error) {
+	logf.Log.Info("Executing getIscsiInitiatorName", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/getIscsiInitiatorName"
+	return sendRequestGetResponse("POST", url, nil, false)
+}
+
+// GetNvmeHostNqn returns the node's NVMe host NQN.
+func GetNvmeHostNqn(serverAddr string) (string, error) {
+	logf.Log.Info("Executing getNvmeHostNqn", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/getNvmeHostNqn"
+	return sendRequestGetResponse("POST", url, nil, false)
+}
+
+// IscsiadmDiscovery runs iscsiadm sendtargets discovery against a portal
+// ("address:port").
+func IscsiadmDiscovery(serverAddr string, portal string) (string, error) {
+	data := Iscsi{Portal: portal}
+	logf.Log.Info("Executing iscsiadmDiscovery", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/iscsiadmDiscovery"
+	return sendRequestGetResponse("POST", url, data, false)
+}
+
+// IscsiadmLogin logs in to a discovered iSCSI target. A session that
+// already exists (a login race) is reported as success by the agent, not
+// an error.
+func IscsiadmLogin(serverAddr string, targetIqn string, portal string) (string, error) {
+	data := Iscsi{Portal: portal, TargetIqn: targetIqn}
+	logf.Log.Info("Executing iscsiadmLogin", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/iscsiadmLogin"
+	return sendRequestGetResponse("POST", url, data, false)
+}
+
+// IscsiadmRescan rescans one target's session for new or resized LUNs.
+func IscsiadmRescan(serverAddr string, targetIqn string, portal string) (string, error) {
+	data := Iscsi{Portal: portal, TargetIqn: targetIqn}
+	logf.Log.Info("Executing iscsiadmRescan", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/iscsiadmRescan"
+	return sendRequestGetResponse("POST", url, data, false)
+}
+
+// IscsiadmLogout logs out of an iSCSI target.
+func IscsiadmLogout(serverAddr string, targetIqn string, portal string) (string, error) {
+	data := Iscsi{Portal: portal, TargetIqn: targetIqn}
+	logf.Log.Info("Executing iscsiadmLogout", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/iscsiadmLogout"
+	return sendRequestGetResponse("POST", url, data, false)
+}
+
+// IscsiSessions lists active iSCSI sessions ("" when there are none).
+func IscsiSessions(serverAddr string) (string, error) {
+	logf.Log.Info("Executing iscsiSessions", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/iscsiSessions"
+	return sendRequestGetResponse("POST", url, nil, false)
+}
+
+// GetFcWwpns lists the node's Fibre Channel WWPNs, one per line, from
+// online FC hosts only.
+func GetFcWwpns(serverAddr string) (string, error) {
+	logf.Log.Info("Executing getFcWwpns", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/getFcWwpns"
+	return sendRequestGetResponse("POST", url, nil, false)
+}
+
+// ListFcRemotePorts lists every FC remote port the node can see, as
+// "rport\tportName\tscsiTargetId\tscsiHost\tscsiChannel" lines -- resolve a
+// target WWPN to the scsiHost/channel/target FcRescanHost's targeted scan
+// takes.
+func ListFcRemotePorts(serverAddr string) (string, error) {
+	logf.Log.Info("Executing listFcRemotePorts", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/listFcRemotePorts"
+	return sendRequestGetResponse("POST", url, nil, false)
+}
+
+// FcRescanHost triggers a rescan of one SCSI host, e.g. "host3". Pass
+// channel/target/lun (resolved via ListFcRemotePorts) for a targeted scan,
+// or empty strings for the bus-wide wildcard fallback.
+func FcRescanHost(serverAddr, scsiHost, channel, target, lun string) (string, error) {
+	data := FcHost{ScsiHost: scsiHost, Channel: channel, Target: target, Lun: lun}
+	logf.Log.Info("Executing fcRescanHost", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/fcRescanHost"
+	return sendRequestGetResponse("POST", url, data, false)
+}
+
+// GetDeviceWwid returns the wwid backing a block device (kernel name, e.g.
+// "sdb" or "dm-3").
+func GetDeviceWwid(serverAddr string, device string) (string, error) {
+	data := BlockDeviceQuery{Device: device}
+	logf.Log.Info("Executing getDeviceWwid", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/getDeviceWwid"
+	return sendRequestGetResponse("POST", url, data, false)
+}
+
+// MultipathList lists every assembled dm-multipath map (`multipath -ll`).
+func MultipathList(serverAddr string) (string, error) {
+	logf.Log.Info("Executing multipathList", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/multipathList"
+	return sendRequestGetResponse("POST", url, nil, false)
+}
+
+// MultipathStatus reports one multipath map's status (`multipath -l`).
+// device may be a wwid or a map/device name.
+func MultipathStatus(serverAddr string, device string) (string, error) {
+	data := BlockDeviceQuery{Device: device}
+	logf.Log.Info("Executing multipathStatus", "addr", serverAddr, "data", data)
+	url := "http://" + getAgentAddress(serverAddr) + "/multipathStatus"
+	return sendRequestGetResponse("POST", url, data, false)
+}
+
+// ListDMDevices lists every /sys/block/dm-* device on the node, as
+// "dm-N\tuuid\tname" lines -- the sysfs ground truth
+// csi.sansymphony.datacore.com's own node plugin uses to find a wwid's
+// multipath map (dm/uuid == "mpath-3<hex>") and to address it via
+// multipathd (dm/name).
+func ListDMDevices(serverAddr string) (string, error) {
+	logf.Log.Info("Executing listDMDevices", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/listDMDevices"
+	return sendRequestGetResponse("POST", url, nil, false)
 }

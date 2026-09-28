@@ -1,0 +1,298 @@
+package pool_drain
+
+import (
+	"fmt"
+
+	"github.com/openebs/openebs-e2e/common"
+	"github.com/openebs/openebs-e2e/common/controlplane"
+	"github.com/openebs/openebs-e2e/common/k8stest"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+// Phase name constants for a pool drain (PoolDrainPhase in the REST schema).
+const (
+	PhaseQueued           = "Queued"
+	PhaseDraining         = "Draining"
+	PhaseAwaitingCleanup  = "AwaitingCleanup"
+	PhasePartiallyDrained = "PartiallyDrained"
+	PhaseDrained          = "Drained"
+	PhaseCancelled        = "Cancelled"
+)
+
+// Phase-reason constants: why a pool's drain sits in its current phase
+// (PoolDrainPhaseReason in the REST schema).
+const (
+	PhaseReasonWaitingForSlot       = "WaitingForSlot"
+	PhaseReasonOfflinePool          = "OfflinePool"
+	PhaseReasonSingleReplicaEvction = "SingleReplicaEviction"
+	PhaseReasonImportCordoned       = "ImportCordoned"
+	PhaseReasonSnapshotsRetained    = "SnapshotsRetained"
+)
+
+// Snapshot-policy constants (PoolDrainSnapshotPolicy in the REST schema).
+const (
+	SnapshotPolicyIgnore     = "Ignore"
+	SnapshotPolicyAcceptLoss = "AcceptLoss"
+)
+
+// FixMe : error messages below are drafted from the design docs/BDD, not yet
+// observed live - update with the real plugin output once it ships.
+var (
+	// DestroyPoolWithoutDrain: deleting a pool that still has replica/snapshot
+	// allocation on it (drain not yet run, or not run to completion).
+	DestroyPoolWithoutDrain = "please drain the diskpool before attempting destroy"
+	// DrainPoolConflictingSnapshotFlags: --ignore-snapshots and
+	// --accept-snapshot-loss passed together.
+	DrainPoolConflictingSnapshotFlags = "cannot use --ignore-snapshots and --accept-snapshot-loss together"
+)
+
+// VerifyPoolDrainPhase verifies a pool's drain has reached the given phase.
+func VerifyPoolDrainPhase(poolID string, expectedPhase string) (bool, error) {
+	logf.Log.Info("Verifying pool drain phase", "pool", poolID, "expected", expectedPhase)
+
+	progress, err := controlplane.GetPoolDrainProgress(poolID)
+	if err != nil {
+		return false, err
+	}
+
+	logf.Log.Info("Pool drain progress", "pool", poolID, "phase", progress.Phase)
+	return progress.Phase == expectedPhase, nil
+}
+
+// VerifyPoolDrainInitialSet verifies a drain record's Initial usage snapshot has
+// been populated (non-nil) - absent while the drain is still Queued.
+func VerifyPoolDrainInitialSet(poolID string) (bool, error) {
+	progress, err := controlplane.GetPoolDrainProgress(poolID)
+	if err != nil {
+		return false, err
+	}
+	return progress.Initial != nil, nil
+}
+
+// VerifyPoolDrainPhaseReason verifies a pool's drain phase reason, e.g.
+// distinguishing why a pool landed at PartiallyDrained (SnapshotsRetained vs
+// SingleReplicaEviction vs ImportCordoned).
+func VerifyPoolDrainPhaseReason(poolID string, expectedReason string) (bool, error) {
+	progress, err := controlplane.GetPoolDrainProgress(poolID)
+	if err != nil {
+		return false, err
+	}
+	return progress.Reason != nil && *progress.Reason == expectedReason, nil
+}
+
+// VerifyPoolDrained verifies a pool has fully drained: phase Drained with zero
+// live replicas, zero used allocation, and zero committed allocation remaining.
+// The drain record itself never carries a "current" usage snapshot - only
+// Initial - so current usage is read live off the pool.
+func VerifyPoolDrained(poolID string) (bool, error) {
+	progress, err := controlplane.GetPoolDrainProgress(poolID)
+	if err != nil {
+		return false, err
+	}
+	if progress.Phase != PhaseDrained {
+		logf.Log.Info("Pool not yet Drained", "pool", poolID, "phase", progress.Phase)
+		return false, nil
+	}
+	current, err := controlplane.GetPoolLiveUsage(poolID)
+	if err != nil {
+		return false, err
+	}
+	committedZero := current.Committed == nil || *current.Committed == 0
+	return current.ReplicaCount == 0 && current.Used == 0 && committedZero, nil
+}
+
+// VerifyPoolPartiallyDrained verifies a pool reached PartiallyDrained. Call
+// VerifyPoolDrainPhaseReason to distinguish SnapshotsRetained, SingleReplicaEviction, or ImportCordoned.
+func VerifyPoolPartiallyDrained(poolID string) (bool, error) {
+	progress, err := controlplane.GetPoolDrainProgress(poolID)
+	if err != nil {
+		return false, err
+	}
+	if progress.Phase != PhasePartiallyDrained {
+		logf.Log.Info("Pool not PartiallyDrained", "pool", poolID, "phase", progress.Phase)
+		return false, nil
+	}
+	return true, nil
+}
+
+// GetMovingReplicas returns the ids of replicas currently being moved off a
+// draining pool. The drain record only ever carries bare replica ids over REST -
+// the richer per-move detail (spare_replica/unwind) lives on the control plane's
+// internal DrainConfig, not exposed here.
+func GetMovingReplicas(poolID string) ([]string, error) {
+	progress, err := controlplane.GetPoolDrainProgress(poolID)
+	if err != nil {
+		return nil, err
+	}
+	return progress.MovingReplicas, nil
+}
+
+// VerifyPoolInitialAndCurrentReplicaCountZero verifies a drain record's Initial
+// replica count is 0, and the pool's current (live) replica count is also 0.
+func VerifyPoolInitialAndCurrentReplicaCountZero(poolID string) (bool, error) {
+	progress, err := controlplane.GetPoolDrainProgress(poolID)
+	if err != nil {
+		return false, err
+	}
+	if progress.Initial == nil {
+		return false, nil
+	}
+	current, err := controlplane.GetPoolLiveUsage(poolID)
+	if err != nil {
+		return false, err
+	}
+	return progress.Initial.ReplicaCount == 0 && current.ReplicaCount == 0, nil
+}
+
+// VerifyPoolSnapshotCount verifies the pool's current (live) snapshot count
+// matches the expected value.
+func VerifyPoolSnapshotCount(poolID string, expected uint64) (bool, error) {
+	current, err := controlplane.GetPoolLiveUsage(poolID)
+	if err != nil {
+		return false, err
+	}
+	return current.SnapshotCount == expected, nil
+}
+
+// VerifyPoolInitialAndCurrentSnapshotCountsMatch verifies a drain record's
+// Initial snapshot count equals the pool's current (live) snapshot count -
+// used by scenarios where snapshots are retained (--ignore-snapshots), so the
+// count shouldn't have moved since the drain started.
+func VerifyPoolInitialAndCurrentSnapshotCountsMatch(poolID string) (bool, error) {
+	progress, err := controlplane.GetPoolDrainProgress(poolID)
+	if err != nil {
+		return false, err
+	}
+	if progress.Initial == nil {
+		return false, nil
+	}
+	current, err := controlplane.GetPoolLiveUsage(poolID)
+	if err != nil {
+		return false, err
+	}
+	return progress.Initial.SnapshotCount == current.SnapshotCount, nil
+}
+
+// VerifyPoolDrainRecordCleared verifies a pool has no drain record - the state
+// after aborting/uncordoning a drain, or a pool that has never been drained.
+func VerifyPoolDrainRecordCleared(poolID string) (bool, error) {
+	progress, err := controlplane.GetPoolDrainProgressOrNil(poolID)
+	if err != nil {
+		return false, err
+	}
+	return progress == nil, nil
+}
+
+// VerifyPoolDrainSnapshotPolicy verifies a pool's requested snapshot policy.
+func VerifyPoolDrainSnapshotPolicy(poolID string, expected string) (bool, error) {
+	spec, err := controlplane.GetPoolDrainSpec(poolID)
+	if err != nil {
+		return false, err
+	}
+	return spec.Policy.SnapshotPolicy == expected, nil
+}
+
+// VerifyPoolCordonedExceptImport verifies a pool is cordoned for everything except import.
+func VerifyPoolCordonedExceptImport(poolID string) (bool, error) {
+	status, err := controlplane.GetPoolCordonStatus(poolID)
+	if err != nil {
+		return false, err
+	}
+	if !status.IsCordoned {
+		return false, nil
+	}
+	hasConstraint := func(name string) bool {
+		for _, c := range status.Constraints {
+			if c == name {
+				return true
+			}
+		}
+		return false
+	}
+	return hasConstraint("replicas") && hasConstraint("snapshots") && hasConstraint("restores") &&
+		!hasConstraint("import"), nil
+}
+
+// AbortAllPoolDrains is an AfterEach-style cleanup utility: aborts any drain still
+// queued or in progress on every pool in the cluster.
+func AbortAllPoolDrains() error {
+	pools, err := controlplane.ListMsPools()
+	if err != nil {
+		return err
+	}
+
+	var lastErr error
+	for _, pool := range pools {
+		progress, err := controlplane.GetPoolDrainProgress(pool.Name)
+		if err != nil {
+			continue
+		}
+		// AwaitingCleanup is already unwinding to Drained on its own - nothing left to abort.
+		if progress.Phase == "" || progress.Phase == PhaseCancelled || progress.Phase == PhaseAwaitingCleanup {
+			continue
+		}
+		logf.Log.Info("pool still draining, aborting", "pool", pool.Name, "phase", progress.Phase)
+		if err := controlplane.AbortPoolDrain(pool.Name); err != nil {
+			lastErr = fmt.Errorf("AbortPoolDrain(%s) failed: %v", pool.Name, err)
+		}
+	}
+	return lastErr
+}
+
+// DeployVolumeAndGetTopology deploys a 3-replica volume and returns its app, uuid, and replica topology.
+func DeployVolumeAndGetTopology(decor string) (*k8stest.FioApp, string, common.ReplicaTopology, error) {
+	fio := &k8stest.FioApp{
+		Decor:        decor,
+		VolSizeMb:    200,
+		VolType:      common.VolFileSystem,
+		ReplicaCount: 3,
+		Loops:        100,
+	}
+	if err := fio.DeployApp(); err != nil {
+		return nil, "", nil, fmt.Errorf("failed to create volume and fio app, error: %v", err)
+	}
+
+	volUuid := fio.GetVolUuid()
+	if volUuid == "" {
+		return nil, "", nil, fmt.Errorf("volume UUID must not be empty")
+	}
+
+	topology, err := k8stest.GetMsvReplicaTopology(volUuid)
+	if err != nil {
+		return nil, "", nil, fmt.Errorf("failed to get replica topology for volume %s, error: %v", volUuid, err)
+	}
+	if len(topology) != 3 {
+		return nil, "", nil, fmt.Errorf("volume %s should have 3 replicas, got %d", volUuid, len(topology))
+	}
+
+	return fio, volUuid, topology, nil
+}
+
+// CommonPoolWithReplicasOfBothVolumes deploys two 3-replica volumes and returns their shared pool.
+func CommonPoolWithReplicasOfBothVolumes(decor1, decor2 string) (poolName string, replicaIds []string, apps []*k8stest.FioApp, err error) {
+	fio1, _, topology1, err := DeployVolumeAndGetTopology(decor1)
+	if err != nil {
+		return "", nil, nil, err
+	}
+	fio2, _, topology2, err := DeployVolumeAndGetTopology(decor2)
+	if err != nil {
+		return "", nil, []*k8stest.FioApp{fio1}, err
+	}
+	apps = []*k8stest.FioApp{fio1, fio2}
+
+	poolToReplica1 := make(map[string]string)
+	for replicaId, replica := range topology1 {
+		poolToReplica1[replica.Pool] = replicaId
+	}
+	poolToReplica2 := make(map[string]string)
+	for replicaId, replica := range topology2 {
+		poolToReplica2[replica.Pool] = replicaId
+	}
+
+	for pool, replica1 := range poolToReplica1 {
+		if replica2, ok := poolToReplica2[pool]; ok {
+			return pool, []string{replica1, replica2}, apps, nil
+		}
+	}
+	return "", nil, apps, fmt.Errorf("expected a pool hosting a replica of both 3-replica volumes")
+}

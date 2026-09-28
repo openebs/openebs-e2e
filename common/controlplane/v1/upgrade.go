@@ -160,10 +160,12 @@ func buildUpgradeArgs(meta upgradeMetadata, opts upgradeOptions) []string {
 
 		detectedReg := detectUpgradeRegistry(meta)
 		if detectedReg != "" {
+			// regNS locates the upgrade-job binary only; product images
+			// always live under MayastorRegistryNameSpace regardless of plugin.
 			cmdArgs = append(cmdArgs,
 				"--registry", detectedReg,
 				"--repo-namespace", regNS,
-				"--set", fmt.Sprintf("%s.registry=%s,%s.repo=%s", setPrefix, detectedReg, setPrefix, regNS),
+				"--set", fmt.Sprintf("%s.registry=%s,%s.repo=%s", setPrefix, detectedReg, setPrefix, common.MayastorRegistryNameSpace),
 			)
 		}
 		// empty string → DockerHub: plugin uses it by default, no --registry flag needed
