@@ -40,3 +40,8 @@ func (cp CPv1RestApi) GetPoolLiveUsage(poolID string) (*cpV1.PoolDrainUsage, err
 	// #TODO implement REST api for getting a pool's live usage
 	panic(fmt.Errorf("not implemented REST api for getting a pool's live usage"))
 }
+
+func (cp CPv1RestApi) GetVolumeReplicaMove(volUuid string) (*cpV1.PoolReplicaMove, error) {
+	// #TODO implement REST api for getting a volume's replica-move marker
+	panic(fmt.Errorf("not implemented REST api for getting a volume's replica-move marker"))
+}
