@@ -2,6 +2,7 @@ package v1
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -136,8 +137,9 @@ type PoolDrainPolicy struct {
 
 // PoolDrainSpec mirrors the REST PoolDrainSpec schema, at .spec.cordonDrain.drain.
 type PoolDrainSpec struct {
-	RequestTimestamp string          `json:"requestTimestamp"`
-	Policy           PoolDrainPolicy `json:"policy"`
+	RequestTimestamp string             `json:"requestTimestamp"`
+	Policy           PoolDrainPolicy    `json:"policy"`
+	UserCordon       *PoolCordonedState `json:"userCordon,omitempty"`
 }
 
 // GetPoolDrainProgress fetches a pool's drain record via `get pool <id>` -
@@ -179,6 +181,56 @@ func (cp CPv1) GetPoolDrainSpec(poolID string) (*PoolDrainSpec, error) {
 		return nil, fmt.Errorf("pool %s has no drain spec - has a drain ever been requested on it?", poolID)
 	}
 	return pool.Spec.CordonDrain.Drain, nil
+}
+
+// PoolSpareReplica speculatively mirrors a proposed per-move REST schema - not real yet.
+type PoolSpareReplica struct {
+	ReplicaId *string `json:"replicaId,omitempty"`
+}
+
+// Unwind-reason constants for a not-yet-real per-move REST schema.
+const (
+	UnwindAbort   = "Abort"
+	UnwindRespare = "Respare"
+)
+
+// PoolReplicaMove speculatively mirrors a proposed per-move REST schema - not real yet.
+type PoolReplicaMove struct {
+	Volume string `json:"volume"`
+	// PlacementStartedAt is absent until the first spare-placement attempt.
+	PlacementStartedAt *string `json:"placementStartedAt,omitempty"`
+	// MovingReplica is the replica on the draining pool; absent once removed.
+	MovingReplica *string `json:"movingReplica,omitempty"`
+	// SpareReplica's presence/absence is the real signal for the BDD's "need_spare".
+	SpareReplica *PoolSpareReplica `json:"spareReplica,omitempty"`
+	// Unwind is set while this move's spare is being torn down (UnwindAbort/UnwindRespare).
+	Unwind *string `json:"unwind,omitempty"`
+}
+
+// mayastorCpVolumeMeta is a guessed envelope for a `get volume` field that doesn't exist yet.
+type mayastorCpVolumeMeta struct {
+	Meta struct {
+		ReplicaMove *PoolReplicaMove `json:"replicaMove,omitempty"`
+	} `json:"meta"`
+}
+
+// GetVolumeReplicaMove speculatively fetches a volume's replica-move marker - TODO: guessed field.
+func (cp CPv1) GetVolumeReplicaMove(volUuid string) (*PoolReplicaMove, error) {
+	args := []string{"-n", common.NSMayastor(), "-ojson", "get", "volume", volUuid}
+	cmd := GetMayastorPluginCmd(args...)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("plugin failed to get volume %s, error %v, output: %s", volUuid, err, out.String())
+	}
+
+	var vol mayastorCpVolumeMeta
+	if err := json.Unmarshal(out.Bytes(), &vol); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal volume %s output, error %v", volUuid, err)
+	}
+	return vol.Meta.ReplicaMove, nil
 }
 
 // GetPoolLiveUsage fetches a pool's current (live) replica/snapshot/usage tallies,

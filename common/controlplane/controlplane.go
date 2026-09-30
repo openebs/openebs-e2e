@@ -108,6 +108,7 @@ type ControlPlaneInterface interface {
 	GetPoolDrainProgressOrNil(poolID string) (*v1.PoolDrainRecord, error)
 	GetPoolDrainSpec(poolID string) (*v1.PoolDrainSpec, error)
 	GetPoolLiveUsage(poolID string) (*v1.PoolDrainUsage, error)
+	GetVolumeReplicaMove(volUuid string) (*v1.PoolReplicaMove, error)
 
 	//upgrade
 	Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) (string, error)
@@ -477,6 +478,10 @@ func GetPoolDrainSpec(poolID string) (*v1.PoolDrainSpec, error) {
 
 func GetPoolLiveUsage(poolID string) (*v1.PoolDrainUsage, error) {
 	return getControlPlane().GetPoolLiveUsage(poolID)
+}
+
+func GetVolumeReplicaMove(volUuid string) (*v1.PoolReplicaMove, error) {
+	return getControlPlane().GetVolumeReplicaMove(volUuid)
 }
 
 func GetDrainNodeLabels(nodeName string) ([]string, []string, error) {

@@ -291,15 +291,24 @@ func (cp CPv1) GetPoolCordonStatus(poolID string) (*PoolCordonStatus, error) {
 		return nil, fmt.Errorf("failed to unmarshal command output for pool %s, error %v", outputString, err)
 	}
 
-	status := &PoolCordonStatus{
-		PoolID:     poolID,
-		IsCordoned: poolInfo.Spec.CordonDrain != nil && poolInfo.Spec.CordonDrain.Cordoned != nil && poolInfo.Spec.CordonDrain.Cordoned.IsCordoned(),
-	}
+	status := &PoolCordonStatus{PoolID: poolID}
 
-	if poolInfo.Spec.CordonDrain != nil && poolInfo.Spec.CordonDrain.Cordoned != nil {
-		// Parse the cordon constraints from the YAML structure
-		// The cordonDrain field contains the constraint information
+	// oneOf{cordoned, drain} - a draining pool has no "cordoned" field, derive its effective cordon instead.
+	switch {
+	case poolInfo.Spec.CordonDrain == nil:
+	case poolInfo.Spec.CordonDrain.Cordoned != nil:
+		status.IsCordoned = poolInfo.Spec.CordonDrain.Cordoned.IsCordoned()
 		status.Constraints = parseCordonConstraints(poolInfo.Spec.CordonDrain.Cordoned)
+	case poolInfo.Spec.CordonDrain.Drain != nil:
+		drain := poolInfo.Spec.CordonDrain.Drain
+		effective := &PoolCordonedState{
+			Replicas:  true,
+			Snapshots: true,
+			Restores:  true,
+			Import:    drain.UserCordon != nil && drain.UserCordon.Import,
+		}
+		status.IsCordoned = effective.IsCordoned()
+		status.Constraints = parseCordonConstraints(effective)
 	}
 
 	return status, nil
