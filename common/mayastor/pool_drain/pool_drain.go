@@ -173,6 +173,15 @@ func VerifyPoolInitialAndCurrentSnapshotCountsMatch(poolID string) (bool, error)
 	return progress.Initial.SnapshotCount == current.SnapshotCount, nil
 }
 
+// VerifyPoolReplicaCountZero verifies the pool's current (live) replica count is zero.
+func VerifyPoolReplicaCountZero(poolID string) (bool, error) {
+	current, err := controlplane.GetPoolLiveUsage(poolID)
+	if err != nil {
+		return false, err
+	}
+	return current.ReplicaCount == 0, nil
+}
+
 // VerifyPoolDrainRecordCleared verifies a pool has no drain record - the state
 // after aborting/uncordoning a drain, or a pool that has never been drained.
 func VerifyPoolDrainRecordCleared(poolID string) (bool, error) {
@@ -190,6 +199,25 @@ func VerifyPoolDrainSnapshotPolicy(poolID string, expected string) (bool, error)
 		return false, err
 	}
 	return spec.Policy.SnapshotPolicy == expected, nil
+}
+
+// ListPoolsInDrainPhase returns the names of every pool in the cluster currently in the given drain phase.
+func ListPoolsInDrainPhase(phase string) ([]string, error) {
+	pools, err := controlplane.ListMsPools()
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	for _, pool := range pools {
+		progress, err := controlplane.GetPoolDrainProgressOrNil(pool.Name)
+		if err != nil {
+			return nil, err
+		}
+		if progress != nil && progress.Phase == phase {
+			names = append(names, pool.Name)
+		}
+	}
+	return names, nil
 }
 
 // VerifyPoolCordonedExceptImport verifies a pool is cordoned for everything except import.
@@ -211,6 +239,60 @@ func VerifyPoolCordonedExceptImport(poolID string) (bool, error) {
 	}
 	return hasConstraint("replicas") && hasConstraint("snapshots") && hasConstraint("restores") &&
 		!hasConstraint("import"), nil
+}
+
+// VerifyVolumeReplicaMovePopulated verifies a volume's replica_move marker is populated.
+func VerifyVolumeReplicaMovePopulated(volUuid string) (bool, error) {
+	move, err := controlplane.GetVolumeReplicaMove(volUuid)
+	if err != nil {
+		return false, err
+	}
+	return move != nil, nil
+}
+
+// VerifyVolumeMovingReplica verifies a volume's replica_move marker names the given moving replica.
+func VerifyVolumeMovingReplica(volUuid string, replicaId string) (bool, error) {
+	move, err := controlplane.GetVolumeReplicaMove(volUuid)
+	if err != nil {
+		return false, err
+	}
+	return move != nil && move.MovingReplica != nil && *move.MovingReplica == replicaId, nil
+}
+
+// VerifyVolumeSpareReplicaPopulated verifies a volume's replica_move marker has a placed spare_replica.
+func VerifyVolumeSpareReplicaPopulated(volUuid string) (bool, error) {
+	move, err := controlplane.GetVolumeReplicaMove(volUuid)
+	if err != nil {
+		return false, err
+	}
+	return move != nil && move.SpareReplica != nil && move.SpareReplica.ReplicaId != nil, nil
+}
+
+// VerifyVolumeReplicaMoveNeedSpare verifies whether a move wants a spare - derived from SpareReplica's presence.
+func VerifyVolumeReplicaMoveNeedSpare(volUuid string, expected bool) (bool, error) {
+	move, err := controlplane.GetVolumeReplicaMove(volUuid)
+	if err != nil {
+		return false, err
+	}
+	return move != nil && (move.SpareReplica != nil) == expected, nil
+}
+
+// VerifyVolumeReplicaMoveApplied verifies a move's placement_started_at is set (BDD's "applied_at").
+func VerifyVolumeReplicaMoveApplied(volUuid string) (bool, error) {
+	move, err := controlplane.GetVolumeReplicaMove(volUuid)
+	if err != nil {
+		return false, err
+	}
+	return move != nil && move.PlacementStartedAt != nil, nil
+}
+
+// VerifyVolumeReplicaMoveUnwind verifies a move's unwind reason (UnwindAbort/UnwindRespare).
+func VerifyVolumeReplicaMoveUnwind(volUuid string, expected string) (bool, error) {
+	move, err := controlplane.GetVolumeReplicaMove(volUuid)
+	if err != nil {
+		return false, err
+	}
+	return move != nil && move.Unwind != nil && *move.Unwind == expected, nil
 }
 
 // AbortAllPoolDrains is an AfterEach-style cleanup utility: aborts any drain still
