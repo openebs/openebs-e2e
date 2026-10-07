@@ -153,6 +153,8 @@ product:
       4.6.0:   "openebs.io/v1beta3"
       2.12.1:  "openebs.io/v1beta3"
       4.6.1:   "openebs.io/v1beta3"
+      2.12.2:  "openebs.io/v1beta3"
+      4.6.2:   "openebs.io/v1beta3"
 
     openebsToMayaVersionMap:
       4.3.0: "2.9.0"
@@ -164,6 +166,7 @@ product:
       4.5.1: "2.11.1"
       4.6.0: "2.12.0"
       4.6.1: "2.12.1"
+      4.6.2: "2.12.2"
     chartName: "mayastor"
     chartVersion: "0.0.0-main"
     localPVContainerName: "mayastor-localpv-provisioner"
@@ -180,7 +183,7 @@ product:
     openEBSHelmChartName: "openebs/openebs"
     openEBSHelmRepoUrl: "https://openebs.github.io/openebs"
     openEBSProductNamespace: "openebs"
-    openEBSHelmChartVersion: "4.6.0-develop"
+    openEBSHelmChartVersion: "4.7.0-develop"
     lvmEngineControllerDeploymentName: "openebs-lvm-localpv-controller"
     lvmEngineLeaseName: "snapshot-controller-leader"
     lvmEnginePluginContainerName: "openebs-lvm-plugin"

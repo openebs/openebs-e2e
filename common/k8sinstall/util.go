@@ -134,22 +134,9 @@ func installOpenebs(namespace string, cmdArgs []string) error {
 		"zfs-localpv.analytics.enabled=false",
 		"--set",
 		"localpv-provisioner.analytics.enabled=false",
+		"--set",
+		fmt.Sprintf("loki.singleBinary.replicas=%d", len(workerNodes)),
 	)
-
-	if !e2eCfg.InstallLoki {
-		// loki's minio storage backend images were pulled from quay.io (401); disable until re-vendored upstream
-		cmdArgs = append(cmdArgs,
-			"--set",
-			"loki.enabled=false",
-			"--set",
-			"alloy.enabled=false",
-		)
-	} else {
-		cmdArgs = append(cmdArgs,
-			"--set",
-			fmt.Sprintf("loki.singleBinary.replicas=%d", len(workerNodes)),
-		)
-	}
 
 	if e2eCfg.ImagePullPolicy != "" {
 		cmdArgs = append(cmdArgs,
