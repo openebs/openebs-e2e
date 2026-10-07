@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/e2e_config"
@@ -99,6 +100,15 @@ type ControlPlaneInterface interface {
 	//drain
 	DrainNode(nodeName string, drainLabel string, drainTimeOut int) error
 	GetDrainNodeLabels(nodeName string) ([]string, []string, error)
+
+	// pool drain
+	DrainPool(poolID string, unsafeRebuildOtherwiseEvict *time.Duration, opts ...common.PoolDrainOption) error
+	AbortPoolDrain(poolID string) error
+	GetPoolDrainProgress(poolID string) (*v1.PoolDrainRecord, error)
+	GetPoolDrainProgressOrNil(poolID string) (*v1.PoolDrainRecord, error)
+	GetPoolDrainSpec(poolID string) (*v1.PoolDrainSpec, error)
+	GetPoolLiveUsage(poolID string) (*v1.PoolDrainUsage, error)
+	GetVolumeReplicaMove(volUuid string) (*v1.PoolReplicaMove, error)
 
 	//upgrade
 	Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) (string, error)
@@ -443,6 +453,35 @@ func GetPoolCordonStatus(poolID string) (*v1.PoolCordonStatus, error) {
 
 func DrainNode(nodeName string, drainLabel string, drainTimeOut int) error {
 	return getControlPlane().DrainNode(nodeName, drainLabel, drainTimeOut)
+}
+
+// pool drain
+func DrainPool(poolID string, unsafeRebuildOtherwiseEvict *time.Duration, opts ...common.PoolDrainOption) error {
+	return getControlPlane().DrainPool(poolID, unsafeRebuildOtherwiseEvict, opts...)
+}
+
+func AbortPoolDrain(poolID string) error {
+	return getControlPlane().AbortPoolDrain(poolID)
+}
+
+func GetPoolDrainProgress(poolID string) (*v1.PoolDrainRecord, error) {
+	return getControlPlane().GetPoolDrainProgress(poolID)
+}
+
+func GetPoolDrainProgressOrNil(poolID string) (*v1.PoolDrainRecord, error) {
+	return getControlPlane().GetPoolDrainProgressOrNil(poolID)
+}
+
+func GetPoolDrainSpec(poolID string) (*v1.PoolDrainSpec, error) {
+	return getControlPlane().GetPoolDrainSpec(poolID)
+}
+
+func GetPoolLiveUsage(poolID string) (*v1.PoolDrainUsage, error) {
+	return getControlPlane().GetPoolLiveUsage(poolID)
+}
+
+func GetVolumeReplicaMove(volUuid string) (*v1.PoolReplicaMove, error) {
+	return getControlPlane().GetVolumeReplicaMove(volUuid)
 }
 
 func GetDrainNodeLabels(nodeName string) ([]string, []string, error) {
