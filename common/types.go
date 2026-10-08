@@ -151,6 +151,9 @@ const (
 	// Omitting this option leaves snapshots in place (the default), settling at
 	// PartiallyDrained since allocation can't reach zero.
 	DrainSnapshotPolicyAcceptLoss PoolDrainOption = iota
+	// DrainSnapshotPolicyIgnore explicitly selects the ignore snapshot policy, which is
+	// also the default when no policy is passed.
+	DrainSnapshotPolicyIgnore PoolDrainOption = iota
 	// DrainUnsafeEvict skips the safe over-replicate flow and evicts replicas
 	// directly, degrading the volume rather than waiting on a spare to rebuild.
 	// Hidden flag, meant for testing only.
@@ -162,6 +165,8 @@ func (opt PoolDrainOption) String() string {
 	switch opt {
 	case DrainSnapshotPolicyAcceptLoss:
 		return "snapshot-policy=accept-loss"
+	case DrainSnapshotPolicyIgnore:
+		return "snapshot-policy=ignore"
 	case DrainUnsafeEvict:
 		return "unsafe-evict"
 	default:
