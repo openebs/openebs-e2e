@@ -29,6 +29,8 @@ func (cp CPv1) DrainPool(poolID string, unsafeRebuildOtherwiseEvict *time.Durati
 		switch opt {
 		case common.DrainSnapshotPolicyAcceptLoss:
 			args = append(args, "--snapshot-policy", "accept-loss")
+		case common.DrainSnapshotPolicyIgnore:
+			args = append(args, "--snapshot-policy", "ignore")
 		case common.DrainUnsafeEvict:
 			args = append(args, "--unsafe-evict")
 		}
