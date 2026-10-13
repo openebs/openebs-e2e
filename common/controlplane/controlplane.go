@@ -104,11 +104,11 @@ type ControlPlaneInterface interface {
 	// pool drain
 	DrainPool(poolID string, unsafeRebuildOtherwiseEvict *time.Duration, opts ...common.PoolDrainOption) error
 	AbortPoolDrain(poolID string) error
-	GetPoolDrainProgress(poolID string) (*v1.PoolDrainRecord, error)
-	GetPoolDrainProgressOrNil(poolID string) (*v1.PoolDrainRecord, error)
+	GetPoolDrainProgress(poolID string) (*v1.PoolDrainStateExt, error)
+	GetPoolDrainProgressOrNil(poolID string) (*v1.PoolDrainStateExt, error)
+	GetPoolDrainPhase(poolID string) (string, error)
 	GetPoolDrainSpec(poolID string) (*v1.PoolDrainSpec, error)
-	GetPoolLiveUsage(poolID string) (*v1.PoolDrainUsage, error)
-	GetVolumeReplicaMove(volUuid string) (*v1.PoolReplicaMove, error)
+	GetPoolLiveUsage(poolID string) (*v1.PoolDrainStats, error)
 
 	//upgrade
 	Upgrade(isUpgradingToUnstableBranch, isPartialRebuildDisableNeeded bool) (string, error)
@@ -464,24 +464,24 @@ func AbortPoolDrain(poolID string) error {
 	return getControlPlane().AbortPoolDrain(poolID)
 }
 
-func GetPoolDrainProgress(poolID string) (*v1.PoolDrainRecord, error) {
+func GetPoolDrainProgress(poolID string) (*v1.PoolDrainStateExt, error) {
 	return getControlPlane().GetPoolDrainProgress(poolID)
 }
 
-func GetPoolDrainProgressOrNil(poolID string) (*v1.PoolDrainRecord, error) {
+func GetPoolDrainProgressOrNil(poolID string) (*v1.PoolDrainStateExt, error) {
 	return getControlPlane().GetPoolDrainProgressOrNil(poolID)
+}
+
+func GetPoolDrainPhase(poolID string) (string, error) {
+	return getControlPlane().GetPoolDrainPhase(poolID)
 }
 
 func GetPoolDrainSpec(poolID string) (*v1.PoolDrainSpec, error) {
 	return getControlPlane().GetPoolDrainSpec(poolID)
 }
 
-func GetPoolLiveUsage(poolID string) (*v1.PoolDrainUsage, error) {
+func GetPoolLiveUsage(poolID string) (*v1.PoolDrainStats, error) {
 	return getControlPlane().GetPoolLiveUsage(poolID)
-}
-
-func GetVolumeReplicaMove(volUuid string) (*v1.PoolReplicaMove, error) {
-	return getControlPlane().GetVolumeReplicaMove(volUuid)
 }
 
 func GetDrainNodeLabels(nodeName string) ([]string, []string, error) {

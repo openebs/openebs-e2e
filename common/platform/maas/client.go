@@ -153,3 +153,11 @@ func (h *maas) ResizeVolume(volName string, newSizeGB int) error {
 func (h *maas) ExtractVolumeIdFromDevicePath(dev string) (string, error) {
 	panic(fmt.Errorf("MAAS: device-path to volume-id extraction not implemented"))
 }
+
+func (h *maas) CreateVolume(volName string, sizeGB int, node string) (string, error) {
+	panic(fmt.Errorf("maas: create volume not implemented"))
+}
+
+func (h *maas) DeleteVolume(volName string) error {
+	panic(fmt.Errorf("maas: delete volume not implemented"))
+}

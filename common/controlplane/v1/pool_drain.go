@@ -36,7 +36,7 @@ func (cp CPv1) DrainPool(poolID string, unsafeRebuildOtherwiseEvict *time.Durati
 		}
 	}
 	if unsafeRebuildOtherwiseEvict != nil {
-		args = append(args, "--unsafe-rebuild-otherwise-evict", fmt.Sprintf("%.0f", unsafeRebuildOtherwiseEvict.Seconds()))
+		args = append(args, "--unsafe-rebuild-otherwise-evict", fmt.Sprintf("%ds", int(unsafeRebuildOtherwiseEvict.Seconds())))
 	}
 
 	args = append(args, poolID)
@@ -80,27 +80,42 @@ func (cp CPv1) AbortPoolDrain(poolID string) error {
 	return nil
 }
 
-// PoolDrainUsage mirrors the REST PoolDrainUsage schema: a pool usage snapshot.
-type PoolDrainUsage struct {
+// PoolDrainStats mirrors the REST PoolDrainStats schema: a pool usage snapshot.
+type PoolDrainStats struct {
 	ReplicaCount  uint64  `json:"replicaCount"`
 	SnapshotCount uint64  `json:"snapshotCount"`
 	Used          uint64  `json:"used"`
 	Committed     *uint64 `json:"committed,omitempty"`
 }
 
-// PoolDrainRecord mirrors the REST PoolDrainRecord schema, surfaced at
-// `get pool <id>`'s .meta.drain - there is no separate `get drain pool` command.
-// Persists after the drain reaches a terminal phase, as the pool's last-drain
-// record; cleared only when the drain is cancelled. Current usage isn't part of
-// this record - it's the pool's own live .meta.replicaCount/.meta.snapshotCount
-// and .state.used/.state.committed, diffed against Initial by the caller.
-type PoolDrainRecord struct {
-	Phase  string  `json:"phase"`
-	Reason *string `json:"reason,omitempty"`
-	// Initial is absent while the drain is still Queued.
-	Initial *PoolDrainUsage `json:"initial,omitempty"`
-	// MovingReplicas are the replica ids this drain is currently moving off the pool.
-	MovingReplicas []string `json:"movingReplicas"`
+// PoolDrainState mirrors the REST PoolDrainState schema, surfaced at `get pool <id>`'s
+// .meta.drain. It only carries the number of moving replicas.
+type PoolDrainState struct {
+	Phase             string          `json:"phase"`
+	Reason            *string         `json:"reason,omitempty"`
+	Initial           *PoolDrainStats `json:"initial,omitempty"`
+	NumMovingReplicas uint32          `json:"numMovingReplicas"`
+}
+
+// PoolReplicaMove mirrors the REST ReplicaMoveConfig schema: one in-flight replica move.
+type PoolReplicaMove struct {
+	Volume             string  `json:"volume"`
+	PlacementStartedAt *string `json:"placement_started_at,omitempty"`
+	// MovingReplica is absent once the replica is evacuated.
+	MovingReplica *string `json:"moving_replica,omitempty"`
+	SpareReplica  *string `json:"spare_replica,omitempty"`
+	// UnwindSpare is set while the move's spare is being removed (UnwindCancelled/UnwindRespare).
+	UnwindSpare *string `json:"unwind_spare,omitempty"`
+}
+
+// PoolDrainStateExt mirrors the REST PoolDrainStateExt schema, returned by `get drain pool <id>`.
+type PoolDrainStateExt struct {
+	Phase   string          `json:"phase"`
+	Reason  *string         `json:"reason,omitempty"`
+	Initial *PoolDrainStats `json:"initial,omitempty"`
+	// Current is absent while the drain is Queued or the pool is Offline.
+	Current        *PoolDrainStats   `json:"current,omitempty"`
+	MovingReplicas []PoolReplicaMove `json:"movingReplicas"`
 }
 
 // Pool drain phase constants (PoolDrainPhase in the REST schema).
@@ -141,36 +156,46 @@ type PoolDrainPolicy struct {
 type PoolDrainSpec struct {
 	RequestTimestamp string             `json:"requestTimestamp"`
 	Policy           PoolDrainPolicy    `json:"policy"`
-	UserCordon       *PoolCordonedState `json:"userCordon,omitempty"`
+	PoolCordon       *PoolCordonedState `json:"poolCordon,omitempty"`
 }
 
-// GetPoolDrainProgress fetches a pool's drain record via `get pool <id>` -
-// `get drain pool` does not exist, drain progress rides on the regular pool GET.
-func (cp CPv1) GetPoolDrainProgress(poolID string) (*PoolDrainRecord, error) {
+// GetPoolDrainProgress fetches a pool's drain state via `get drain pool <id>`.
+func (cp CPv1) GetPoolDrainProgress(poolID string) (*PoolDrainStateExt, error) {
+	cmd := GetMayastorPluginCmd("-n", common.NSMayastor(), "-ojson", "get", "drain", "pool", poolID)
+	out, err := cmd.CombinedOutput()
+	if err = CheckPluginError(out, err); err != nil {
+		return nil, fmt.Errorf("failed to get drain of pool %s, error %v, output: %s", poolID, err, string(out))
+	}
+	var state PoolDrainStateExt
+	if err = json.Unmarshal(out, &state); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal drain of pool %s, error %v, output: %s", poolID, err, string(out))
+	}
+	return &state, nil
+}
+
+// GetPoolDrainProgressOrNil is like GetPoolDrainProgress but returns (nil, nil) when
+// the pool has no drain state, e.g. after the drain was cancelled.
+func (cp CPv1) GetPoolDrainProgressOrNil(poolID string) (*PoolDrainStateExt, error) {
 	pool, err := GetMayastorCpPool(poolID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pool %s to read its drain progress, error %v", poolID, err)
+		return nil, fmt.Errorf("failed to get pool %s to read its drain state, error %v", poolID, err)
 	}
 	if pool.Meta == nil || pool.Meta.Drain == nil {
-		return nil, fmt.Errorf("pool %s has no drain record - has a drain ever been requested on it?", poolID)
-	}
-	return pool.Meta.Drain, nil
-}
-
-// GetPoolDrainProgressOrNil fetches a pool's drain record like
-// GetPoolDrainProgress, but returns (nil, nil) instead of an error when no
-// drain record exists yet - for callers checking whether a record was cleared
-// (e.g. after abort/uncordon), where "no record" is an expected outcome, not a
-// failure.
-func (cp CPv1) GetPoolDrainProgressOrNil(poolID string) (*PoolDrainRecord, error) {
-	pool, err := GetMayastorCpPool(poolID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get pool %s to read its drain progress, error %v", poolID, err)
-	}
-	if pool.Meta == nil {
 		return nil, nil
 	}
-	return pool.Meta.Drain, nil
+	return cp.GetPoolDrainProgress(poolID)
+}
+
+// GetPoolDrainPhase returns a pool's drain phase from `get pool`, or "" when it has no drain state.
+func (cp CPv1) GetPoolDrainPhase(poolID string) (string, error) {
+	pool, err := GetMayastorCpPool(poolID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get pool %s to read its drain phase, error %v", poolID, err)
+	}
+	if pool.Meta == nil || pool.Meta.Drain == nil {
+		return "", nil
+	}
+	return pool.Meta.Drain.Phase, nil
 }
 
 // GetPoolDrainSpec fetches a pool's requested drain policy.
@@ -185,60 +210,16 @@ func (cp CPv1) GetPoolDrainSpec(poolID string) (*PoolDrainSpec, error) {
 	return pool.Spec.CordonDrain.Drain, nil
 }
 
-// PoolSpareReplica speculatively mirrors a proposed per-move REST schema - not real yet.
-type PoolSpareReplica struct {
-	ReplicaId *string `json:"replicaId,omitempty"`
-}
-
-// Unwind-reason constants for a not-yet-real per-move REST schema.
+// Unwind-reason constants of a replica move (UnwindSpare in the REST schema).
 const (
-	UnwindAbort   = "Abort"
-	UnwindRespare = "Respare"
+	UnwindCancelled = "Cancelled"
+	UnwindRespare   = "Respare"
 )
 
-// PoolReplicaMove speculatively mirrors a proposed per-move REST schema - not real yet.
-type PoolReplicaMove struct {
-	Volume string `json:"volume"`
-	// PlacementStartedAt is absent until the first spare-placement attempt.
-	PlacementStartedAt *string `json:"placementStartedAt,omitempty"`
-	// MovingReplica is the replica on the draining pool; absent once removed.
-	MovingReplica *string `json:"movingReplica,omitempty"`
-	// SpareReplica's presence/absence is the real signal for the BDD's "need_spare".
-	SpareReplica *PoolSpareReplica `json:"spareReplica,omitempty"`
-	// Unwind is set while this move's spare is being torn down (UnwindAbort/UnwindRespare).
-	Unwind *string `json:"unwind,omitempty"`
-}
-
-// mayastorCpVolumeMeta is a guessed envelope for a `get volume` field that doesn't exist yet.
-type mayastorCpVolumeMeta struct {
-	Meta struct {
-		ReplicaMove *PoolReplicaMove `json:"replicaMove,omitempty"`
-	} `json:"meta"`
-}
-
-// GetVolumeReplicaMove speculatively fetches a volume's replica-move marker - TODO: guessed field.
-func (cp CPv1) GetVolumeReplicaMove(volUuid string) (*PoolReplicaMove, error) {
-	args := []string{"-n", common.NSMayastor(), "-ojson", "get", "volume", volUuid}
-	cmd := GetMayastorPluginCmd(args...)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-
-	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("plugin failed to get volume %s, error %v, output: %s", volUuid, err, out.String())
-	}
-
-	var vol mayastorCpVolumeMeta
-	if err := json.Unmarshal(out.Bytes(), &vol); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal volume %s output, error %v", volUuid, err)
-	}
-	return vol.Meta.ReplicaMove, nil
-}
-
 // GetPoolLiveUsage fetches a pool's current (live) replica/snapshot/usage tallies,
-// to diff against a PoolDrainRecord's Initial - the record itself only ever
+// to diff against a PoolDrainStateExt's Initial - the record itself only ever
 // carries the initial snapshot, never a persisted "current".
-func (cp CPv1) GetPoolLiveUsage(poolID string) (*PoolDrainUsage, error) {
+func (cp CPv1) GetPoolLiveUsage(poolID string) (*PoolDrainStats, error) {
 	pool, err := GetMayastorCpPool(poolID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pool %s to read its live usage, error %v", poolID, err)
@@ -247,7 +228,7 @@ func (cp CPv1) GetPoolLiveUsage(poolID string) (*PoolDrainUsage, error) {
 		return nil, fmt.Errorf("pool %s has no meta in its GET response", poolID)
 	}
 	committed := pool.State.Committed
-	return &PoolDrainUsage{
+	return &PoolDrainStats{
 		ReplicaCount:  pool.Meta.ReplicaCount,
 		SnapshotCount: pool.Meta.SnapshotCount,
 		Used:          pool.State.Used,

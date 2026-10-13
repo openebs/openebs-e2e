@@ -188,3 +188,11 @@ func (h *gcp) GetNodeStatus(node string) (string, error) {
 func (h *gcp) ExtractVolumeIdFromDevicePath(dev string) (string, error) {
 	panic(fmt.Errorf("GCP: device-path to volume-id extraction not implemented"))
 }
+
+func (h *gcp) CreateVolume(volName string, sizeGB int, node string) (string, error) {
+	panic(fmt.Errorf("gcp: create volume not implemented"))
+}
+
+func (h *gcp) DeleteVolume(volName string) error {
+	panic(fmt.Errorf("gcp: delete volume not implemented"))
+}

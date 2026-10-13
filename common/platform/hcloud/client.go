@@ -121,6 +121,37 @@ func (h *hcloud) ResizeVolume(volName string, newSizeGB int) error {
 	return nil
 }
 
+func (h *hcloud) CreateVolume(volName string, sizeGB int, node string) (string, error) {
+	logf.Log.Info("Create Volume", "volName", volName, "sizeGB", sizeGB, "node", node)
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("hcloud volume create --name %s --size %d --server %s", volName, sizeGB, node))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("hcloud create volume failed: %v, output: %s", err, string(output))
+	}
+	cmd = exec.Command("sh", "-c", fmt.Sprintf("hcloud volume describe %s -o format='{{.LinuxDevice}}'", volName))
+	output, err = cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("hcloud describe volume %s failed: %v", volName, err)
+	}
+	devicePath := strings.TrimSpace(string(output))
+	if devicePath == "" {
+		return "", fmt.Errorf("hcloud returned no linux device for volume %s", volName)
+	}
+	return devicePath, nil
+}
+
+func (h *hcloud) DeleteVolume(volName string) error {
+	logf.Log.Info("Delete Volume", "volName", volName)
+	// detach fails if the volume is not attached, which is fine
+	_ = h.DetachVolume(volName, "")
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("hcloud volume delete %s", volName))
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("hcloud delete volume %s failed: %v, output: %s", volName, err, string(output))
+	}
+	return nil
+}
+
 func (h *hcloud) GetNodeStatus(node string) (string, error) {
 	logf.Log.Info("Get status", "node", node)
 	cmd := exec.Command("bash", "-c", fmt.Sprintf("hcloud  server list | grep %s", node))
