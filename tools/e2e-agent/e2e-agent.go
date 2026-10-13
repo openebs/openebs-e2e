@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"os/exec"
@@ -109,6 +110,27 @@ func AcceptConnectionsFromNodes(nodes []string, networkInterface string) error {
 		}
 	}
 	return nil
+}
+
+// DropConnectionToTarget drops this node's outbound TCP traffic to a single
+// remote target (e.g. one SAN array portal), identified by destination
+// address and port -- unlike DropConnectionsFromNodes, which blocks a whole
+// source node, this leaves every other destination (including other paths
+// to the same array) reachable, for simulating one of several paths going
+// down without taking the others with it.
+func DropConnectionToTarget(targetIP string, targetPort int) error {
+	log.Printf("Dropping outbound connections to target %s:%d", targetIP, targetPort)
+	cmd := exec.Command("iptables", "-I", "OUTPUT", "-d", targetIP, "-p", "tcp", "--dport", strconv.Itoa(targetPort), "-j", "DROP", "-m", "comment", "--comment", "mayastor-e2e-test")
+	_, err := cmd.Output()
+	return err
+}
+
+// AcceptConnectionToTarget removes the rule set by DropConnectionToTarget.
+func AcceptConnectionToTarget(targetIP string, targetPort int) error {
+	log.Printf("Accepting outbound connections to target %s:%d", targetIP, targetPort)
+	cmd := exec.Command("iptables", "-D", "OUTPUT", "-d", targetIP, "-p", "tcp", "--dport", strconv.Itoa(targetPort), "-j", "DROP", "-m", "comment", "--comment", "mayastor-e2e-test")
+	_, err := cmd.Output()
+	return err
 }
 
 // DropIncomingTrafficOnNode creates rules to drop every incoming traffic
