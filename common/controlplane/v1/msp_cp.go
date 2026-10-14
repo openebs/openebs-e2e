@@ -19,12 +19,11 @@ type MayastorCpPool struct {
 }
 
 // PoolMeta mirrors the REST PoolMeta schema: live tallies for the pool plus its
-// drain record (if a drain has ever been admitted on it), surfaced by `get pool <id>`.
-// There is no separate `get drain pool` command - drain progress is read this way.
+// drain state (if a drain has ever been admitted on it), surfaced by `get pool <id>`.
 type PoolMeta struct {
-	ReplicaCount  uint64           `json:"replicaCount"`
-	SnapshotCount uint64           `json:"snapshotCount"`
-	Drain         *PoolDrainRecord `json:"drain,omitempty"`
+	ReplicaCount  uint64          `json:"replicaCount"`
+	SnapshotCount uint64          `json:"snapshotCount"`
+	Drain         *PoolDrainState `json:"drain,omitempty"`
 }
 
 type mspSpec struct {
@@ -305,7 +304,7 @@ func (cp CPv1) GetPoolCordonStatus(poolID string) (*PoolCordonStatus, error) {
 			Replicas:  true,
 			Snapshots: true,
 			Restores:  true,
-			Import:    drain.UserCordon != nil && drain.UserCordon.Import,
+			Import:    drain.PoolCordon != nil && drain.PoolCordon.Import,
 		}
 		status.IsCordoned = effective.IsCordoned()
 		status.Constraints = parseCordonConstraints(effective)

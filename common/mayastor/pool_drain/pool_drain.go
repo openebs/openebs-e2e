@@ -2,10 +2,14 @@ package pool_drain
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/openebs/openebs-e2e/common"
 	"github.com/openebs/openebs-e2e/common/controlplane"
+	v1 "github.com/openebs/openebs-e2e/common/controlplane/v1"
+	"github.com/openebs/openebs-e2e/common/custom_resources"
 	"github.com/openebs/openebs-e2e/common/k8stest"
+	"github.com/openebs/openebs-e2e/common/platform"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -29,6 +33,9 @@ const (
 	PhaseReasonSnapshotsRetained    = "SnapshotsRetained"
 )
 
+// FioLoops is high enough for fio to keep running, and the volume published, through a drain.
+const FioLoops = 1000
+
 // Snapshot-policy constants (PoolDrainSnapshotPolicy in the REST schema).
 const (
 	SnapshotPolicyIgnore     = "Ignore"
@@ -41,9 +48,9 @@ var (
 	// DestroyPoolWithoutDrain: deleting a pool that still has replica/snapshot
 	// allocation on it (drain not yet run, or not run to completion).
 	DestroyPoolWithoutDrain = "please drain the diskpool before attempting destroy"
-	// DrainPoolConflictingSnapshotFlags: --ignore-snapshots and
-	// --accept-snapshot-loss passed together.
-	DrainPoolConflictingSnapshotFlags = "cannot use --ignore-snapshots and --accept-snapshot-loss together"
+	// DrainPoolConflictingSnapshotFlags: --snapshot-policy passed twice with
+	// conflicting values (real plugin wording).
+	DrainPoolConflictingSnapshotFlags = "cannot be used multiple times"
 )
 
 // VerifyPoolDrainPhase verifies a pool's drain has reached the given phase.
@@ -115,16 +122,42 @@ func VerifyPoolPartiallyDrained(poolID string) (bool, error) {
 	return true, nil
 }
 
-// GetMovingReplicas returns the ids of replicas currently being moved off a
-// draining pool. The drain record only ever carries bare replica ids over REST -
-// the richer per-move detail (spare_replica/unwind) lives on the control plane's
-// internal DrainConfig, not exposed here.
+// GetMovingReplicas returns the ids of replicas currently being moved off a draining pool.
 func GetMovingReplicas(poolID string) ([]string, error) {
 	progress, err := controlplane.GetPoolDrainProgress(poolID)
 	if err != nil {
 		return nil, err
 	}
-	return progress.MovingReplicas, nil
+	ids := make([]string, 0, len(progress.MovingReplicas))
+	for _, move := range progress.MovingReplicas {
+		if move.MovingReplica != nil {
+			ids = append(ids, *move.MovingReplica)
+		}
+	}
+	return ids, nil
+}
+
+// GetVolumeReplicaMove returns the in-flight move of a volume found in the drain state of any pool, or nil.
+func GetVolumeReplicaMove(volUuid string) (*v1.PoolReplicaMove, error) {
+	pools, err := controlplane.ListMsPools()
+	if err != nil {
+		return nil, err
+	}
+	for _, pool := range pools {
+		progress, err := controlplane.GetPoolDrainProgressOrNil(pool.Name)
+		if err != nil {
+			return nil, err
+		}
+		if progress == nil {
+			continue
+		}
+		for ix := range progress.MovingReplicas {
+			if progress.MovingReplicas[ix].Volume == volUuid {
+				return &progress.MovingReplicas[ix], nil
+			}
+		}
+	}
+	return nil, nil
 }
 
 // VerifyPoolInitialAndCurrentReplicaCountZero verifies a drain record's Initial
@@ -220,6 +253,42 @@ func ListPoolsInDrainPhase(phase string) ([]string, error) {
 	return names, nil
 }
 
+// VerifyPoolDrainCurrentEmpty verifies a pool's drain record reports no current usage, as for an Offline pool.
+func VerifyPoolDrainCurrentEmpty(poolID string) (bool, error) {
+	progress, err := controlplane.GetPoolDrainProgress(poolID)
+	if err != nil {
+		return false, err
+	}
+	return progress.Current == nil, nil
+}
+
+// VerifyPoolStatus verifies the DiskPool status of a pool, e.g. Online or Offline.
+func VerifyPoolStatus(poolID string, expected string) (bool, error) {
+	pool, err := custom_resources.GetMsPool(poolID)
+	if err != nil {
+		return false, err
+	}
+	return strings.EqualFold(pool.GetPoolStatusWithFallback(), expected), nil
+}
+
+// ListOtherPoolsInDrainPhase returns the pools of the given set, other than excluded, that are in the given drain phase.
+func ListOtherPoolsInDrainPhase(pools []string, excluded string, phase string) ([]string, error) {
+	var others []string
+	for _, pool := range pools {
+		if pool == excluded {
+			continue
+		}
+		current, err := controlplane.GetPoolDrainPhase(pool)
+		if err != nil {
+			return nil, err
+		}
+		if current == phase {
+			others = append(others, pool)
+		}
+	}
+	return others, nil
+}
+
 // VerifyPoolCordonedExceptImport verifies a pool is cordoned for everything except import.
 func VerifyPoolCordonedExceptImport(poolID string) (bool, error) {
 	status, err := controlplane.GetPoolCordonStatus(poolID)
@@ -243,7 +312,7 @@ func VerifyPoolCordonedExceptImport(poolID string) (bool, error) {
 
 // VerifyVolumeReplicaMovePopulated verifies a volume's replica_move marker is populated.
 func VerifyVolumeReplicaMovePopulated(volUuid string) (bool, error) {
-	move, err := controlplane.GetVolumeReplicaMove(volUuid)
+	move, err := GetVolumeReplicaMove(volUuid)
 	if err != nil {
 		return false, err
 	}
@@ -252,7 +321,7 @@ func VerifyVolumeReplicaMovePopulated(volUuid string) (bool, error) {
 
 // VerifyVolumeMovingReplica verifies a volume's replica_move marker names the given moving replica.
 func VerifyVolumeMovingReplica(volUuid string, replicaId string) (bool, error) {
-	move, err := controlplane.GetVolumeReplicaMove(volUuid)
+	move, err := GetVolumeReplicaMove(volUuid)
 	if err != nil {
 		return false, err
 	}
@@ -261,16 +330,16 @@ func VerifyVolumeMovingReplica(volUuid string, replicaId string) (bool, error) {
 
 // VerifyVolumeSpareReplicaPopulated verifies a volume's replica_move marker has a placed spare_replica.
 func VerifyVolumeSpareReplicaPopulated(volUuid string) (bool, error) {
-	move, err := controlplane.GetVolumeReplicaMove(volUuid)
+	move, err := GetVolumeReplicaMove(volUuid)
 	if err != nil {
 		return false, err
 	}
-	return move != nil && move.SpareReplica != nil && move.SpareReplica.ReplicaId != nil, nil
+	return move != nil && move.SpareReplica != nil, nil
 }
 
 // VerifyVolumeReplicaMoveNeedSpare verifies whether a move wants a spare - derived from SpareReplica's presence.
 func VerifyVolumeReplicaMoveNeedSpare(volUuid string, expected bool) (bool, error) {
-	move, err := controlplane.GetVolumeReplicaMove(volUuid)
+	move, err := GetVolumeReplicaMove(volUuid)
 	if err != nil {
 		return false, err
 	}
@@ -279,20 +348,20 @@ func VerifyVolumeReplicaMoveNeedSpare(volUuid string, expected bool) (bool, erro
 
 // VerifyVolumeReplicaMoveApplied verifies a move's placement_started_at is set (BDD's "applied_at").
 func VerifyVolumeReplicaMoveApplied(volUuid string) (bool, error) {
-	move, err := controlplane.GetVolumeReplicaMove(volUuid)
+	move, err := GetVolumeReplicaMove(volUuid)
 	if err != nil {
 		return false, err
 	}
 	return move != nil && move.PlacementStartedAt != nil, nil
 }
 
-// VerifyVolumeReplicaMoveUnwind verifies a move's unwind reason (UnwindAbort/UnwindRespare).
+// VerifyVolumeReplicaMoveUnwind verifies a move's unwind reason (UnwindCancelled/UnwindRespare).
 func VerifyVolumeReplicaMoveUnwind(volUuid string, expected string) (bool, error) {
-	move, err := controlplane.GetVolumeReplicaMove(volUuid)
+	move, err := GetVolumeReplicaMove(volUuid)
 	if err != nil {
 		return false, err
 	}
-	return move != nil && move.Unwind != nil && *move.Unwind == expected, nil
+	return move != nil && move.UnwindSpare != nil && *move.UnwindSpare == expected, nil
 }
 
 // AbortAllPoolDrains is an AfterEach-style cleanup utility: aborts any drain still
@@ -305,15 +374,16 @@ func AbortAllPoolDrains() error {
 
 	var lastErr error
 	for _, pool := range pools {
-		progress, err := controlplane.GetPoolDrainProgress(pool.Name)
+		phase, err := controlplane.GetPoolDrainPhase(pool.Name)
 		if err != nil {
+			lastErr = err
 			continue
 		}
 		// AwaitingCleanup is already unwinding to Drained on its own - nothing left to abort.
-		if progress.Phase == "" || progress.Phase == PhaseCancelled || progress.Phase == PhaseAwaitingCleanup {
+		if phase == "" || phase == PhaseCancelled || phase == PhaseAwaitingCleanup {
 			continue
 		}
-		logf.Log.Info("pool still draining, aborting", "pool", pool.Name, "phase", progress.Phase)
+		logf.Log.Info("pool still draining, aborting", "pool", pool.Name, "phase", phase)
 		if err := controlplane.AbortPoolDrain(pool.Name); err != nil {
 			lastErr = fmt.Errorf("AbortPoolDrain(%s) failed: %v", pool.Name, err)
 		}
@@ -328,7 +398,7 @@ func DeployVolumeAndGetTopology(decor string) (*k8stest.FioApp, string, common.R
 		VolSizeMb:    200,
 		VolType:      common.VolFileSystem,
 		ReplicaCount: 3,
-		Loops:        100,
+		Loops:        FioLoops,
 	}
 	if err := fio.DeployApp(); err != nil {
 		return nil, "", nil, fmt.Errorf("failed to create volume and fio app, error: %v", err)
@@ -377,4 +447,49 @@ func CommonPoolWithReplicasOfBothVolumes(decor1, decor2 string) (poolName string
 		}
 	}
 	return "", nil, apps, fmt.Errorf("expected a pool hosting a replica of both 3-replica volumes")
+}
+
+// AttachedDiskPool is a pool created on a newly attached cloud volume, with the volume name needed to remove it.
+type AttachedDiskPool struct {
+	Name    string
+	Node    string
+	VolName string
+}
+
+// CreateAttachedDiskPools attaches extraPerNode new volumes to every given node and creates a pool on each.
+func CreateAttachedDiskPools(nodes []string, extraPerNode int, sizeGB int) ([]AttachedDiskPool, error) {
+	var created []AttachedDiskPool
+	platformIfc := platform.Create()
+	for _, node := range nodes {
+		for ix := 0; ix < extraPerNode; ix++ {
+			volName := fmt.Sprintf("pool-drain-extra-%d-%s", ix+1, node)
+			// record before creating so a failed create still gets its volume removed
+			pool := AttachedDiskPool{Name: fmt.Sprintf("extra-pool-%d-on-%s", ix+1, node), Node: node, VolName: volName}
+			created = append(created, pool)
+			devicePath, err := platformIfc.CreateVolume(volName, sizeGB, node)
+			if err != nil {
+				return created, err
+			}
+			if _, err = custom_resources.CreateMsPool(pool.Name, node, []string{devicePath}); err != nil {
+				return created, fmt.Errorf("failed to create pool %s on %s: %v", pool.Name, devicePath, err)
+			}
+		}
+	}
+	return created, nil
+}
+
+// DeleteAttachedDiskPools deletes the pools and the attached volumes, ignoring ones that were never created.
+func DeleteAttachedDiskPools(pools []AttachedDiskPool) error {
+	var lastErr error
+	platformIfc := platform.Create()
+	for _, pool := range pools {
+		if err := custom_resources.DeleteMsPool(pool.Name); err != nil && !strings.Contains(strings.ToLower(err.Error()), "not found") {
+			logf.Log.Info("failed to delete pool", "pool", pool.Name, "error", err.Error())
+			lastErr = err
+		}
+		if err := platformIfc.DeleteVolume(pool.VolName); err != nil && !strings.Contains(strings.ToLower(err.Error()), "not found") {
+			lastErr = err
+		}
+	}
+	return lastErr
 }

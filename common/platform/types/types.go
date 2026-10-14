@@ -10,6 +10,10 @@ type Platform interface {
 	DetachVolumeFromNode(node string) error
 	AttachVolumeToNode(node string) error
 	ResizeVolume(volName string, newSizeGB int) error
+	// CreateVolume creates a new raw volume of the given size attached to the node and returns its device path
+	CreateVolume(volName string, sizeGB int, node string) (string, error)
+	// DeleteVolume detaches and deletes a volume
+	DeleteVolume(volName string) error
 	// ExtractVolumeIdFromDevicePath parses a provider-specific device path and returns the volume id
 	ExtractVolumeIdFromDevicePath(devicePath string) (string, error)
 }

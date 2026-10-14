@@ -1687,7 +1687,8 @@ func SetContainerArgs(deploymentName string, containerName string, namespace str
 	containers := deployment.Spec.Template.Spec.Containers
 	for i, container := range containers {
 		if container.Name == containerName {
-			old_args = containers[i].Args
+			// copy, replaceOrAppend edits the slice in place
+			old_args = append([]string(nil), container.Args...)
 			containers[i].Args = replaceOrAppend(container.Args, argKey, argValue)
 			break
 		}
