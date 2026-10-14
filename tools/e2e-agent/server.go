@@ -23,6 +23,29 @@ type NodeList struct {
 	NetworkInterface string   `json:"networkInterface"`
 }
 
+// TargetConnection names a single remote service (e.g. one SAN array
+// portal) this node should stop/start reaching, by destination address and
+// port -- unlike NodeList's whole-node source-address blocking, this is
+// scoped to one destination so other paths to the same or other targets are
+// left untouched.
+type TargetConnection struct {
+	TargetIP   string `json:"targetIp"`
+	TargetPort int    `json:"targetPort"`
+}
+
+// CsiSocketBridgeRequest starts or stops a TCP<->unix-socket proxy -- see
+// StartCsiSocketBridge.
+type CsiSocketBridgeRequest struct {
+	SocketPath string `json:"socketPath"`
+	Port       int    `json:"port"`
+}
+
+// FindMultipaths sets or restores multipath.conf's find_multipaths default
+// -- see SetFindMultipaths.
+type FindMultipaths struct {
+	Value string `json:"value"`
+}
+
 type DiskPool struct {
 	Disk string `json:"disk"`
 }
@@ -182,6 +205,12 @@ func handleRequests() {
 	router.HandleFunc("/hugepagezero", ZeroingHugePages).Methods("POST")
 	router.HandleFunc("/dropIncomingTrafficOnNode", dropIncomingTrafficOnNode).Methods("POST")
 	router.HandleFunc("/acceptIncomingTrafficOnNode", acceptIncomingTrafficOnNode).Methods("POST")
+	router.HandleFunc("/dropConnectionToTarget", dropConnectionToTarget).Methods("POST")
+	router.HandleFunc("/acceptConnectionToTarget", acceptConnectionToTarget).Methods("POST")
+	router.HandleFunc("/startCsiSocketBridge", startCsiSocketBridge).Methods("POST")
+	router.HandleFunc("/stopCsiSocketBridge", stopCsiSocketBridge).Methods("POST")
+	router.HandleFunc("/setFindMultipaths", setFindMultipaths).Methods("POST")
+	router.HandleFunc("/restoreMultipathConf", restoreMultipathConf).Methods("POST")
 	router.HandleFunc("/loadKernelModule", LoadKernelModule).Methods("POST")
 	router.HandleFunc("/unloadKernelModule", UnloadKernelModule).Methods("POST")
 	router.HandleFunc("/getProcessID", GetProcessID).Methods("POST")
@@ -323,6 +352,96 @@ func acceptIncomingTrafficOnNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	klog.Info("Successfully started network services")
+}
+
+func dropConnectionToTarget(w http.ResponseWriter, r *http.Request) {
+	var target TargetConnection
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&target); err != nil {
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to read JSON encoded data, Error: ", err)
+		return
+	}
+	klog.Info("Dropping connection to target ", target.TargetIP, target.TargetPort)
+	if err := DropConnectionToTarget(target.TargetIP, target.TargetPort); err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to drop connection to target:", target.TargetIP, "Error: ", err)
+		return
+	}
+	klog.Info("Successfully dropped connection to target")
+}
+
+func acceptConnectionToTarget(w http.ResponseWriter, r *http.Request) {
+	var target TargetConnection
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&target); err != nil {
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to read JSON encoded data, Error: ", err)
+		return
+	}
+	klog.Info("Accepting connection to target ", target.TargetIP, target.TargetPort)
+	if err := AcceptConnectionToTarget(target.TargetIP, target.TargetPort); err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to accept connection to target:", target.TargetIP, "Error: ", err)
+		return
+	}
+	klog.Info("Successfully accepted connection to target")
+}
+
+func startCsiSocketBridge(w http.ResponseWriter, r *http.Request) {
+	var req CsiSocketBridgeRequest
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&req); err != nil {
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to read JSON encoded data, Error: ", err)
+		return
+	}
+	if err := StartCsiSocketBridge(req.SocketPath, req.Port); err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to start CSI socket bridge on port ", req.Port, " Error: ", err)
+		return
+	}
+}
+
+func stopCsiSocketBridge(w http.ResponseWriter, r *http.Request) {
+	var req CsiSocketBridgeRequest
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&req); err != nil {
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to read JSON encoded data, Error: ", err)
+		return
+	}
+	StopCsiSocketBridge(req.Port)
+}
+
+func setFindMultipaths(w http.ResponseWriter, r *http.Request) {
+	var req FindMultipaths
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(&req); err != nil {
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to read JSON encoded data, Error: ", err)
+		return
+	}
+	klog.Info("Setting find_multipaths to ", req.Value)
+	if err := SetFindMultipaths(req.Value); err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to set find_multipaths to ", req.Value, " Error: ", err)
+		return
+	}
+}
+
+func restoreMultipathConf(w http.ResponseWriter, r *http.Request) {
+	klog.Info("Restoring multipath.conf")
+	if err := RestoreMultipathConf(); err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to restore multipath.conf, Error: ", err)
+		return
+	}
 }
 
 func LoadKernelModule(w http.ResponseWriter, r *http.Request) {

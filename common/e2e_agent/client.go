@@ -33,6 +33,13 @@ type CmdList struct {
 	Cmd string `json:"cmd"`
 }
 
+// TargetConnection is a single remote service (e.g. one SAN array portal),
+// by destination address and port, to be passed to e2e-agent.
+type TargetConnection struct {
+	TargetIP   string `json:"targetIp"`
+	TargetPort int    `json:"targetPort"`
+}
+
 type Device struct {
 	Device     string `json:"device"`
 	Table      string `json:"table"`
@@ -239,6 +246,87 @@ func AcceptConnectionsFromNodes(serverAddr string, nodes []string) error {
 	}
 	logf.Log.Info("Executing acceptConnectionsFromNodes", "addr", serverAddr, "data", data)
 	return sendRequest("POST", url, data)
+}
+
+// DropConnectionToTarget drops this node's outbound traffic to a single
+// remote target (e.g. one SAN array portal), leaving every other
+// destination reachable -- unlike DropConnectionsFromNodes, which blocks a
+// whole source node.
+func DropConnectionToTarget(serverAddr, targetIP string, targetPort int) error {
+	url := "http://" + getAgentAddress(serverAddr) + "/dropConnectionToTarget"
+	data := TargetConnection{
+		TargetIP:   targetIP,
+		TargetPort: targetPort,
+	}
+	logf.Log.Info("Executing dropConnectionToTarget", "addr", serverAddr, "data", data)
+	return sendRequest("POST", url, data)
+}
+
+// AcceptConnectionToTarget removes the rule set by DropConnectionToTarget.
+func AcceptConnectionToTarget(serverAddr, targetIP string, targetPort int) error {
+	url := "http://" + getAgentAddress(serverAddr) + "/acceptConnectionToTarget"
+	data := TargetConnection{
+		TargetIP:   targetIP,
+		TargetPort: targetPort,
+	}
+	logf.Log.Info("Executing acceptConnectionToTarget", "addr", serverAddr, "data", data)
+	return sendRequest("POST", url, data)
+}
+
+// CsiSocketBridgeRequest starts or stops a TCP<->unix-socket proxy on a
+// node, by destination socket path and listening port -- see
+// StartCsiSocketBridge.
+type CsiSocketBridgeRequest struct {
+	SocketPath string `json:"socketPath"`
+	Port       int    `json:"port"`
+}
+
+// StartCsiSocketBridge starts a TCP listener on serverAddr's node, on port,
+// that proxies every connection to socketPath -- for reaching a node
+// plugin's CSI socket (always on the host filesystem, since kubelet
+// requires it there) from outside the cluster the same way this agent's own
+// HTTP port is already reached, without needing a kubectl port-forward.
+func StartCsiSocketBridge(serverAddr, socketPath string, port int) error {
+	url := "http://" + getAgentAddress(serverAddr) + "/startCsiSocketBridge"
+	data := CsiSocketBridgeRequest{SocketPath: socketPath, Port: port}
+	logf.Log.Info("Executing startCsiSocketBridge", "addr", serverAddr, "data", data)
+	return sendRequest("POST", url, data)
+}
+
+// StopCsiSocketBridge stops the bridge StartCsiSocketBridge started on
+// port, if any -- safe to call even if none was started.
+func StopCsiSocketBridge(serverAddr string, port int) error {
+	url := "http://" + getAgentAddress(serverAddr) + "/stopCsiSocketBridge"
+	data := CsiSocketBridgeRequest{Port: port}
+	logf.Log.Info("Executing stopCsiSocketBridge", "addr", serverAddr, "data", data)
+	return sendRequest("POST", url, data)
+}
+
+// FindMultipathsRequest sets or restores multipath.conf's find_multipaths
+// default -- see SetFindMultipaths.
+type FindMultipathsRequest struct {
+	Value string `json:"value"`
+}
+
+// SetFindMultipaths sets multipath.conf's find_multipaths default to value
+// ("yes" or "no") on serverAddr's node. The caller must still restart
+// multipathd (e.g. via RestartService(serverAddr, "multipathd")) for this
+// to take effect, and must call RestoreMultipathConf when done.
+func SetFindMultipaths(serverAddr, value string) error {
+	url := "http://" + getAgentAddress(serverAddr) + "/setFindMultipaths"
+	data := FindMultipathsRequest{Value: value}
+	logf.Log.Info("Executing setFindMultipaths", "addr", serverAddr, "data", data)
+	return sendRequest("POST", url, data)
+}
+
+// RestoreMultipathConf puts back the multipath.conf SetFindMultipaths
+// backed up on serverAddr's node, if any -- safe to call even if
+// SetFindMultipaths was never called. The caller must still restart
+// multipathd for the restored file to take effect.
+func RestoreMultipathConf(serverAddr string) error {
+	url := "http://" + getAgentAddress(serverAddr) + "/restoreMultipathConf"
+	logf.Log.Info("Executing restoreMultipathConf", "addr", serverAddr)
+	return sendRequest("POST", url, nil)
 }
 
 // DiskPartition performs operation related to disk prtitioning
