@@ -414,3 +414,21 @@ func (cp CPv1) DeleteOfflinePoolViaPlugin(poolName string, flags ...common.Offli
 	logf.Log.Info("Successfully deleted pool via plugin", "pool", poolName, "output", out.String())
 	return nil
 }
+
+// LabelPool adds a label (key=value) to, or removes a label (key-) from, a pool
+func (cp CPv1) LabelPool(poolID string, label string) error {
+	args := []string{"-n", common.NSMayastor(), "label", "pool", "--overwrite", poolID, label}
+	logf.Log.Info("Executing command", "command", "mayastor", "args", args)
+
+	cmd := GetMayastorPluginCmd(args...)
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("plugin failed to label pool %s with %s, error %v, output: %s", poolID, label, err, out.String())
+	}
+	return nil
+}

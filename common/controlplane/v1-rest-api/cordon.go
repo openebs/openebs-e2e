@@ -37,3 +37,9 @@ func (cp CPv1RestApi) GetPoolCordonStatus(poolID string) (*cpV1.PoolCordonStatus
 	// #TODO implement REST api for getting pool cordon status
 	panic(fmt.Errorf("not implemented REST api for getting pool cordon status"))
 }
+
+// pool label
+func (cp CPv1RestApi) LabelPool(poolID string, label string) error {
+	// #TODO implement REST api for pool label
+	panic(fmt.Errorf("not implemented REST api for pool label"))
+}
