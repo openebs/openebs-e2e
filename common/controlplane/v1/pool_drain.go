@@ -148,7 +148,7 @@ const (
 // PoolDrainPolicy mirrors the REST PoolDrainPolicy schema.
 type PoolDrainPolicy struct {
 	SnapshotPolicy              string  `json:"snapshotPolicy"`
-	UnsafeRebuildOtherwiseEvict *uint64 `json:"unsafeRebuildOtherwiseEvict,omitempty"`
+	UnsafeRebuildOtherwiseEvict *string `json:"unsafeRebuildOtherwiseEvict,omitempty"`
 	UnsafeEvict                 bool    `json:"unsafeEvict"`
 }
 
