@@ -25,7 +25,6 @@ mkShell {
     google-cloud-sdk
     git
     kubernetes-helm
-    nodejs-slim
     numactl
     meson
     ninja
