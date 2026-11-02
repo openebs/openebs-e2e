@@ -575,6 +575,16 @@ func NvmeListSubSys(serverAddr string) (string, error) {
 	return sendRequestGetResponse("POST", url, nil, false)
 }
 
+// NvmeControllerAttrs reads each local NVMe/TCP controller's live
+// ctrl_loss_tmo, reconnect_delay, kato (keep_alive_tmo), queue_count,
+// state, address, subsysnqn, hostnqn and cntlid from sysfs, as
+// "nvmeX.attr=value" lines.
+func NvmeControllerAttrs(serverAddr string) (string, error) {
+	logf.Log.Info("Executing nvmecontrollerattrs", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/nvmecontrollerattrs"
+	return sendRequestGetResponse("POST", url, nil, false)
+}
+
 // checksum the device
 // the returned format is <checksum> <size> <device>
 func ChecksumDevice(serverAddr string, devicePath string) (string, error) {
@@ -1929,6 +1939,16 @@ func IscsiadmLogout(serverAddr string, targetIqn string, portal string) (string,
 func IscsiSessions(serverAddr string) (string, error) {
 	logf.Log.Info("Executing iscsiSessions", "addr", serverAddr)
 	url := "http://" + getAgentAddress(serverAddr) + "/iscsiSessions"
+	return sendRequestGetResponse("POST", url, nil, false)
+}
+
+// IscsiSessionAttrs reads each active session's live recovery_tmo,
+// noop_out_interval, noop_out_timeout and cmds_max, as repeated
+// "SID=<n>" / `iscsiadm -S` dump / "ENDSID" blocks ("" when there are no
+// sessions).
+func IscsiSessionAttrs(serverAddr string) (string, error) {
+	logf.Log.Info("Executing iscsiSessionAttrs", "addr", serverAddr)
+	url := "http://" + getAgentAddress(serverAddr) + "/iscsiSessionAttrs"
 	return sendRequestGetResponse("POST", url, nil, false)
 }
 

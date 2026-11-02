@@ -223,3 +223,29 @@ func IscsiSessions(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprint(w, output)
 	klog.Info(output)
 }
+
+// IscsiSessionAttrs reads each active session's live negotiated parameters
+// -- recovery_tmo, noop_out_interval, noop_out_timeout, cmds_max -- via
+// `iscsiadm -m session -r <sid> -S`, which iscsiadm sources from the kernel
+// for the running session rather than the on-disk node record, so a value
+// written straight into sysfs (as multipathd and this driver both do) is
+// reflected here too. Output is one "SID=<n>" line followed by that
+// session's "-S" dump and an "ENDSID" marker, repeated per session; there
+// is no equivalent single-shot listing command, unlike IscsiSessions.
+func IscsiSessionAttrs(w http.ResponseWriter, r *http.Request) {
+	cmdStr := `for sid in $(iscsiadm -m session 2>/dev/null | sed -n 's/^tcp:[[:space:]]*\[\([0-9]*\)\].*/\1/p'); do
+  echo "SID=$sid"
+  iscsiadm -m session -r "$sid" -S 2>/dev/null
+  echo "ENDSID"
+done`
+	klog.Info("running command ", cmdStr)
+	output, err := runOnHost(cmdStr)
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		_, _ = fmt.Fprint(w, output)
+		klog.Error("failed to read iSCSI session attributes, Error: ", err)
+		return
+	}
+	_, _ = fmt.Fprint(w, output)
+	klog.Info(output)
+}

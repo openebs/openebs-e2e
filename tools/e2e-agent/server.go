@@ -184,6 +184,7 @@ func handleRequests() {
 	router.HandleFunc("/nvmedisconnect", NvmeDisconnect).Methods("POST")
 	router.HandleFunc("/nvmelist", NvmeList).Methods("POST")
 	router.HandleFunc("/nvmelistsubsys", NvmeListSubSys).Methods("POST")
+	router.HandleFunc("/nvmecontrollerattrs", NvmeControllerAttrs).Methods("POST")
 	router.HandleFunc("/checksumdevice", ChecksumDevice).Methods("POST")
 	router.HandleFunc("/fscheckdevice", FsCheckDevice).Methods("POST")
 	router.HandleFunc("/xfscheckdevice", XFSCheckDevice).Methods("POST")
@@ -269,6 +270,7 @@ func handleRequests() {
 	router.HandleFunc("/iscsiadmLogout", IscsiadmLogout).Methods("POST")
 	router.HandleFunc("/iscsiadmRescan", IscsiadmRescan).Methods("POST")
 	router.HandleFunc("/iscsiSessions", IscsiSessions).Methods("POST")
+	router.HandleFunc("/iscsiSessionAttrs", IscsiSessionAttrs).Methods("POST")
 	//Fibre Channel
 	router.HandleFunc("/getFcWwpns", GetFcWwpns).Methods("POST")
 	router.HandleFunc("/listFcRemotePorts", ListFcRemotePorts).Methods("POST")
@@ -1078,6 +1080,38 @@ func NvmeListSubSys(w http.ResponseWriter, r *http.Request) {
 	cmdStr := "bash"
 	params[0] = "-c"
 	params[1] = "nvme list-subsys --output-format=json"
+
+	klog.Info("executing command ", params[1])
+	cmd := exec.Command(cmdStr, params...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		w.WriteHeader(InternalServerErrorCode)
+		_, _ = fmt.Fprint(w, err.Error())
+		klog.Error("failed to execute command ", params[1], "Error: ", err)
+		return
+	}
+	_, _ = fmt.Fprint(w, string(output))
+	klog.Info(string(output))
+}
+
+// NvmeControllerAttrs reads each local NVMe/TCP controller's live kernel
+// connect-option attributes from /sys/class/nvme/nvmeX/, as
+// "nvmeX.attr=value" lines -- "nvme list-subsys" reports topology (name,
+// transport, address, state) but not ctrl_loss_tmo, reconnect_delay, kato
+// (keep_alive_tmo) or queue_count, which have no CLI equivalent and are
+// only readable from sysfs.
+func NvmeControllerAttrs(w http.ResponseWriter, r *http.Request) {
+	params := make([]string, 2)
+
+	cmdStr := "bash"
+	params[0] = "-c"
+	params[1] = `for c in /sys/class/nvme/nvme*; do
+  [ -d "$c" ] || continue
+  n=$(basename "$c")
+  for f in state ctrl_loss_tmo reconnect_delay kato queue_count address subsysnqn hostnqn cntlid; do
+    [ -f "$c/$f" ] && echo "$n.$f=$(cat "$c/$f" 2>/dev/null)"
+  done
+done`
 
 	klog.Info("executing command ", params[1])
 	cmd := exec.Command(cmdStr, params...)
