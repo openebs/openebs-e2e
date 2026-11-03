@@ -210,6 +210,19 @@ func (cp CPv1) GetPoolDrainSpec(poolID string) (*PoolDrainSpec, error) {
 	return pool.Spec.CordonDrain.Drain, nil
 }
 
+// GetPoolDrainSpecOrNil is like GetPoolDrainSpec but returns (nil, nil) when the pool has no drain spec,
+// e.g. after the drain was cleared by uncordon --drain.
+func (cp CPv1) GetPoolDrainSpecOrNil(poolID string) (*PoolDrainSpec, error) {
+	pool, err := GetMayastorCpPool(poolID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pool %s to read its drain spec, error %v", poolID, err)
+	}
+	if pool.Spec.CordonDrain == nil {
+		return nil, nil
+	}
+	return pool.Spec.CordonDrain.Drain, nil
+}
+
 // Unwind-reason constants of a replica move (UnwindSpare in the REST schema).
 const (
 	UnwindCancelled = "Cancelled"
