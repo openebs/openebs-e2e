@@ -225,6 +225,15 @@ func VerifyPoolDrainRecordCleared(poolID string) (bool, error) {
 	return progress == nil, nil
 }
 
+// VerifyPoolDrainSpecCleared verifies a pool has no drain spec - the state after uncordon --drain.
+func VerifyPoolDrainSpecCleared(poolID string) (bool, error) {
+	spec, err := controlplane.GetPoolDrainSpecOrNil(poolID)
+	if err != nil {
+		return false, err
+	}
+	return spec == nil, nil
+}
+
 // VerifyPoolDrainSnapshotPolicy verifies a pool's requested snapshot policy.
 func VerifyPoolDrainSnapshotPolicy(poolID string, expected string) (bool, error) {
 	spec, err := controlplane.GetPoolDrainSpec(poolID)

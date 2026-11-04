@@ -111,6 +111,7 @@ type ControlPlaneInterface interface {
 	GetPoolDrainProgressOrNil(poolID string) (*v1.PoolDrainStateExt, error)
 	GetPoolDrainPhase(poolID string) (string, error)
 	GetPoolDrainSpec(poolID string) (*v1.PoolDrainSpec, error)
+	GetPoolDrainSpecOrNil(poolID string) (*v1.PoolDrainSpec, error)
 	GetPoolLiveUsage(poolID string) (*v1.PoolDrainStats, error)
 
 	//upgrade
@@ -485,6 +486,10 @@ func GetPoolDrainPhase(poolID string) (string, error) {
 
 func GetPoolDrainSpec(poolID string) (*v1.PoolDrainSpec, error) {
 	return getControlPlane().GetPoolDrainSpec(poolID)
+}
+
+func GetPoolDrainSpecOrNil(poolID string) (*v1.PoolDrainSpec, error) {
+	return getControlPlane().GetPoolDrainSpecOrNil(poolID)
 }
 
 func GetPoolLiveUsage(poolID string) (*v1.PoolDrainStats, error) {
